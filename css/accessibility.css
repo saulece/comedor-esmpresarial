@@ -1,0 +1,330 @@
+/**
+ * Sistema de Confirmación de Asistencias para Comedor Empresarial
+ * Estilos de Accesibilidad
+ * 
+ * Este archivo contiene estilos para mejorar la accesibilidad
+ * y cumplir con los estándares WCAG 2.1 AA.
+ */
+
+/* Utilidades para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mejoras de foco para navegación por teclado */
+.focus-visible :focus {
+  outline: 3px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.keyboard-user :focus {
+  outline: 3px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* No mostrar outline para usuarios de ratón */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Modo de alto contraste */
+.high-contrast {
+  --text-color: #fff;
+  --background-color: #000;
+  --primary-color: #ffff00;
+  --secondary-color: #00ffff;
+  --success-color: #00ff00;
+  --danger-color: #ff0000;
+  --warning-color: #ffaa00;
+  --info-color: #00ffff;
+  --border-color: #fff;
+}
+
+.high-contrast body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.high-contrast a {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.high-contrast button,
+.high-contrast .btn {
+  border: 2px solid var(--border-color);
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+.high-contrast button:hover,
+.high-contrast .btn:hover {
+  background-color: var(--text-color);
+  color: var(--background-color);
+}
+
+.high-contrast input,
+.high-contrast textarea,
+.high-contrast select {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+}
+
+.high-contrast .card,
+.high-contrast .modal,
+.high-contrast .alert {
+  border: 2px solid var(--border-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Tamaños de texto */
+.text-small {
+  font-size: 0.85em;
+}
+
+.text-normal {
+  font-size: 1em;
+}
+
+.text-large {
+  font-size: 1.2em;
+}
+
+.text-x-large {
+  font-size: 1.5em;
+}
+
+/* Ajustes para tamaños de texto */
+.text-large button,
+.text-large input,
+.text-large select,
+.text-large textarea,
+.text-x-large button,
+.text-x-large input,
+.text-x-large select,
+.text-x-large textarea {
+  font-size: inherit;
+}
+
+/* Reducción de movimiento */
+.reduce-motion * {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
+
+/* Indicadores visuales para campos requeridos */
+.required-indicator {
+  color: #ff0000;
+  margin-left: 2px;
+}
+
+/* Estilos para modal de accesibilidad */
+.a11y-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.a11y-modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+  position: relative;
+}
+
+.high-contrast .a11y-modal-content {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+}
+
+.a11y-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.a11y-modal-close:hover {
+  background-color: #f0f0f0;
+}
+
+.high-contrast .a11y-modal-close:hover {
+  background-color: var(--text-color);
+  color: var(--background-color);
+}
+
+.a11y-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.a11y-shortcuts-table th,
+.a11y-shortcuts-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.high-contrast .a11y-shortcuts-table th,
+.high-contrast .a11y-shortcuts-table td {
+  border-color: var(--border-color);
+}
+
+.a11y-shortcuts-table th {
+  font-weight: bold;
+}
+
+kbd {
+  background-color: #f7f7f7;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  color: #333;
+  display: inline-block;
+  font-size: 0.85em;
+  font-family: monospace;
+  line-height: 1;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.high-contrast kbd {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
+  box-shadow: none;
+}
+
+/* Mejoras para formularios */
+label {
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+input[type="checkbox"] + label,
+input[type="radio"] + label {
+  display: inline;
+  margin-left: 5px;
+}
+
+/* Mejoras para tablas */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table caption {
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* Mejoras para enlaces */
+a[target="_blank"]::after {
+  content: " (abre en nueva ventana)";
+  font-size: 0.85em;
+}
+
+.sr-only + a[target="_blank"]::after {
+  content: "";
+}
+
+/* Mejoras para botones */
+button, 
+.btn {
+  cursor: pointer;
+}
+
+button[disabled],
+.btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Mejoras para tooltips */
+[role="tooltip"] {
+  position: absolute;
+  padding: 5px 10px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 3px;
+  font-size: 0.85em;
+  z-index: 1000;
+  max-width: 200px;
+}
+
+.high-contrast [role="tooltip"] {
+  background-color: var(--text-color);
+  color: var(--background-color);
+  border: 1px solid var(--border-color);
+}
+
+/* Mejoras para skip links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background-color: #fff;
+  color: #000;
+  padding: 8px;
+  z-index: 9999;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+.high-contrast .skip-link {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+}
+
+/* Ajustes para dispositivos móviles */
+@media screen and (max-width: 768px) {
+  .text-large {
+    font-size: 1.1em;
+  }
+  
+  .text-x-large {
+    font-size: 1.3em;
+  }
+  
+  .a11y-modal-content {
+    width: 95%;
+    max-height: 80%;
+  }
+}

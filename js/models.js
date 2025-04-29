@@ -13,6 +13,14 @@ const Models = {
      * @returns {Array} Lista de usuarios
      */
     getAll: function() {
+      // Usar StorageService si está disponible, o fallback a Utils.getFromStorage
+      if (typeof StorageService !== 'undefined' && StorageService.config.isInitialized) {
+        return StorageService.getAll(CONFIG.STORAGE_KEYS.USERS)
+          .catch(error => {
+            console.error('Error al obtener usuarios:', error);
+            return Utils.getFromStorage(CONFIG.STORAGE_KEYS.USERS, []);
+          });
+      }
       return Utils.getFromStorage(CONFIG.STORAGE_KEYS.USERS, []);
     },
 
@@ -244,6 +252,14 @@ const Models = {
      * @returns {Array} Lista de menús
      */
     getAll: function() {
+      // Usar StorageService si está disponible, o fallback a Utils.getFromStorage
+      if (typeof StorageService !== 'undefined' && StorageService.config.isInitialized) {
+        return StorageService.getAll(CONFIG.STORAGE_KEYS.MENUS)
+          .catch(error => {
+            console.error('Error al obtener menús:', error);
+            return Utils.getFromStorage(CONFIG.STORAGE_KEYS.MENUS, []);
+          });
+      }
       return Utils.getFromStorage(CONFIG.STORAGE_KEYS.MENUS, []);
     },
 
@@ -403,6 +419,14 @@ const Models = {
      * @returns {Array} Lista de confirmaciones
      */
     getAll: function() {
+      // Usar StorageService si está disponible, o fallback a Utils.getFromStorage
+      if (typeof StorageService !== 'undefined' && StorageService.config.isInitialized) {
+        return StorageService.getAll(CONFIG.STORAGE_KEYS.CONFIRMATIONS)
+          .catch(error => {
+            console.error('Error al obtener confirmaciones:', error);
+            return Utils.getFromStorage(CONFIG.STORAGE_KEYS.CONFIRMATIONS, []);
+          });
+      }
       return Utils.getFromStorage(CONFIG.STORAGE_KEYS.CONFIRMATIONS, []);
     },
 

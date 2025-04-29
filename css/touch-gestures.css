@@ -1,0 +1,296 @@
+/**
+ * Sistema de Confirmación de Asistencias para Comedor Empresarial
+ * Estilos para gestos táctiles y optimizaciones móviles
+ * 
+ * Este archivo contiene estilos específicos para mejorar la 
+ * experiencia táctil en dispositivos móviles.
+ */
+
+/* Estilos base para elementos táctiles */
+.touch-enabled {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  touch-action: manipulation;
+}
+
+/* Áreas táctiles más grandes para dedos */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Botones optimizados para táctil */
+.touch-button {
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: none;
+  background-color: #2c3e50;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.touch-button:active {
+  transform: scale(0.98);
+  background-color: #1a252f;
+}
+
+.dark-mode .touch-button {
+  background-color: #bb86fc;
+  color: #000000;
+}
+
+.dark-mode .touch-button:active {
+  background-color: #9965f4;
+}
+
+/* Elementos deslizables (swipeable) */
+.swipeable {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.swipeable-content {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease-out;
+}
+
+/* Indicadores de deslizamiento */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.swipe-indicator-left {
+  left: 8px;
+}
+
+.swipe-indicator-right {
+  right: 8px;
+}
+
+.swipeable:hover .swipe-indicator {
+  opacity: 0.7;
+}
+
+.dark-mode .swipe-indicator {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #000000;
+}
+
+/* Carrusel táctil */
+.carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.carousel-wrapper {
+  display: flex;
+  transition: transform 0.3s ease-out;
+}
+
+.carousel-item {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.carousel-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin: 0 4px;
+  transition: background-color 0.3s;
+}
+
+.carousel-indicator.active {
+  background-color: #2c3e50;
+}
+
+.dark-mode .carousel-indicator {
+  background-color: #555;
+}
+
+.dark-mode .carousel-indicator.active {
+  background-color: #bb86fc;
+}
+
+/* Listas deslizables */
+.swipe-list-item {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.2s;
+}
+
+.swipe-list-content {
+  width: 100%;
+  transition: transform 0.3s ease-out;
+  background-color: inherit;
+}
+
+.swipe-list-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.swipe-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  color: white;
+  font-weight: bold;
+}
+
+.swipe-action-delete {
+  background-color: #e74c3c;
+}
+
+.swipe-action-edit {
+  background-color: #3498db;
+}
+
+.swipe-action-archive {
+  background-color: #f39c12;
+}
+
+/* Pull-to-refresh */
+.pull-to-refresh {
+  position: relative;
+  overflow: hidden;
+}
+
+.pull-to-refresh-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-100%);
+  transition: transform 0.3s;
+}
+
+.pull-to-refresh-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: #2c3e50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dark-mode .pull-to-refresh-spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #bb86fc;
+}
+
+/* Feedback táctil */
+.touch-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.touch-ripple::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1) translate(-50%, -50%);
+  transform-origin: 0 0;
+}
+
+.touch-ripple:active::after {
+  opacity: 1;
+  transform: scale(20) translate(-50%, -50%);
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.dark-mode .touch-ripple::after {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Optimizaciones para dispositivos móviles */
+@media (max-width: 768px) {
+  .touch-button {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+  
+  .carousel-indicator {
+    width: 6px;
+    height: 6px;
+    margin: 0 3px;
+  }
+}
+
+/* Optimizaciones para modo ultra-compacto */
+@media (max-width: 480px) {
+  .ultra-compact-mode .touch-button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .ultra-compact-mode .touch-target {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  .ultra-compact-mode .carousel-indicators {
+    margin-top: 8px;
+  }
+  
+  .ultra-compact-mode .carousel-indicator {
+    width: 5px;
+    height: 5px;
+    margin: 0 2px;
+  }
+}

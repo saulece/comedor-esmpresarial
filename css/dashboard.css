@@ -1,0 +1,179 @@
+/**
+ * Sistema de Confirmación de Asistencias para Comedor Empresarial
+ * Estilos para el Dashboard
+ */
+
+.dashboard-container {
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.dashboard-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -10px;
+}
+
+.dashboard-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 10px;
+  padding: 15px;
+  flex: 1 1 calc(50% - 20px);
+  min-width: 250px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.dashboard-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 15px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.dashboard-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.dashboard-card-content {
+  margin-bottom: 15px;
+}
+
+.dashboard-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.dashboard-card-label {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.dashboard-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.dashboard-card-trend {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-card-trend.positive {
+  color: #28a745;
+}
+
+.dashboard-card-trend.negative {
+  color: #dc3545;
+}
+
+.dashboard-card-trend.neutral {
+  color: #6c757d;
+}
+
+/* Colores para los iconos */
+.bg-primary {
+  background-color: #007bff;
+}
+
+.bg-success {
+  background-color: #28a745;
+}
+
+.bg-warning {
+  background-color: #ffc107;
+}
+
+.bg-danger {
+  background-color: #dc3545;
+}
+
+.bg-info {
+  background-color: #17a2b8;
+}
+
+/* Gráficos simplificados */
+.simple-chart {
+  height: 100px;
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.chart-bar {
+  flex: 1;
+  margin: 0 2px;
+  background-color: #007bff;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s;
+}
+
+/* Modo oscuro */
+.dark-mode .dashboard-card {
+  background-color: #2d2d2d;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .dashboard-card-label {
+  color: #b0b0b0;
+}
+
+.dark-mode .dashboard-card-footer {
+  color: #b0b0b0;
+}
+
+/* Ajustes para dispositivos móviles */
+@media (max-width: 768px) {
+  .dashboard-card {
+    flex: 1 1 100%;
+  }
+}
+
+/* Ajustes para modo ultra-compacto */
+@media (max-width: 480px) {
+  .ultra-compact-mode .dashboard-card {
+    padding: 10px;
+    margin: 5px;
+  }
+  
+  .ultra-compact-mode .dashboard-card-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+  
+  .ultra-compact-mode .dashboard-card-title {
+    font-size: 16px;
+  }
+  
+  .ultra-compact-mode .dashboard-card-value {
+    font-size: 22px;
+  }
+  
+  .ultra-compact-mode .simple-chart {
+    height: 60px;
+  }
+}

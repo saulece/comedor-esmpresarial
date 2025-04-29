@@ -14,6 +14,9 @@ const Admin = {
     // Configurar eventos de pestañas
     this._setupTabEvents();
     
+    // Inicializar dashboard
+    this._initDashboard();
+    
     // Inicializar gestión de menús
     this._initMenuManagement();
     
@@ -62,6 +65,23 @@ const Admin = {
     const menuFormContainer = document.getElementById('menu-form-container');
     if (menuFormContainer) {
       menuFormContainer.innerHTML = this._createMenuFormHTML();
+      
+      // Inicializar el selector de plantillas de menú
+      if (typeof MenuTemplates !== 'undefined') {
+        MenuTemplates.init();
+        const templateSelectorContainer = document.getElementById('template-selector-container');
+        if (templateSelectorContainer) {
+          const templateSelector = MenuTemplates.createTemplateSelector({
+            onApplyTemplate: (templateId) => {
+              const currentMenuId = document.getElementById('menu-id').value;
+              const menu = currentMenuId ? Models.Menu.getById(currentMenuId) : { days: [] };
+              const updatedMenu = MenuTemplates.applyTemplate(templateId, menu);
+              this._loadMenuDataToForm(updatedMenu);
+            }
+          });
+          templateSelectorContainer.appendChild(templateSelector);
+        }
+      }
     }
     
     // Cargar lista de menús
@@ -114,15 +134,18 @@ const Admin = {
           <input type="date" id="week-start-date" name="week-start-date" value="${weekStart.toISOString().split('T')[0]}" required>
         </div>
         
+        <!-- Selector de plantillas de menú -->
+        <div id="template-selector-container" class="mb-4"></div>
+        
         <h3>Menú Semanal</h3>
         <div class="menu-days">
           ${daysHTML}
         </div>
         
-        <div class="form-group text-center">
+        <div class="form-group text-center mt-4">
           <button type="submit" id="save-menu-btn" class="btn btn-primary">Guardar Menú</button>
-          <button type="button" id="publish-menu-btn" class="btn btn-success ml-2" disabled>Publicar Menú</button>
-          <button type="button" id="new-menu-btn" class="btn btn-secondary ml-2">Nuevo Menú</button>
+          <button type="button" id="save-as-template-btn" class="btn btn-outline-secondary ml-2">Guardar como Plantilla</button>
+          <button type="button" id="reset-menu-btn" class="btn btn-outline-danger ml-2">Limpiar</button>
         </div>
       </form>
     `;
@@ -142,21 +165,21 @@ const Admin = {
       this._saveMenu();
     });
     
-    // Botón de publicar menú
-    const publishMenuBtn = document.getElementById('publish-menu-btn');
-    if (publishMenuBtn) {
-      publishMenuBtn.addEventListener('click', () => {
+    // Botón de guardar como plantilla
+    const saveAsTemplateBtn = document.getElementById('save-as-template-btn');
+    if (saveAsTemplateBtn) {
+      saveAsTemplateBtn.addEventListener('click', () => {
         const menuId = document.getElementById('menu-id').value;
         if (menuId) {
-          this._publishMenu(menuId);
+          this._saveMenuAsTemplate(menuId);
         }
       });
     }
     
-    // Botón de nuevo menú
-    const newMenuBtn = document.getElementById('new-menu-btn');
-    if (newMenuBtn) {
-      newMenuBtn.addEventListener('click', () => {
+    // Botón de limpiar
+    const resetMenuBtn = document.getElementById('reset-menu-btn');
+    if (resetMenuBtn) {
+      resetMenuBtn.addEventListener('click', () => {
         this._resetMenuForm();
       });
     }
@@ -221,21 +244,35 @@ const Admin = {
   },
 
   /**
-   * Publica un menú
-   * @param {string} menuId - ID del menú a publicar
+   * Guarda un menú como plantilla
+   * @param {string} menuId - ID del menú
    * @private
    */
-  _publishMenu: function(menuId) {
+  _saveMenuAsTemplate: function(menuId) {
     try {
-      // Publicar menú
-      Models.Menu.publish(menuId);
+      const menu = Models.Menu.getById(menuId);
+      if (!menu) throw new Error('Menú no encontrado');
       
-      // Actualizar UI
-      Utils.showNotification('Menú publicado correctamente', 'success');
-      this._loadMenuList();
+      // Crear plantilla a partir del menú
+      const template = {
+        id: menuId,
+        name: menu.name,
+        days: menu.days.map(day => {
+          return {
+            dayOfWeek: day.dayOfWeek,
+            mainDish: day.mainDish,
+            sideDish: day.sideDish,
+            beverage: day.beverage
+          };
+        })
+      };
+      
+      // Guardar plantilla
+      MenuTemplates.saveTemplate(template);
+      Utils.showNotification('Plantilla guardada correctamente', 'success');
       
     } catch (error) {
-      console.error('Error al publicar menú:', error);
+      console.error('Error al guardar plantilla:', error);
       Utils.showNotification(`Error: ${error.message}`, 'error');
     }
   },
@@ -715,9 +752,7 @@ const Admin = {
       }
       
       // Ordenar por fecha (más reciente primero)
-      availableMenus.sort((a, b) => 
-        new Date(b.weekStartDate) - new Date(a.weekStartDate)
-      );
+      availableMenus.sort((a, b) => new Date(b.weekStartDate) - new Date(a.weekStartDate));
       
       // Crear estructura para filtros y selector
       let html = `
@@ -1155,7 +1190,6 @@ const Admin = {
           <tbody>
         `;
         
-        // Filas por coordinador
         coordinatorStats.forEach(coordStat => {
           const coordinator = coordStat.coordinator;
           
@@ -1400,326 +1434,96 @@ const Admin = {
         return;
     }
     
-    // Mostrar diálogo de confirmación
-    Components.showConfirmDialog({
-      title: 'Confirmar Importación',
-      message: `¿Está seguro de que desea importar los datos de ${dataType}? Esta acción reemplazará los datos existentes.`,
-      onConfirm: () => {
-        // Proceder con la importación
-        importFunction(file)
-          .then(data => {
-            // Procesar datos según el tipo
-            switch (dataType) {
-              case 'menus':
-                this._processImportedMenus(data);
-                break;
-              case 'confirmations':
-                this._processImportedConfirmations(data);
-                break;
-              case 'coordinators':
-                this._processImportedCoordinators(data);
-                break;
-              default:
-                Components.showToast('Tipo de datos no válido', 'danger');
+    // Validar tipo de archivo
+    if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+      Components.showToast('El archivo debe ser de tipo JSON', 'warning');
+      return;
+    }
+    
+    // Validar tamaño del archivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      Components.showToast('El archivo es demasiado grande. El tamaño máximo es 5MB', 'warning');
+      return;
+    }
+    
+    // Mostrar confirmación antes de restaurar
+    Components.showConfirm(
+      'Restaurar respaldo',
+      `Esta acción reemplazará todos los datos actuales con los del respaldo "${file.name}" (${Math.round(file.size/1024)} KB). ¿Está seguro de continuar?`,
+      () => {
+        // Mostrar indicador de carga
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'restore-loading';
+        loadingIndicator.className = 'loading-indicator';
+        loadingIndicator.innerHTML = '<span>Restaurando respaldo...</span>';
+        document.body.appendChild(loadingIndicator);
+        
+        // Leer el archivo
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            let backupData;
+            
+            // Intentar parsear el JSON
+            try {
+              backupData = JSON.parse(e.target.result);
+            } catch (parseError) {
+              console.error('Error al parsear JSON del respaldo:', parseError);
+              Components.showToast('El archivo no contiene un JSON válido', 'danger');
+              document.body.removeChild(loadingIndicator);
+              return;
             }
-          })
-          .catch(error => {
-            console.error('Error al importar:', error);
-            Components.showToast('Error al importar datos', 'danger');
-          });
-      }
-    });
-  },
-  
-  /**
-   * Procesa los menús importados
-   * @param {Array} data - Datos importados
-   * @private
-   */
-  _processImportedMenus: function(data) {
-    try {
-      // Verificar que los datos tengan el formato esperado
-      if (!Array.isArray(data) || data.length === 0) {
-        throw new Error('Formato de datos inválido');
-      }
-      
-      // Convertir datos importados al formato del modelo
-      const menus = data.map(item => {
-        // Verificar campos requeridos
-        if (!item.ID || !item.Semana) {
-          console.warn('Menú con datos incompletos:', item);
-          return null;
-        }
-        
-        // Extraer fecha de inicio de semana
-        let weekStart;
-        try {
-          weekStart = new Date(item.Semana);
-        } catch (e) {
-          console.warn('Fecha de semana inválida:', item.Semana);
-          return null;
-        }
-        
-        // Crear estructura de días
-        const days = [];
-        const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-        
-        weekdays.forEach((day, index) => {
-          const mainDishKey = `${day} - Principal`;
-          const sideDishKey = `${day} - Guarnición`;
-          const drinkKey = `${day} - Bebida`;
-          
-          if (item[mainDishKey] || item[sideDishKey] || item[drinkKey]) {
-            days.push({
-              dayOfWeek: index + 1,
-              mainDish: item[mainDishKey] || '',
-              sideDish: item[sideDishKey] || '',
-              drink: item[drinkKey] || ''
-            });
+            
+            // Validar estructura básica del respaldo
+            if (!backupData) {
+              Components.showToast('El archivo de respaldo está vacío o tiene un formato inválido', 'danger');
+              document.body.removeChild(loadingIndicator);
+              return;
+            }
+            
+            // Restaurar el respaldo
+            const result = StorageManager.restoreBackup(backupData);
+            
+            // Quitar indicador de carga
+            document.body.removeChild(loadingIndicator);
+            
+            if (result.success) {
+              // Mostrar mensaje de éxito con detalles
+              let successMessage = 'Respaldo restaurado correctamente';
+              if (result.backupDate) {
+                const formattedDate = new Date(result.backupDate).toLocaleString();
+                successMessage += ` (fecha del respaldo: ${formattedDate})`;
+              }
+              
+              Components.showToast(successMessage, 'success');
+              
+              // Recargar la página para aplicar los cambios
+              setTimeout(() => {
+                Components.showToast('Recargando página para aplicar los cambios...', 'info');
+                setTimeout(() => window.location.reload(), 1000);
+              }, 1500);
+            } else {
+              Components.showToast(`Error al restaurar respaldo: ${result.error}`, 'danger');
+            }
+          } catch (error) {
+            console.error('Error al procesar archivo de respaldo:', error);
+            Components.showToast(`Error al procesar el archivo de respaldo: ${error.message || 'Error desconocido'}`, 'danger');
+            document.body.removeChild(loadingIndicator);
           }
-        });
-        
-        return {
-          id: item.ID,
-          weekStart: weekStart,
-          status: item.Estado || CONFIG.MENU_STATUS.DRAFT,
-          days: days,
-          createdAt: new Date(),
-          updatedAt: new Date()
         };
-      }).filter(menu => menu !== null);
-      
-      // Guardar menús en localStorage
-      if (menus.length > 0) {
-        Utils.saveToStorage(CONFIG.STORAGE_KEYS.MENUS, menus);
-        Components.showToast(`${menus.length} menús importados correctamente`, 'success');
         
-        // Recargar lista de menús
-        this._loadMenuList();
-      } else {
-        Components.showToast('No se pudieron importar los menús', 'warning');
+        reader.onerror = () => {
+          Components.showToast('Error al leer el archivo', 'danger');
+          document.body.removeChild(loadingIndicator);
+        };
+        
+        // Iniciar la lectura del archivo
+        reader.readAsText(file);
       }
-    } catch (error) {
-      console.error('Error al procesar menús importados:', error);
-      Components.showToast(`Error al procesar los datos: ${error.message}`, 'danger');
-    }
+    );
   },
   
-  /**
-   * Procesa los menús importados
-   * @param {Array} data - Datos importados
-   * @private
-   */
-  _processImportedMenus: function(data) {
-    try {
-    // Verificar que los datos tengan el formato esperado
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error('Formato de datos inválido');
-    }
-    
-    // Convertir datos importados al formato del modelo
-    const menus = data.map(item => {
-      // Verificar campos requeridos
-      if (!item.ID || !item.Semana) {
-        console.warn('Menú con datos incompletos:', item);
-        return null;
-      }
-      
-      // Extraer fecha de inicio de semana
-      let weekStart;
-      try {
-        weekStart = new Date(item.Semana);
-      } catch (e) {
-        console.warn('Fecha de semana inválida:', item.Semana);
-        return null;
-      }
-      
-      // Crear estructura de días
-      const days = [];
-      const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-      
-      weekdays.forEach((day, index) => {
-        const mainDishKey = `${day} - Principal`;
-        const sideDishKey = `${day} - Guarnición`;
-        const drinkKey = `${day} - Bebida`;
-        
-        if (item[mainDishKey] || item[sideDishKey] || item[drinkKey]) {
-          days.push({
-            dayOfWeek: index + 1,
-            mainDish: item[mainDishKey] || '',
-            sideDish: item[sideDishKey] || '',
-            drink: item[drinkKey] || ''
-          });
-        }
-      });
-      
-      return {
-        id: item.ID,
-        weekStart: weekStart,
-        status: item.Estado || CONFIG.MENU_STATUS.DRAFT,
-        days: days,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-    }).filter(menu => menu !== null);
-    
-    // Guardar menús en localStorage
-    if (menus.length > 0) {
-      Utils.saveToStorage(CONFIG.STORAGE_KEYS.MENUS, menus);
-      Components.showToast(`${menus.length} menús importados correctamente`, 'success');
-      
-      // Recargar lista de menús
-      this._loadMenuList();
-    } else {
-      Components.showToast('No se pudieron importar los menús', 'warning');
-    }
-  } catch (error) {
-    console.error('Error al procesar menús importados:', error);
-    Components.showToast(`Error al procesar los datos: ${error.message}`, 'danger');
-  }
-},
-  
-  /**
-   * Procesa las confirmaciones importadas
-   * @param {Array} data - Datos importados
-   * @private
-   */
-  _processImportedConfirmations: function(data) {
-    try {
-    // Verificar que los datos tengan el formato esperado
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error('Formato de datos inválido');
-    }
-    
-    // Obtener coordinadores existentes para validación
-    const coordinators = Models.getAllCoordinators();
-    
-    // Convertir datos importados al formato del modelo
-    const confirmations = data.map(item => {
-      // Verificar campos requeridos
-      if (!item.ID || !item.Coordinador || !item.Semana) {
-        console.warn('Confirmación con datos incompletos:', item);
-        return null;
-      }
-      
-      // Buscar coordinador por nombre
-      const coordinator = coordinators.find(c => c.name === item.Coordinador);
-      if (!coordinator) {
-        console.warn('Coordinador no encontrado:', item.Coordinador);
-        return null;
-      }
-      
-      // Extraer fecha de inicio de semana
-      let weekStart;
-      try {
-        weekStart = new Date(item.Semana);
-      } catch (e) {
-        console.warn('Fecha de semana inválida:', item.Semana);
-        return null;
-      }
-      
-      // Crear estructura de días con asistentes
-      const days = [];
-      const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-      
-      weekdays.forEach((day, index) => {
-        const attendees = parseInt(item[day] || 0, 10);
-        if (!isNaN(attendees)) {
-          days.push({
-            dayOfWeek: index + 1,
-            attendees: attendees
-          });
-        }
-      });
-      
-      return {
-        id: item.ID,
-        coordinatorId: coordinator.id,
-        weekStart: weekStart,
-        days: days,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-    }).filter(confirmation => confirmation !== null);
-    
-    // Guardar confirmaciones en localStorage
-    if (confirmations.length > 0) {
-      Utils.saveToStorage(CONFIG.STORAGE_KEYS.CONFIRMATIONS, confirmations);
-      Components.showToast(`${confirmations.length} confirmaciones importadas correctamente`, 'success');
-      
-      // Recargar reportes si estamos en esa pestaña
-      if (document.querySelector('#reports-tab.active')) {
-        this._loadAttendanceReport();
-      }
-    } else {
-      Components.showToast('No se pudieron importar las confirmaciones', 'warning');
-    }
-  } catch (error) {
-    console.error('Error al procesar confirmaciones importadas:', error);
-    Components.showToast(`Error al procesar los datos: ${error.message}`, 'danger');
-  }
-},
-  
-  /**
-   * Procesa los coordinadores importados
-   * @param {Array} data - Datos importados
-   * @private
-   */
-  _processImportedCoordinators: function(data) {
-    try {
-    // Verificar que los datos tengan el formato esperado
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error('Formato de datos inválido');
-    }
-    
-    // Convertir datos importados al formato del modelo
-    const coordinators = data.map(item => {
-      // Verificar campos requeridos
-      if (!item.ID || !item.Nombre || !item.Usuario) {
-        console.warn('Coordinador con datos incompletos:', item);
-        return null;
-      }
-      
-      // Extraer máximo de personas
-      const maxPeople = parseInt(item['Máximo de Personas'] || 0, 10);
-      
-      return {
-        id: item.ID,
-        name: item.Nombre,
-        username: item.Usuario,
-        // Nota: Por seguridad, no importamos contraseñas. Se asigna una contraseña temporal.
-        password: 'temporal123',
-        role: CONFIG.ROLES.COORDINATOR,
-        maxPeople: isNaN(maxPeople) ? 0 : maxPeople,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-    }).filter(coordinator => coordinator !== null);
-    
-    // Guardar coordinadores en localStorage
-    if (coordinators.length > 0) {
-      // Obtener usuarios actuales (para mantener al admin)
-      const currentUsers = Models.getAllUsers();
-      const adminUsers = currentUsers.filter(user => user.role === CONFIG.ROLES.ADMIN);
-      
-      // Combinar admin con nuevos coordinadores
-      const allUsers = [...adminUsers, ...coordinators];
-      
-      Utils.saveToStorage(CONFIG.STORAGE_KEYS.USERS, allUsers);
-      Components.showToast(`${coordinators.length} coordinadores importados correctamente`, 'success');
-      Components.showToast('IMPORTANTE: Se han asignado contraseñas temporales a los coordinadores importados', 'warning', 5000);
-      
-      // Recargar lista de usuarios
-      this._loadUserList();
-    } else {
-      Components.showToast('No se pudieron importar los coordinadores', 'warning');
-    }
-  } catch (error) {
-    console.error('Error al procesar coordinadores importados:', error);
-    Components.showToast(`Error al procesar los datos: ${error.message}`, 'danger');
-  }
-},
-
   /**
    * Inicializa la gestión de almacenamiento
    * @private
@@ -2087,5 +1891,153 @@ const Admin = {
       console.error('Error al actualizar estadísticas de almacenamiento:', error);
       // No mostramos el error al usuario para no interrumpir su experiencia
     }
-  }
+  },
+  
+  /**
+   * Carga los datos de un menú en el formulario
+   * @param {Object} menu - Menú a cargar en el formulario
+   * @private
+   */
+  _loadMenuDataToForm: function(menu) {
+    if (!menu || !menu.days) return;
+    
+    // Cargar datos de cada día
+    menu.days.forEach(day => {
+      const mainDishInput = document.getElementById(`main-dish-${day.dayOfWeek}`);
+      const sideDishInput = document.getElementById(`side-dish-${day.dayOfWeek}`);
+      const beverageInput = document.getElementById(`beverage-${day.dayOfWeek}`);
+      
+      if (mainDishInput) mainDishInput.value = day.mainDish || '';
+      if (sideDishInput) sideDishInput.value = day.sideDish || '';
+      if (beverageInput) beverageInput.value = day.beverage || '';
+    });
+  },
+  
+  /**
+   * Guarda un menú como plantilla
+   * @param {string} menuId - ID del menú
+   * @private
+   */
+  _saveMenuAsTemplate: function(menuId) {
+    try {
+      // Obtener el menú actual del formulario
+      const menu = this._getMenuFromForm();
+      
+      // Mostrar diálogo para nombrar la plantilla
+      Components.showPrompt({
+        title: 'Guardar como Plantilla',
+        message: 'Ingrese un nombre para la plantilla:',
+        inputType: 'text',
+        defaultValue: 'Plantilla ' + new Date().toLocaleDateString(),
+        placeholder: 'Nombre de la plantilla',
+        confirmText: 'Guardar',
+        cancelText: 'Cancelar',
+        onConfirm: (templateName) => {
+          if (!templateName.trim()) {
+            Components.showToast('El nombre de la plantilla no puede estar vacío', 'warning');
+            return;
+          }
+          
+          // Crear plantilla a partir del menú
+          MenuTemplates.createTemplate(menu, templateName);
+          Components.showToast('Plantilla guardada correctamente', 'success');
+        }
+      });
+    } catch (error) {
+      console.error('Error al guardar plantilla:', error);
+      Components.showToast(`Error: ${error.message}`, 'error');
+    }
+  },
+  
+  /**
+   * Obtiene los datos del menú del formulario
+   * @returns {Object} Datos del menú
+   * @private
+   */
+  _getMenuFromForm: function() {
+    const days = [];
+    
+    // Recorrer los días de la semana (0-6)
+    for (let i = 0; i < 7; i++) {
+      const mainDishInput = document.getElementById(`main-dish-${i}`);
+      const sideDishInput = document.getElementById(`side-dish-${i}`);
+      const beverageInput = document.getElementById(`beverage-${i}`);
+      
+      // Si existe alguno de los campos para este día
+      if (mainDishInput || sideDishInput || beverageInput) {
+        days.push({
+          dayOfWeek: i,
+          mainDish: mainDishInput ? mainDishInput.value.trim() : '',
+          sideDish: sideDishInput ? sideDishInput.value.trim() : '',
+          beverage: beverageInput ? beverageInput.value.trim() : ''
+        });
+      }
+    }
+    
+    return { days };
+  },
+  
+  /**
+   * Inicializa el dashboard
+   * @private
+   */
+  _initDashboard: function() {
+    // Verificar si existe el contenedor del dashboard
+    const adminContent = document.querySelector('#admin-content');
+    if (!adminContent) return;
+    
+    // Verificar si ya existe la sección del dashboard
+    let dashboardSection = document.getElementById('dashboard-tab');
+    if (!dashboardSection) {
+      // Crear la sección del dashboard
+      dashboardSection = document.createElement('div');
+      dashboardSection.id = 'dashboard-tab';
+      dashboardSection.className = 'tab-content active';
+      
+      // Crear el contenido del dashboard
+      dashboardSection.innerHTML = `
+        <h2 class="section-title">Dashboard</h2>
+        <div class="section-description">
+          Resumen de actividad y métricas clave del sistema
+        </div>
+        
+        <div id="dashboard-container" class="dashboard-container">
+          <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando métricas...</p>
+          </div>
+        </div>
+      `;
+      
+      // Insertar la sección del dashboard al principio
+      adminContent.insertBefore(dashboardSection, adminContent.firstChild);
+      
+      // Añadir botón de pestaña para el dashboard
+      const tabsContainer = document.querySelector('.admin-tabs');
+      if (tabsContainer) {
+        const dashboardTabButton = document.createElement('button');
+        dashboardTabButton.className = 'tab-btn active';
+        dashboardTabButton.setAttribute('data-tab', 'dashboard-tab');
+        dashboardTabButton.innerHTML = '<i class="fas fa-tachometer-alt"></i> Dashboard';
+        
+        // Insertar el botón de pestaña al principio
+        tabsContainer.insertBefore(dashboardTabButton, tabsContainer.firstChild);
+        
+        // Desactivar las otras pestañas
+        const otherTabs = tabsContainer.querySelectorAll('.tab-btn:not([data-tab="dashboard-tab"])');
+        otherTabs.forEach(tab => tab.classList.remove('active'));
+        
+        // Desactivar los otros contenidos
+        const otherContents = document.querySelectorAll('.tab-content:not(#dashboard-tab)');
+        otherContents.forEach(content => content.classList.remove('active'));
+      }
+    }
+    
+    // Inicializar el dashboard
+    if (typeof Dashboard !== 'undefined') {
+      Dashboard.init();
+    }
+  },
 };
