@@ -1,0 +1,37 @@
+# Task ID: 1
+# Title: Setup Project Structure and Basic HTML/CSS Framework
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Create the initial project structure with HTML, CSS, and JavaScript files for both admin and coordinator views.
+# Details:
+Create the following files: index.html (landing page), admin.html, coordinator.html, styles.css (minimal styling), and js/ directory with separate files for data models, storage utilities, admin functionality, and coordinator functionality. Implement a simple navigation between pages and basic layout structure. No frameworks should be used - only vanilla HTML, CSS, and JavaScript.
+
+# Test Strategy:
+Manually verify that all pages load correctly, navigation works between pages, and the basic layout is responsive on desktop and tablet devices.
+
+# Subtasks:
+## 1. Create basic file structure and HTML templates [done]
+### Dependencies: None
+### Description: Set up the project directory structure and create the initial HTML files with basic document structure
+### Details:
+Create the project root directory and the following files: index.html (landing page), admin.html, coordinator.html. Each HTML file should include proper DOCTYPE, html, head, and body tags. Add appropriate title tags and meta tags for viewport settings. Create empty placeholder sections in each HTML file for header, main content, and footer. Create the js/ directory for JavaScript files and an empty styles.css file.
+
+## 2. Implement basic CSS styling and layout structure [done]
+### Dependencies: 1.1
+### Description: Create a minimal CSS framework for consistent styling across all pages
+### Details:
+In styles.css, implement: 1) CSS reset to normalize browser defaults, 2) Basic typography settings (font-family, sizes, colors), 3) Layout containers with flexbox or grid for responsive design, 4) Simple header and footer styling, 5) Basic color scheme variables using CSS custom properties, 6) Responsive breakpoints for different screen sizes. Link the stylesheet to all HTML files. Test the basic layout on different screen sizes.
+
+## 3. Create JavaScript file structure and data models [done]
+### Dependencies: 1.1
+### Description: Set up the JavaScript directory structure with initial files for data models and storage utilities
+### Details:
+In the js/ directory, create the following files: 1) models.js - Define basic data structures/classes for users, events, and other entities, 2) storage.js - Implement utility functions for localStorage operations (save, retrieve, update, delete), 3) admin.js - Empty file with structure for admin functionality, 4) coordinator.js - Empty file with structure for coordinator functionality. Add appropriate comments documenting the purpose of each file. Link these JavaScript files to the corresponding HTML pages.
+
+## 4. Implement navigation between pages [done]
+### Dependencies: 1.1, 1.2, 1.3
+### Description: Create a navigation system to allow users to move between the different pages
+### Details:
+Add a navigation bar to each HTML page in the header section. Include links to all pages (index.html, admin.html, coordinator.html). Style the navigation bar in styles.css with responsive design (hamburger menu for mobile). Highlight the current page in the navigation. Add JavaScript in each page-specific JS file to handle navigation events. Test navigation flow between all pages. Ensure the navigation is accessible and works on all screen sizes.
+

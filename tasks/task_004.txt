@@ -1,0 +1,37 @@
+# Task ID: 4
+# Title: Implement Coordinator Registration System
+# Status: done
+# Dependencies: 2
+# Priority: high
+# Description: Create the interface for administrators to register branch coordinators.
+# Details:
+Add a section to admin.html for coordinator management. Create a form to add new coordinators with fields for name and branch. Display a list of existing coordinators with options to edit or delete them. Implement the necessary JavaScript to handle CRUD operations for coordinators in IndexedDB. Generate a simple access code for each coordinator that they can use to access their view.
+
+# Test Strategy:
+Test adding, editing, and deleting coordinators. Verify that coordinator data is correctly stored in IndexedDB. Test validation for required fields.
+
+# Subtasks:
+## 1. Create coordinator management UI in admin.html [done]
+### Dependencies: None
+### Description: Add a new section to the admin interface for managing branch coordinators with a form and list view
+### Details:
+Add a new section to admin.html with a heading 'Coordinator Management'. Create an HTML form with fields for coordinator name (text input) and branch (select dropdown). Add a submit button labeled 'Add Coordinator'. Below the form, create a table with columns for ID, Name, Branch, Access Code, and Actions (Edit/Delete buttons). Include appropriate CSS styling to match the existing admin interface. Add empty container divs with appropriate IDs that will later be populated with coordinator data.
+
+## 2. Implement IndexedDB schema for coordinators [done]
+### Dependencies: 4.1
+### Description: Create the database structure to store coordinator information in IndexedDB
+### Details:
+Create a new object store named 'coordinators' in the existing IndexedDB database with keyPath 'id' and autoIncrement true. Define the schema to include properties: id (auto), name (string), branch (string), accessCode (string), and dateAdded (Date). Write functions to initialize this store during database setup. Implement utility functions for basic database operations: getAllCoordinators(), getCoordinatorById(id), and deleteCoordinatorById(id). Test the schema by manually adding and retrieving test records.
+
+## 3. Implement CRUD operations for coordinators [done]
+### Dependencies: 4.2
+### Description: Create JavaScript functions to handle adding, displaying, editing, and deleting coordinators
+### Details:
+Write a function addCoordinator(name, branch) that generates a random 6-character alphanumeric access code, stores the new coordinator in IndexedDB, and refreshes the display. Create displayCoordinators() to fetch all coordinators from IndexedDB and render them in the table created in subtask 1. Implement editCoordinator(id) to populate the form with existing data and change the submit button to 'Update'. Add deleteCoordinator(id) to remove entries after confirmation. Include form validation to ensure name and branch are provided. Add event listeners to the form submit and edit/delete buttons to trigger the appropriate functions.
+
+## 4. Implement access code generation and management [done]
+### Dependencies: 4.3
+### Description: Create functionality to generate, display, and reset access codes for coordinators
+### Details:
+Enhance the addCoordinator function to use a secure random string generation method for access codes. Add a function to regenerate access codes (generateNewAccessCode(id)) and attach it to a 'Reset Code' button in the UI. Display access codes in a partially masked format (e.g., 'AB****') in the table with an option to reveal the full code on click. Add a copy-to-clipboard feature for access codes. Create a simple instruction panel explaining how coordinators can use their access codes to log in. Test the entire workflow from adding a coordinator to using the access code to access the coordinator view.
+

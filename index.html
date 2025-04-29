@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comedor Empresarial</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Comedor Empresarial</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="active">Inicio</a></li>
+                    <li><a href="admin.html">Administración</a></li>
+                    <li><a href="coordinator.html">Coordinador</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="welcome-section">
+            <h2>Bienvenido al Sistema de Comedor Empresarial</h2>
+            <p>Seleccione una opción para continuar:</p>
+            
+            <div class="card-container">
+                <div class="card">
+                    <h3>Acceso para Coordinadores</h3>
+                    <p>Si usted es un coordinador de departamento, ingrese su código de acceso para continuar:</p>
+                    
+                    <form id="coordinator-login-form" class="login-form">
+                        <div class="form-group">
+                            <label for="access-code">Código de Acceso</label>
+                            <input type="text" id="access-code" name="access-code" placeholder="Ingrese su código de 6 caracteres" maxlength="6" required>
+                        </div>
+                        <div id="login-error" class="error-message" style="display: none;">
+                            Código de acceso inválido. Por favor, inténtelo de nuevo.
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Ingresar</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h3>Administración</h3>
+                    <p>Acceso al panel de administración del sistema:</p>
+                    <a href="admin.html" class="btn btn-primary">Panel de Administración</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Comedor Empresarial. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="js/models.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>

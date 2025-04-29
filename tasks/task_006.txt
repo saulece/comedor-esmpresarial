@@ -1,0 +1,43 @@
+# Task ID: 6
+# Title: Create Coordinator Attendance Confirmation Interface
+# Status: done
+# Dependencies: 3, 5
+# Priority: high
+# Description: Develop the interface for coordinators to view the weekly menu and confirm attendance numbers.
+# Details:
+In coordinator.html, display the current week's menu retrieved from IndexedDB. Create a form with number inputs for each day of the week where coordinators can enter the number of employees attending. Implement JavaScript to save the confirmation data to IndexedDB, including the coordinator ID, date, people count, and timestamp. Allow coordinators to update their confirmations if needed.
+
+# Test Strategy:
+Test submitting and updating attendance confirmations. Verify that confirmation data is correctly stored in IndexedDB with all required fields. Test validation for number inputs.
+
+# Subtasks:
+## 1. Create menu display component in coordinator.html [done]
+### Dependencies: None
+### Description: Develop the UI component to display the current week's menu retrieved from IndexedDB
+### Details:
+Create a section in coordinator.html that will display the weekly menu. Add HTML structure with appropriate containers for each day of the week. Implement JavaScript functions to query IndexedDB for the current week's menu data. Create a renderWeeklyMenu() function that populates the menu display with items for each day. Include styling to make the menu display clear and readable. Ensure the component handles cases where menu data might not be available.
+
+## 2. Implement attendance form with number inputs [done]
+### Dependencies: 6.1
+### Description: Create a form with number inputs for each day of the week to enter attendance counts
+### Details:
+Below the menu display, create a form with number input fields for each weekday (Monday through Friday). Each input should have appropriate labels, min value of 0, and placeholder text. Add validation to ensure only positive integers are entered. Include a date display showing which week the form applies to. Style the form to align with the menu display created in the previous subtask. Add a submit button labeled 'Confirm Attendance'.
+
+## 3. Create IndexedDB schema for attendance confirmations [done]
+### Dependencies: None
+### Description: Design and implement the IndexedDB object store for storing attendance confirmation data
+### Details:
+Create or modify the database schema to include an 'attendanceConfirmations' object store. Define the structure with fields for: coordinatorId (key), date (Date object), weekday (string), attendanceCount (number), and timestamp (Date object). Implement the necessary IndexedDB functions to create and access this store. Include upgrade handling for the database to ensure the store is created properly. Add utility functions for adding, updating, and retrieving confirmation records.
+
+## 4. Implement save functionality for attendance confirmations [done]
+### Dependencies: 6.2, 6.3
+### Description: Create JavaScript functions to save the form data to IndexedDB
+### Details:
+Implement an event listener for the form submission. On submit, collect all input values and the current coordinator ID (from session/local storage). Create a function saveAttendanceData() that formats the data and stores it in the IndexedDB 'attendanceConfirmations' store. Include error handling for failed database operations. Show appropriate success/error messages to the user after submission. Add a timestamp to each record when saving. Prevent default form submission behavior to handle everything via JavaScript.
+
+## 5. Add update capability for existing confirmations [done]
+### Dependencies: 6.4
+### Description: Implement functionality to retrieve and update existing attendance confirmations
+### Details:
+Create a function to check if the coordinator has already submitted attendance for the current week. If existing data is found, pre-populate the form with those values. Modify the save function to update existing records rather than creating duplicates. Add a visual indicator showing whether the form is in 'create' or 'update' mode. Include a timestamp update when records are modified. Add a 'Last updated on...' message that shows when the confirmation was last modified. Consider adding a 'Reset' button to clear form inputs if needed.
+

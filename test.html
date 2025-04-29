@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pruebas de Almacenamiento - Comedor Empresarial</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .test-output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #2f3542;
+            color: #f1f2f6;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+        }
+        
+        h3 {
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Pruebas de Almacenamiento</h1>
+            <nav id="main-nav">
+                <a href="index.html">Inicio</a>
+                <a href="admin.html">Administración</a>
+                <a href="coordinator.html">Coordinación</a>
+                <a href="test.html" class="active">Pruebas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="test-section">
+                <h2>Pruebas de Modelos y Almacenamiento</h2>
+                <p>Esta página permite probar la funcionalidad de los modelos de datos y el sistema de almacenamiento local.</p>
+                
+                <div class="test-container">
+                    <h3>Operaciones de Prueba</h3>
+                    <div class="test-controls">
+                        <button id="run-all-tests">Ejecutar Todas las Pruebas</button>
+                        <button id="clear-storage">Limpiar Almacenamiento</button>
+                        <button id="export-data">Exportar Datos</button>
+                        <button id="import-data">Importar Datos</button>
+                    </div>
+                    
+                    <h3>Pruebas Individuales</h3>
+                    <div class="test-controls">
+                        <button id="test-models">Probar Modelos</button>
+                        <button id="test-storage">Probar Almacenamiento</button>
+                        <button id="test-crud">Probar Operaciones CRUD</button>
+                    </div>
+                    
+                    <h3>Resultados</h3>
+                    <div id="test-output" class="test-output">Los resultados de las pruebas aparecerán aquí...</div>
+                </div>
+                
+                <div class="test-container">
+                    <h3>Estado Actual del Almacenamiento</h3>
+                    <div class="test-controls">
+                        <button id="show-users">Usuarios</button>
+                        <button id="show-menus">Menús</button>
+                        <button id="show-coordinators">Coordinadores</button>
+                        <button id="show-confirmations">Confirmaciones</button>
+                        <button id="show-orders">Pedidos</button>
+                    </div>
+                    <div id="storage-output" class="test-output">Seleccione una colección para ver su contenido...</div>
+                </div>
+                
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Comedor Empresarial</p>
+        </div>
+    </footer>
+
+    <!-- Cargar modelos y utilidades de almacenamiento -->
+    <script src="js/models.js"></script>
+    <script src="js/storage.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const testOutput = document.getElementById('test-output');
+            const storageOutput = document.getElementById('storage-output');
+            const importFileInput = document.getElementById('import-file');
+            
+            // Función para mostrar resultados en el área de salida
+            function log(message, area = testOutput) {
+                if (typeof message === 'object') {
+                    message = JSON.stringify(message, null, 2);
+                }
+                area.innerHTML += message + '\n';
+                area.scrollTop = area.scrollHeight;
+            }
+            
+            // Función para limpiar el área de salida
+            function clearOutput(area = testOutput) {
+                area.innerHTML = '';
+            }
+            
+            // Probar modelos
+            document.getElementById('test-models').addEventListener('click', function() {
+                clearOutput();
+                log('=== PRUEBA DE MODELOS ===');
+                
+                // Probar modelo de Coordinador
+                log('\n--- Prueba de Coordinador ---');
+                const coordinator = new Coordinator(
+                    null, 
+                    'Ana Martínez', 
+                    'ana.martinez@empresa.com', 
+                    '555-987-6543', 
+                    'Ventas'
+                );
+                log('Coordinador creado:');
+                log(coordinator);
+                
+                const coordValidation = coordinator.validate();
+                log('Validación de coordinador:');
+                log(coordValidation);
+                
+                // Probar modelo de Menú
+                log('\n--- Prueba de Menú ---');
+                const menu = new Menu(
+                    null,
+                    'Menú Ejecutivo',
+                    [
+                        {
+                            id: 'item_1',
+                            name: 'Sopa de verduras',
+                            description: 'Sopa casera con verduras frescas',
+                            category: 'entrada',
+                            price: 40
+                        },
+                        {
+                            id: 'item_2',
+                            name: 'Filete de res',
+                            description: 'Filete de res con puré de papas',
+                            category: 'plato fuerte',
+                            price: 150
+                        }
+                    ],
+                    new Date()
+                );
+                log('Menú creado:');
+                log(menu);
+                
+                const menuValidation = menu.validate();
+                log('Validación de menú:');
+                log(menuValidation);
+                
+                // Probar modelo de Confirmación
+                log('\n--- Prueba de Confirmación ---');
+                const confirmation = new Confirmation(
+                    null,
+                    'menu_123',
+                    'coord_456',
+                    new Date(),
+                    'pending',
+                    [
+                        { itemId: 'item_1', quantity: 5, notes: '' },
+                        { itemId: 'item_2', quantity: 5, notes: 'Término medio' }
+                    ]
+                );
+                log('Confirmación creada:');
+                log(confirmation);
+                
+                const confirmationValidation = confirmation.validate();
+                log('Validación de confirmación:');
+                log(confirmationValidation);
+                
+                log('\nPruebas de modelos completadas.');
+            });
+            
+            // Probar almacenamiento
+            document.getElementById('test-storage').addEventListener('click', function() {
+                clearOutput();
+                log('=== PRUEBA DE ALMACENAMIENTO ===');
+                
+                // Inicializar almacenamiento
+                log('\n--- Inicialización de Almacenamiento ---');
+                const initResult = StorageUtil.initStorage();
+                log('Resultado de inicialización:');
+                log(initResult ? 'Almacenamiento inicializado' : 'Almacenamiento ya existente');
+                
+                // Verificar claves de almacenamiento
+                log('\n--- Claves de Almacenamiento ---');
+                log('Claves disponibles:');
+                log(StorageUtil.KEYS);
+                
+                log('\nPruebas de almacenamiento completadas.');
+            });
+            
+            // Probar operaciones CRUD
+            document.getElementById('test-crud').addEventListener('click', function() {
+                clearOutput();
+                log('=== PRUEBA DE OPERACIONES CRUD ===');
+                
+                // Crear coordinador
+                log('\n--- Crear Coordinador ---');
+                const coordinator = new Coordinator(
+                    null, 
+                    'Carlos Rodríguez', 
+                    'carlos.rodriguez@empresa.com', 
+                    '555-111-2222', 
+                    'Finanzas'
+                );
+                
+                const coordSaved = StorageUtil.Coordinators.add(coordinator);
+                log('Coordinador guardado:');
+                log(coordSaved ? 'Éxito' : 'Error');
+                log('ID del coordinador: ' + coordinator.id);
+                
+                // Leer coordinador
+                log('\n--- Leer Coordinador ---');
+                const retrievedCoord = StorageUtil.Coordinators.get(coordinator.id);
+                log('Coordinador recuperado:');
+                log(retrievedCoord);
+                
+                // Actualizar coordinador
+                log('\n--- Actualizar Coordinador ---');
+                const updateResult = StorageUtil.Coordinators.update(coordinator.id, {
+                    phone: '555-333-4444',
+                    department: 'Contabilidad'
+                });
+                log('Resultado de actualización:');
+                log(updateResult ? 'Éxito' : 'Error');
+                
+                const updatedCoord = StorageUtil.Coordinators.get(coordinator.id);
+                log('Coordinador actualizado:');
+                log(updatedCoord);
+                
+                // Eliminar coordinador
+                log('\n--- Eliminar Coordinador ---');
+                const deleteResult = StorageUtil.Coordinators.delete(coordinator.id);
+                log('Resultado de eliminación:');
+                log(deleteResult ? 'Éxito' : 'Error');
+                
+                const deletedCoord = StorageUtil.Coordinators.get(coordinator.id);
+                log('Intento de recuperar coordinador eliminado:');
+                log(deletedCoord === null ? 'Correctamente eliminado (null)' : deletedCoord);
+                
+                log('\nPruebas CRUD completadas.');
+            });
+            
+            // Ejecutar todas las pruebas
+            document.getElementById('run-all-tests').addEventListener('click', function() {
+                clearOutput();
+                log('=== EJECUTANDO TODAS LAS PRUEBAS ===\n');
+                
+                // Probar modelos
+                log('=== PRUEBA DE MODELOS ===');
+                
+                // Crear coordinador
+                const coordinator = new Coordinator(
+                    null, 
+                    'María López', 
+                    'maria.lopez@empresa.com', 
+                    '555-444-5555', 
+                    'Recursos Humanos'
+                );
+                log('Coordinador creado con ID: ' + coordinator.id);
+                
+                // Crear menú
+                const menu = new Menu(
+                    null,
+                    'Menú del Día',
+                    [
+                        {
+                            id: 'item_1',
+                            name: 'Ensalada mixta',
+                            description: 'Ensalada con vegetales frescos',
+                            category: 'entrada',
+                            price: 45
+                        },
+                        {
+                            id: 'item_2',
+                            name: 'Pescado a la plancha',
+                            description: 'Filete de pescado con guarnición',
+                            category: 'plato fuerte',
+                            price: 130
+                        },
+                        {
+                            id: 'item_3',
+                            name: 'Flan casero',
+                            description: 'Flan con caramelo',
+                            category: 'postre',
+                            price: 40
+                        }
+                    ],
+                    new Date()
+                );
+                log('Menú creado con ID: ' + menu.id);
+                
+                // Crear confirmación
+                const confirmation = new Confirmation(
+                    null,
+                    menu.id,
+                    coordinator.id,
+                    new Date(),
+                    'pending',
+                    [
+                        { itemId: 'item_1', quantity: 15, notes: '' },
+                        { itemId: 'item_2', quantity: 15, notes: '' },
+                        { itemId: 'item_3', quantity: 15, notes: '' }
+                    ]
+                );
+                log('Confirmación creada con ID: ' + confirmation.id);
+                
+                // Probar almacenamiento
+                log('\n=== PRUEBA DE ALMACENAMIENTO ===');
+                
+                // Guardar datos
+                StorageUtil.Coordinators.add(coordinator);
+                StorageUtil.Menus.add(menu);
+                StorageUtil.Confirmations.add(confirmation);
+                log('Datos guardados en almacenamiento');
+                
+                // Recuperar datos
+                const storedCoord = StorageUtil.Coordinators.get(coordinator.id);
+                const storedMenu = StorageUtil.Menus.get(menu.id);
+                const storedConf = StorageUtil.Confirmations.get(confirmation.id);
+                
+                log('Datos recuperados correctamente: ' + 
+                    (storedCoord !== null && storedMenu !== null && storedConf !== null ? 'Sí' : 'No'));
+                
+                // Actualizar datos
+                StorageUtil.Menus.update(menu.id, { active: true });
+                StorageUtil.Confirmations.update(confirmation.id, { status: 'confirmed' });
+                
+                const updatedMenu = StorageUtil.Menus.get(menu.id);
+                const updatedConf = StorageUtil.Confirmations.get(confirmation.id);
+                
+                log('Menú actualizado - active: ' + updatedMenu.active);
+                log('Confirmación actualizada - status: ' + updatedConf.status);
+                
+                // Exportar datos
+                const exportedData = StorageUtil.exportData();
+                log('\nDatos exportados correctamente: ' + (exportedData !== null ? 'Sí' : 'No'));
+                
+                log('\nTodas las pruebas completadas con éxito.');
+            });
+            
+            // Limpiar almacenamiento
+            document.getElementById('clear-storage').addEventListener('click', function() {
+                clearOutput();
+                log('=== LIMPIANDO ALMACENAMIENTO ===');
+                
+                StorageUtil.clear();
+                StorageUtil.initStorage();
+                
+                log('Almacenamiento limpiado e inicializado correctamente.');
+            });
+            
+            // Exportar datos
+            document.getElementById('export-data').addEventListener('click', function() {
+                clearOutput();
+                log('=== EXPORTANDO DATOS ===');
+                
+                const result = StorageUtil.downloadData();
+                log('Resultado de exportación: ' + (result ? 'Éxito' : 'Error'));
+            });
+            
+            // Importar datos
+            document.getElementById('import-data').addEventListener('click', function() {
+                importFileInput.click();
+            });
+            
+            // Manejar selección de archivo para importar
+            importFileInput.addEventListener('change', function(event) {
+                if (event.target.files.length > 0) {
+                    clearOutput();
+                    log('=== IMPORTANDO DATOS ===');
+                    log('Archivo seleccionado: ' + event.target.files[0].name);
+                    
+                    StorageUtil.importFromFile(event.target.files[0])
+                        .then(result => {
+                            log('Importación completada: ' + (result ? 'Éxito' : 'Error'));
+                        })
+                        .catch(error => {
+                            log('Error en la importación: ' + error.message);
+                        });
+                }
+            });
+            
+            // Mostrar colecciones de datos
+            document.getElementById('show-users').addEventListener('click', function() {
+                clearOutput(storageOutput);
+                const users = StorageUtil.Users.getAll();
+                storageOutput.innerHTML = '=== USUARIOS ===\n\n' + 
+                    (users.length > 0 ? JSON.stringify(users, null, 2) : 'No hay usuarios almacenados.');
+            });
+            
+            document.getElementById('show-menus').addEventListener('click', function() {
+                clearOutput(storageOutput);
+                const menus = StorageUtil.Menus.getAll();
+                storageOutput.innerHTML = '=== MENÚS ===\n\n' + 
+                    (menus.length > 0 ? JSON.stringify(menus, null, 2) : 'No hay menús almacenados.');
+            });
+            
+            document.getElementById('show-coordinators').addEventListener('click', function() {
+                clearOutput(storageOutput);
+                const coordinators = StorageUtil.Coordinators.getAll();
+                storageOutput.innerHTML = '=== COORDINADORES ===\n\n' + 
+                    (coordinators.length > 0 ? JSON.stringify(coordinators, null, 2) : 'No hay coordinadores almacenados.');
+            });
+            
+            document.getElementById('show-confirmations').addEventListener('click', function() {
+                clearOutput(storageOutput);
+                const confirmations = StorageUtil.Confirmations.getAll();
+                storageOutput.innerHTML = '=== CONFIRMACIONES ===\n\n' + 
+                    (confirmations.length > 0 ? JSON.stringify(confirmations, null, 2) : 'No hay confirmaciones almacenadas.');
+            });
+            
+            document.getElementById('show-orders').addEventListener('click', function() {
+                clearOutput(storageOutput);
+                const orders = StorageUtil.Orders.getAll();
+                storageOutput.innerHTML = '=== PEDIDOS ===\n\n' + 
+                    (orders.length > 0 ? JSON.stringify(orders, null, 2) : 'No hay pedidos almacenados.');
+            });
+            
+            // Inicializar almacenamiento al cargar la página
+            StorageUtil.initStorage();
+        });
+    </script>
+</body>
+</html>

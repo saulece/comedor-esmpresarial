@@ -1,0 +1,37 @@
+# Task ID: 5
+# Title: Develop Coordinator Access Mechanism
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Implement a simple access mechanism for coordinators to access their view without complex authentication.
+# Details:
+Create a simple login form on the index.html page where coordinators can enter their access code. Store the coordinator ID in sessionStorage upon successful login. Implement a mechanism to verify the access code against the coordinator database. Redirect to the coordinator view upon successful verification. Keep authentication minimal as specified in the PRD.
+
+# Test Strategy:
+Test login with valid and invalid access codes. Verify that the coordinator ID is correctly stored in sessionStorage. Test session persistence across page refreshes.
+
+# Subtasks:
+## 1. Create coordinator login form in index.html [done]
+### Dependencies: None
+### Description: Design and implement a simple login form on the index.html page for coordinators to enter their access code
+### Details:
+Add a form to index.html with a text input field for the access code and a submit button. The form should be simple and clearly labeled for coordinators. Include appropriate HTML structure, basic styling to match the application design, and form validation to ensure the access code field is not empty. The form should submit to a JavaScript function that will handle the verification process.
+
+## 2. Implement coordinator access code verification [done]
+### Dependencies: 5.1
+### Description: Create the functionality to verify the entered access code against the coordinator database
+### Details:
+Develop a JavaScript function that takes the access code from the form submission and checks it against the coordinator database. This should use the existing database connection to query the coordinators table and find a matching access code. The function should return a success or failure result along with the coordinator ID if successful. Handle error cases appropriately and provide user feedback for invalid codes.
+
+## 3. Implement session storage for coordinator authentication [done]
+### Dependencies: 5.2
+### Description: Store the authenticated coordinator's ID in sessionStorage upon successful verification
+### Details:
+When a coordinator successfully logs in, store their ID in the browser's sessionStorage with an appropriate key (e.g., 'coordinatorId'). This will serve as a simple authentication mechanism that persists during the user's session. Also store a timestamp of when they logged in for potential session timeout functionality. Ensure proper error handling if sessionStorage is not available.
+
+## 4. Create redirection and access control for coordinator views [done]
+### Dependencies: 5.3
+### Description: Implement redirection to coordinator view after successful login and prevent unauthorized access
+### Details:
+After successful verification and storing the coordinator ID in sessionStorage, redirect the user to the coordinator view page. Additionally, implement a simple check at the beginning of coordinator-specific pages to verify that a valid coordinatorId exists in sessionStorage. If not present, redirect back to the login page. This creates a basic access control mechanism without complex authentication. Include a logout function that clears the sessionStorage and returns to the login page.
+

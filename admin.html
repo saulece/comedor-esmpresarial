@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comedor Empresarial - Administración</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-utensils"></i> Comedor Empresarial</h1>
+            <nav id="main-nav">
+                <a href="index.html"><i class="fas fa-home"></i> Inicio</a>
+                <a href="admin.html" class="active"><i class="fas fa-cog"></i> Administración</a>
+                <a href="coordinator.html"><i class="fas fa-users"></i> Coordinación</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="dashboard">
+                <h2><i class="fas fa-tachometer-alt"></i> Panel de Administración</h2>
+                <div class="admin-controls">
+                    <div class="card admin-card">
+                        <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
+                        <h3>Gestión de Menús</h3>
+                        <p>Administra los menús diarios y platillos disponibles.</p>
+                        <button id="menu-management-btn" class="primary-btn"><i class="fas fa-utensils"></i> Gestionar Menús</button>
+                    </div>
+                    
+                    <div class="card admin-card">
+                        <div class="card-icon"><i class="fas fa-user-cog"></i></div>
+                        <h3>Gestión de Usuarios</h3>
+                        <p>Administra los coordinadores del sistema.</p>
+                        <button id="user-management-btn" class="primary-btn"><i class="fas fa-users"></i> Gestionar Usuarios</button>
+                    </div>
+                    
+                    <div class="card admin-card">
+                        <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
+                        <h3>Reportes</h3>
+                        <p>Visualiza confirmaciones y exporta datos.</p>
+                        <button id="reports-btn" class="primary-btn"><i class="fas fa-file-alt"></i> Ver Reportes</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Gestión de Menús -->
+            <section id="menu-management-section" class="admin-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-utensils"></i> Publicación de Menú Semanal</h2>
+                    <button id="back-to-dashboard-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
+                </div>
+                
+                <div class="card">
+                    <h3>Crear Nuevo Menú</h3>
+                    <form id="menu-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="menu-name">Nombre del Menú:</label>
+                                <input type="text" id="menu-name" name="menu-name" required placeholder="Ej: Menú Semana 18">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="week-start-date">Fecha de inicio (Lunes):</label>
+                                <input type="date" id="week-start-date" name="week-start-date" required>
+                            </div>
+                        </div>
+                        
+                        <div id="days-container">
+                            <!-- Los días de la semana se generarán dinámicamente con JavaScript -->
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="save-menu-btn" class="primary-btn"><i class="fas fa-save"></i> Guardar Menú</button>
+                            <button type="button" id="reset-form-btn" class="secondary-btn"><i class="fas fa-undo"></i> Limpiar Formulario</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h3>Menús Guardados</h3>
+                    <div id="saved-menus-container">
+                        <!-- Los menús guardados se mostrarán aquí dinámicamente -->
+                        <p class="empty-state">No hay menús guardados aún.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Sección de Gestión de Usuarios -->
+            <section id="user-management-section" class="admin-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Gestión de Coordinadores</h2>
+                    <button id="back-to-dashboard-from-users-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
+                </div>
+                
+                <!-- Formulario de coordinadores -->
+                <div class="card">
+                    <h3>Agregar Coordinador</h3>
+                    <form id="coordinator-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="coordinator-name">Nombre completo *</label>
+                                <input type="text" id="coordinator-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="coordinator-email">Correo electrónico *</label>
+                                <input type="email" id="coordinator-email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="coordinator-phone">Teléfono</label>
+                                <input type="tel" id="coordinator-phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="coordinator-department">Departamento *</label>
+                                <select id="coordinator-department" required>
+                                    <option value="">Seleccione un departamento</option>
+                                    <option value="Administración">Administración</option>
+                                    <option value="Finanzas">Finanzas</option>
+                                    <option value="Recursos Humanos">Recursos Humanos</option>
+                                    <option value="Operaciones">Operaciones</option>
+                                    <option value="Tecnología">Tecnología</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Ventas">Ventas</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenedor de código de acceso (inicialmente oculto) -->
+                        <div id="access-code-container" class="form-group" style="display: none;">
+                            <label for="coordinator-access-code">Código de acceso</label>
+                            <div class="access-code-display">
+                                <input type="text" id="coordinator-access-code" readonly>
+                                <button type="button" id="copy-access-code-btn" class="icon-btn" title="Copiar código">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button type="button" id="regenerate-access-code-btn" class="icon-btn" title="Regenerar código">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <p class="help-text">Este código será utilizado por el coordinador para acceder al sistema.</p>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="save-coordinator-btn" class="primary-btn"><i class="fas fa-save"></i> Agregar Coordinador</button>
+                            <button type="button" id="reset-coordinator-form-btn" class="secondary-btn"><i class="fas fa-undo"></i> Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Lista de coordinadores -->
+                <div class="card">
+                    <h3>Coordinadores Registrados</h3>
+                    <div class="table-container">
+                        <table id="coordinators-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Departamento</th>
+                                    <th>Código de Acceso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coordinators-list">
+                                <!-- Los coordinadores se mostrarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                        <p id="no-coordinators-message" class="empty-state">No hay coordinadores registrados aún.</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Instrucciones para Coordinadores</h3>
+                    <div class="instructions">
+                        <p>Los coordinadores pueden acceder a su panel de gestión utilizando el código de acceso proporcionado.</p>
+                        <ol>
+                            <li>Proporcione al coordinador su código de acceso único.</li>
+                            <li>El coordinador debe ingresar a la página de coordinación y usar el código para acceder.</li>
+                            <li>Una vez dentro, podrá ver el menú semanal y confirmar asistencias.</li>
+                            <li>Los datos se guardan automáticamente y estarán disponibles en los reportes.</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="reports-section" class="admin-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Reportes y Respaldos</h2>
+                    <button id="back-to-dashboard-from-reports-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
+                </div>
+                
+                <div class="card">
+                    <h3>Confirmaciones de Asistencia</h3>
+                    
+                    <div class="week-selector">
+                        <button id="prev-week-btn" class="icon-btn" title="Semana anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <input type="date" id="week-selector" class="date-input">
+                        <button id="next-week-btn" class="icon-btn" title="Semana siguiente">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="confirmations-table" class="data-table">
+                            <thead>
+                                <tr id="days-header">
+                                    <th>Departamento</th>
+                                    <!-- Los días se generarán dinámicamente -->
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="confirmations-body">
+                                <!-- Los datos se generarán dinámicamente -->
+                            </tbody>
+                            <tfoot>
+                                <tr id="totals-footer">
+                                    <th>Total por día</th>
+                                    <!-- Los totales se generarán dinámicamente -->
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color pending"></span>
+                            <span>Pendiente</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color confirmed"></span>
+                            <span>Confirmado</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Respaldo de Datos</h3>
+                    <p>Exporte los datos del sistema para respaldo o impórtelos para restaurar una copia de seguridad anterior.</p>
+                    
+                    <div class="data-actions">
+                        <div class="action-group">
+                            <h4>Exportar Datos</h4>
+                            <p>Descargue todos los datos del sistema como un archivo JSON.</p>
+                            <button id="export-data-btn" class="primary-btn">
+                                <i class="fas fa-download"></i> Exportar Datos
+                            </button>
+                        </div>
+                        
+                        <div class="action-group">
+                            <h4>Importar Datos</h4>
+                            <p>Restaure datos desde un archivo JSON previamente exportado.</p>
+                            <div class="import-controls">
+                                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                                <button id="import-data-btn" class="secondary-btn">
+                                    <i class="fas fa-upload"></i> Seleccionar Archivo
+                                </button>
+                                <span id="selected-file-name" class="file-name"></span>
+                            </div>
+                            <div class="import-actions" style="display: none;">
+                                <button id="confirm-import-btn" class="primary-btn">
+                                    <i class="fas fa-check"></i> Confirmar Importación
+                                </button>
+                                <button id="cancel-import-btn" class="danger-btn">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                            </div>
+                            <div class="import-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Advertencia: La importación sobrescribirá todos los datos actuales.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2025 Comedor Empresarial</p>
+                <div class="footer-links">
+                    <a href="index.html">Inicio</a>
+                    <a href="admin.html">Administración</a>
+                    <a href="coordinator.html">Coordinación</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/models.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Coordinador - Comedor Empresarial</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-utensils"></i> Comedor Empresarial</h1>
+            <nav>
+                <a href="index.html"><i class="fas fa-home"></i> Inicio</a>
+                <a href="coordinator.html" class="active"><i class="fas fa-users"></i> Coordinador</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="coordinator-header">
+                <h2><i class="fas fa-user-cog"></i> Panel de Coordinador</h2>
+                <div class="user-info">
+                    <span id="coordinator-name">Cargando...</span>
+                    <button id="logout-btn" class="secondary-btn">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="menu-tab">
+                    <i class="fas fa-calendar-alt"></i> Menú Semanal
+                </button>
+                <button class="tab-btn" data-tab="confirmations-tab">
+                    <i class="fas fa-clipboard-check"></i> Confirmaciones
+                </button>
+            </div>
+            
+            <div id="menu-tab" class="tab-content active">
+                <div class="card">
+                    <h3><i class="fas fa-utensils"></i> Menú Semanal</h3>
+                    <div id="current-menu">
+                        <p class="empty-state">No hay menú disponible para esta semana.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="confirmations-tab" class="tab-content">
+                <div class="card">
+                    <h3><i class="fas fa-clipboard-check"></i> Confirmaciones de Asistencia</h3>
+                    
+                    <div class="week-selector">
+                        <button id="prev-week-btn" class="icon-btn" title="Semana Anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="selected-week-display">Semana actual</span>
+                        <button id="next-week-btn" class="icon-btn" title="Semana Siguiente">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="confirmation-menu-display">
+                        <!-- El menú semanal se mostrará aquí -->
+                        <p class="empty-state">Cargando menú semanal...</p>
+                    </div>
+                    
+                    <form id="attendance-form" class="attendance-form">
+                        <h4><i class="fas fa-users"></i> Confirmar Asistencia</h4>
+                        <p class="help-text">Indique el número estimado de personas que asistirán cada día:</p>
+                        
+                        <div id="attendance-inputs" class="attendance-inputs">
+                            <!-- Los inputs para cada día se generarán dinámicamente -->
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="save-attendance-btn" class="primary-btn">
+                                <i class="fas fa-save"></i> Confirmar Asistencia
+                            </button>
+                            <button type="button" id="reset-attendance-btn" class="secondary-btn">
+                                <i class="fas fa-undo"></i> Restablecer
+                            </button>
+                        </div>
+                        
+                        <div id="last-update-info" class="last-update-info" style="display: none;">
+                            <i class="fas fa-clock"></i> Última actualización: <span id="last-update-time"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2025 Comedor Empresarial</p>
+                <div class="footer-links">
+                    <a href="index.html">Inicio</a>
+                    <a href="coordinator.html">Coordinador</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="login-modal">
+        <div class="login-modal-content">
+            <h2><i class="fas fa-lock"></i> Acceso de Coordinador</h2>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="access-code">Código de Acceso:</label>
+                    <input type="text" id="access-code" placeholder="Ingrese su código de acceso" required>
+                </div>
+                
+                <button type="submit">
+                    <i class="fas fa-sign-in-alt"></i> Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/models.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/coordinator.js"></script>
+</body>
+</html>
