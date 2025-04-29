@@ -23,27 +23,55 @@ const StorageUtil = {
      * @returns {boolean} - true si se inicializó el almacenamiento, false si ya existía
      */
     initStorage: function() {
-        // Verificar si ya hay datos almacenados
-        const hasData = Object.values(this.KEYS).some(key => localStorage.getItem(key) !== null);
+        console.log('Verificando almacenamiento existente...');
         
-        if (!hasData) {
-            // Inicializar con colecciones vacías
-            Object.values(this.KEYS).forEach(key => {
-                this.save(key, []);
-            });
-            
-            // Inicializar estado de la aplicación
-            this.save(this.KEYS.APP_STATE, {
-                initialized: true,
-                lastUpdate: new Date().toISOString(),
-                version: '1.0.0'
-            });
-            
-            console.log('Almacenamiento inicializado correctamente');
-            return true;
+        // Verificar cada colección individualmente y solo inicializar las que no existen
+        let initialized = false;
+        
+        // Verificar cada clave y crear solo las que no existen
+        Object.values(this.KEYS).forEach(key => {
+            if (localStorage.getItem(key) === null) {
+                // Si la clave no existe, inicializarla con un array vacío o un objeto según corresponda
+                if (key === this.KEYS.APP_STATE) {
+                    this.save(key, {
+                        initialized: true,
+                        lastUpdate: new Date().toISOString(),
+                        version: '1.0.0'
+                    });
+                } else {
+                    this.save(key, []);
+                }
+                console.log(`Colección ${key} inicializada`);
+                initialized = true;
+            } else {
+                console.log(`Colección ${key} ya existe, preservando datos existentes`);
+                
+                // Verificar que el formato de los datos sea válido
+                try {
+                    JSON.parse(localStorage.getItem(key));
+                } catch (error) {
+                    console.error(`Error en el formato de datos para ${key}, reinicializando:`, error);
+                    if (key === this.KEYS.APP_STATE) {
+                        this.save(key, {
+                            initialized: true,
+                            lastUpdate: new Date().toISOString(),
+                            version: '1.0.0'
+                        });
+                    } else {
+                        this.save(key, []);
+                    }
+                    initialized = true;
+                }
+            }
+        });
+        
+        if (initialized) {
+            console.log('Almacenamiento inicializado o actualizado correctamente');
+        } else {
+            console.log('Almacenamiento ya estaba correctamente inicializado');
         }
         
-        return false;
+        return initialized;
     },
 
     /**
