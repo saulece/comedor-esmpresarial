@@ -758,13 +758,3 @@ const StorageUtil = {
         }
     }
 })();
-
-// Agregar evento para guardar datos en localStorage al cerrar la pestaña o ventana
-window.addEventListener('beforeunload', function() {
-    // Guardar datos en localStorage
-    Object.keys(StorageUtil.KEYS).forEach(keyName => {
-        const key = StorageUtil.KEYS[keyName];
-        const data = StorageUtil.get(key, []);
-        StorageUtil.save(key, data);
-    });
-});
