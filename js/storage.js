@@ -725,8 +725,36 @@ const StorageUtil = {
     }
 };
 
-// Inicializar almacenamiento cuando se carga el script
-document.addEventListener('DOMContentLoaded', function() {
-    StorageUtil.initStorage();
-    console.log('Sistema de almacenamiento inicializado');
-});
+// NOTA: Comentado para evitar reinicialización en cada carga de página
+// document.addEventListener('DOMContentLoaded', function() {
+//     StorageUtil.initStorage();
+//     console.log('Sistema de almacenamiento inicializado');
+// });
+
+// En su lugar, verificamos si el almacenamiento ya está inicializado
+// y solo lo inicializamos si es necesario
+(function() {
+    // Verificar si el estado de la aplicación ya existe
+    const appState = localStorage.getItem(StorageUtil.KEYS.APP_STATE);
+    
+    // Si no existe, inicializar el almacenamiento
+    if (appState === null) {
+        console.log('Inicializando almacenamiento por primera vez...');
+        StorageUtil.initStorage();
+    } else {
+        console.log('Almacenamiento ya inicializado, preservando datos existentes');
+        
+        // Verificar que todas las colecciones existan
+        let needsInit = false;
+        Object.values(StorageUtil.KEYS).forEach(key => {
+            if (localStorage.getItem(key) === null) {
+                needsInit = true;
+            }
+        });
+        
+        if (needsInit) {
+            console.log('Algunas colecciones faltantes, inicializando...');
+            StorageUtil.initStorage();
+        }
+    }
+})();
