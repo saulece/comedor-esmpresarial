@@ -7,17 +7,166 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Módulo de coordinación inicializado');
     
-    // Verificar si hay una sesión activa
-    const hasSession = checkSession();
-    
-    if (hasSession) {
-        // Ya hay una sesión activa, inicializar la interfaz
-        initCoordinatorInterface();
+    // Inicializar el sistema de almacenamiento si es necesario
+    if (typeof StorageUtil !== 'undefined') {
+        // Inicializar datos de ejemplo si no hay menús
+        initSampleDataIfNeeded();
+        
+        // Verificar si hay una sesión activa
+        const hasSession = checkSession();
+        
+        if (hasSession) {
+            // Ya hay una sesión activa, inicializar la interfaz
+            initCoordinatorInterface();
+        } else {
+            // No hay sesión, mostrar modal de login
+            showLoginModal();
+        }
     } else {
-        // No hay sesión, mostrar modal de login
-        showLoginModal();
+        console.error('StorageUtil no está definido. Asegúrate de cargar storage.js antes de coordinator.js');
+        document.body.innerHTML = '<div class="error-message">Error al cargar el sistema de almacenamiento. Por favor, recarga la página.</div>';
     }
 });
+
+/**
+ * Inicializa datos de ejemplo si no existen datos en el sistema
+ */
+function initSampleDataIfNeeded() {
+    // Verificar si ya hay menús
+    const menus = StorageUtil.Menus.getAll();
+    
+    if (menus.length === 0) {
+        console.log('No hay menús, inicializando datos de ejemplo...');
+        
+        // Crear un menú de ejemplo
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - today.getDay() + 1); // Lunes de esta semana
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 4); // Viernes de esta semana
+        
+        const sampleMenu = {
+            id: 'menu_' + Date.now(),
+            name: 'Menú Semanal',
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            days: [
+                {
+                    id: 'lunes',
+                    name: 'Lunes',
+                    dishes: [
+                        {
+                            id: 'dish_1',
+                            name: 'Enchiladas Suizas',
+                            description: 'Enchiladas con salsa verde, crema y queso',
+                            price: 85.00
+                        },
+                        {
+                            id: 'dish_2',
+                            name: 'Sopa de Tortilla',
+                            description: 'Con aguacate, queso y chicharrón',
+                            price: 45.00
+                        }
+                    ]
+                },
+                {
+                    id: 'martes',
+                    name: 'Martes',
+                    dishes: [
+                        {
+                            id: 'dish_3',
+                            name: 'Chiles Rellenos',
+                            description: 'Rellenos de queso con salsa de tomate',
+                            price: 90.00
+                        },
+                        {
+                            id: 'dish_4',
+                            name: 'Arroz a la Mexicana',
+                            description: 'Con verduras y especias',
+                            price: 35.00
+                        }
+                    ]
+                },
+                {
+                    id: 'miercoles',
+                    name: 'Miércoles',
+                    dishes: [
+                        {
+                            id: 'dish_5',
+                            name: 'Mole Poblano',
+                            description: 'Con pollo y arroz',
+                            price: 95.00
+                        },
+                        {
+                            id: 'dish_6',
+                            name: 'Frijoles Charros',
+                            description: 'Con tocino y chorizo',
+                            price: 40.00
+                        }
+                    ]
+                },
+                {
+                    id: 'jueves',
+                    name: 'Jueves',
+                    dishes: [
+                        {
+                            id: 'dish_7',
+                            name: 'Pozole Rojo',
+                            description: 'Con maíz cacahuazintle y cerdo',
+                            price: 85.00
+                        },
+                        {
+                            id: 'dish_8',
+                            name: 'Tostadas de Tinga',
+                            description: 'Con pollo deshebrado en salsa de chipotle',
+                            price: 65.00
+                        }
+                    ]
+                },
+                {
+                    id: 'viernes',
+                    name: 'Viernes',
+                    dishes: [
+                        {
+                            id: 'dish_9',
+                            name: 'Pescado a la Veracruzana',
+                            description: 'Con salsa de tomate, aceitunas y alcaparras',
+                            price: 110.00
+                        },
+                        {
+                            id: 'dish_10',
+                            name: 'Ensalada César',
+                            description: 'Con aderezo casero y crutones',
+                            price: 60.00
+                        }
+                    ]
+                }
+            ]
+        };
+        
+        // Guardar el menú de ejemplo
+        StorageUtil.Menus.add(sampleMenu);
+        console.log('Menú de ejemplo inicializado correctamente');
+        
+        // Crear un coordinador de ejemplo si no existe ninguno
+        const coordinators = StorageUtil.Coordinators.getAll();
+        
+        if (coordinators.length === 0) {
+            const sampleCoordinator = {
+                id: 'coord_' + Date.now(),
+                name: 'Coordinador Demo',
+                department: 'Sistemas',
+                accessCode: '1234',
+                email: 'demo@example.com',
+                phone: '555-123-4567'
+            };
+            
+            StorageUtil.Coordinators.add(sampleCoordinator);
+            console.log('Coordinador de ejemplo inicializado correctamente');
+        }
+    }
+}
 
 /**
  * Verifica si hay una sesión activa
@@ -271,6 +420,12 @@ function loadCurrentMenu() {
  * @param {HTMLElement} container - Contenedor donde mostrar el menú
  */
 function displayMenu(menu, container) {
+    // Verificar que el menú tenga la estructura correcta
+    if (!menu || typeof menu !== 'object') {
+        container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
+        return;
+    }
+
     // Crear contenido HTML para el menú
     let html = `
         <div class="menu-header">
@@ -280,33 +435,37 @@ function displayMenu(menu, container) {
     `;
     
     // Agregar cada día del menú
-    menu.days.forEach(day => {
-        html += `
-            <div class="menu-day">
-                <h5>${day.name}</h5>
-                <div class="dishes-list">
-        `;
-        
-        // Agregar cada platillo del día
-        if (day.dishes && day.dishes.length > 0) {
-            day.dishes.forEach(dish => {
-                html += `
-                    <div class="dish-item">
-                        <span class="dish-name">${dish.name}</span>
-                        <span class="dish-price">$${dish.price.toFixed(2)}</span>
-                        <p class="dish-description">${dish.description || 'Sin descripción'}</p>
+    if (Array.isArray(menu.days)) {
+        menu.days.forEach(day => {
+            html += `
+                <div class="menu-day">
+                    <h5>${day.name}</h5>
+                    <div class="dishes-list">
+            `;
+            
+            // Agregar cada platillo del día
+            if (day.dishes && day.dishes.length > 0) {
+                day.dishes.forEach(dish => {
+                    html += `
+                        <div class="dish-item">
+                            <span class="dish-name">${dish.name}</span>
+                            <span class="dish-price">$${dish.price.toFixed(2)}</span>
+                            <p class="dish-description">${dish.description || 'Sin descripción'}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<p class="empty-state">No hay platillos para este día.</p>';
+            }
+            
+            html += `
                     </div>
-                `;
-            });
-        } else {
-            html += '<p class="empty-state">No hay platillos para este día.</p>';
-        }
-        
-        html += `
                 </div>
-            </div>
-        `;
-    });
+            `;
+        });
+    } else {
+        html += '<p class="empty-state">El menú no contiene días configurados.</p>';
+    }
     
     html += '</div>';
     
@@ -481,6 +640,12 @@ const AttendanceManager = {
      * @param {HTMLElement} container - Contenedor donde mostrar el menú
      */
     displayMenu: function(menu, container) {
+        // Verificar que el menú tenga la estructura correcta
+        if (!menu || typeof menu !== 'object') {
+            container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
+            return;
+        }
+
         // Crear contenido HTML para el menú
         let html = `
             <div class="menu-header">
@@ -501,39 +666,60 @@ const AttendanceManager = {
             return dayOrder[a.name.toLowerCase()] - dayOrder[b.name.toLowerCase()];
         });
         
-        // Agregar cada día del menú
-        weekdays.forEach(day => {
-            html += `
-                <div class="menu-day">
-                    <h5>${day.name}</h5>
-                    <div class="dishes-list">
-            `;
-            
-            // Agregar cada platillo del día
-            if (day.dishes && day.dishes.length > 0) {
-                day.dishes.forEach(dish => {
-                    html += `
-                        <div class="dish-item">
-                            <span class="dish-name">${dish.name}</span>
-                            <span class="dish-price">$${dish.price.toFixed(2)}</span>
-                            <p class="dish-description">${dish.description || 'Sin descripción'}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                html += '<p class="empty-state">No hay platillos para este día.</p>';
-            }
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        });
+        // Calcular fechas para cada día de la semana
+        const weekDates = {};
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(this.currentWeekStartDate);
+            date.setDate(date.getDate() + i);
+            const dayName = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'][i];
+            weekDates[dayName] = date;
+        }
         
-        html += '</div>';
-        
-        // Actualizar el contenedor
-        container.innerHTML = html;
+        // Crear input para cada día
+        if (Array.isArray(weekdays)) {
+            weekdays.forEach(day => {
+                const dayLower = day.name.toLowerCase();
+                const date = weekDates[dayLower];
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'attendance-day';
+                dayDiv.dataset.dayId = day.id || dayLower;
+                
+                const header = document.createElement('div');
+                header.className = 'attendance-day-header';
+                header.textContent = day.name;
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'attendance-day-date';
+                dateDiv.textContent = date ? this.formatDate(date) : '';
+                
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `attendance-${dayLower}`;
+                label.textContent = 'Número de personas:';
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = `attendance-${dayLower}`;
+                input.className = 'attendance-count';
+                input.min = '0';
+                input.value = '0';
+                input.required = true;
+                
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
+                
+                dayDiv.appendChild(header);
+                dayDiv.appendChild(dateDiv);
+                dayDiv.appendChild(inputGroup);
+                
+                container.appendChild(dayDiv);
+            });
+        } else {
+            container.innerHTML = '<p class="empty-state">El menú no contiene días configurados.</p>';
+        }
     },
     
     /**
@@ -575,46 +761,50 @@ const AttendanceManager = {
         }
         
         // Crear input para cada día
-        weekdays.forEach(day => {
-            const dayLower = day.name.toLowerCase();
-            const date = weekDates[dayLower];
-            
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'attendance-day';
-            dayDiv.dataset.dayId = day.id || dayLower;
-            
-            const header = document.createElement('div');
-            header.className = 'attendance-day-header';
-            header.textContent = day.name;
-            
-            const dateDiv = document.createElement('div');
-            dateDiv.className = 'attendance-day-date';
-            dateDiv.textContent = date ? this.formatDate(date) : '';
-            
-            const inputGroup = document.createElement('div');
-            inputGroup.className = 'form-group';
-            
-            const label = document.createElement('label');
-            label.htmlFor = `attendance-${dayLower}`;
-            label.textContent = 'Número de personas:';
-            
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.id = `attendance-${dayLower}`;
-            input.className = 'attendance-count';
-            input.min = '0';
-            input.value = '0';
-            input.required = true;
-            
-            inputGroup.appendChild(label);
-            inputGroup.appendChild(input);
-            
-            dayDiv.appendChild(header);
-            dayDiv.appendChild(dateDiv);
-            dayDiv.appendChild(inputGroup);
-            
-            inputsContainer.appendChild(dayDiv);
-        });
+        if (Array.isArray(weekdays)) {
+            weekdays.forEach(day => {
+                const dayLower = day.name.toLowerCase();
+                const date = weekDates[dayLower];
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'attendance-day';
+                dayDiv.dataset.dayId = day.id || dayLower;
+                
+                const header = document.createElement('div');
+                header.className = 'attendance-day-header';
+                header.textContent = day.name;
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'attendance-day-date';
+                dateDiv.textContent = date ? this.formatDate(date) : '';
+                
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `attendance-${dayLower}`;
+                label.textContent = 'Número de personas:';
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = `attendance-${dayLower}`;
+                input.className = 'attendance-count';
+                input.min = '0';
+                input.value = '0';
+                input.required = true;
+                
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
+                
+                dayDiv.appendChild(header);
+                dayDiv.appendChild(dateDiv);
+                dayDiv.appendChild(inputGroup);
+                
+                inputsContainer.appendChild(dayDiv);
+            });
+        } else {
+            inputsContainer.innerHTML = '<p class="empty-state">El menú no contiene días configurados.</p>';
+        }
     },
     
     /**
