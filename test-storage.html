@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Almacenamiento - Comedor Empresarial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prueba de Almacenamiento Local</h1>
+        
+        <div class="card">
+            <h2>Estado Actual</h2>
+            <button id="check-storage-btn">Verificar Almacenamiento</button>
+            <div id="storage-status" class="status"></div>
+            <pre id="storage-data"></pre>
+        </div>
+        
+        <div class="card">
+            <h2>Pruebas de Datos</h2>
+            <button id="create-test-data-btn">Crear Datos de Prueba</button>
+            <button id="clear-storage-btn" class="danger">Limpiar Almacenamiento</button>
+            <div id="test-status" class="status"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Navegación</h2>
+            <a href="index.html"><button>Volver al Inicio</button></a>
+            <a href="admin.html"><button>Ir a Administración</button></a>
+            <a href="coordinator.html"><button>Ir a Coordinación</button></a>
+        </div>
+    </div>
+    
+    <script src="js/models.js"></script>
+    <script src="js/storage.js"></script>
+    <script>
+        // Función para mostrar el estado del almacenamiento
+        function checkStorage() {
+            const storageStatus = document.getElementById('storage-status');
+            const storageData = document.getElementById('storage-data');
+            
+            try {
+                // Verificar si hay datos en el almacenamiento
+                const hasMenus = StorageUtil.Menus.getAll().length > 0;
+                const hasCoordinators = StorageUtil.Coordinators.getAll().length > 0;
+                
+                if (hasMenus || hasCoordinators) {
+                    storageStatus.className = 'status success';
+                    storageStatus.textContent = 'El almacenamiento contiene datos.';
+                    
+                    // Mostrar datos
+                    const data = {
+                        menus: StorageUtil.Menus.getAll(),
+                        coordinators: StorageUtil.Coordinators.getAll(),
+                        appState: StorageUtil.get(StorageUtil.KEYS.APP_STATE)
+                    };
+                    
+                    storageData.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    storageStatus.className = 'status error';
+                    storageStatus.textContent = 'El almacenamiento está vacío o no contiene menús ni coordinadores.';
+                    storageData.textContent = '';
+                }
+            } catch (error) {
+                storageStatus.className = 'status error';
+                storageStatus.textContent = 'Error al verificar el almacenamiento: ' + error.message;
+                storageData.textContent = '';
+            }
+        }
+        
+        // Función para crear datos de prueba
+        function createTestData() {
+            const testStatus = document.getElementById('test-status');
+            
+            try {
+                // Crear un menú de prueba
+                const menuData = {
+                    id: 'menu_test_' + Date.now(),
+                    name: 'Menú de Prueba',
+                    startDate: '2025-04-29',
+                    endDate: '2025-05-03',
+                    days: [
+                        {
+                            id: 'lunes',
+                            name: 'Lunes',
+                            dishes: [
+                                {
+                                    id: 'dish_test_1',
+                                    name: 'Plato de Prueba 1',
+                                    description: 'Descripción del plato de prueba 1',
+                                    price: 100,
+                                    category: 'plato_fuerte'
+                                },
+                                {
+                                    id: 'dish_test_2',
+                                    name: 'Bebida de Prueba 1',
+                                    description: 'Descripción de la bebida de prueba 1',
+                                    price: 30,
+                                    category: 'bebida'
+                                }
+                            ]
+                        }
+                    ],
+                    active: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Crear un coordinador de prueba
+                const coordinatorData = {
+                    id: 'coord_test_' + Date.now(),
+                    name: 'Coordinador de Prueba',
+                    email: 'test@example.com',
+                    phone: '555-123-4567',
+                    department: 'Departamento de Prueba',
+                    accessCode: '123456',
+                    active: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Guardar datos de prueba
+                const menuSuccess = StorageUtil.Menus.add(menuData);
+                const coordinatorSuccess = StorageUtil.Coordinators.add(coordinatorData);
+                
+                if (menuSuccess && coordinatorSuccess) {
+                    testStatus.className = 'status success';
+                    testStatus.textContent = 'Datos de prueba creados correctamente.';
+                } else {
+                    testStatus.className = 'status error';
+                    testStatus.textContent = 'Error al crear datos de prueba.';
+                }
+                
+                // Actualizar vista
+                checkStorage();
+            } catch (error) {
+                testStatus.className = 'status error';
+                testStatus.textContent = 'Error al crear datos de prueba: ' + error.message;
+            }
+        }
+        
+        // Función para limpiar el almacenamiento
+        function clearStorage() {
+            const testStatus = document.getElementById('test-status');
+            
+            try {
+                // Limpiar almacenamiento
+                Object.values(StorageUtil.KEYS).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                // Reinicializar almacenamiento
+                StorageUtil.initStorage();
+                
+                testStatus.className = 'status success';
+                testStatus.textContent = 'Almacenamiento limpiado correctamente.';
+                
+                // Actualizar vista
+                checkStorage();
+            } catch (error) {
+                testStatus.className = 'status error';
+                testStatus.textContent = 'Error al limpiar el almacenamiento: ' + error.message;
+            }
+        }
+        
+        // Configurar eventos
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar almacenamiento al cargar la página
+            checkStorage();
+            
+            // Configurar botones
+            document.getElementById('check-storage-btn').addEventListener('click', checkStorage);
+            document.getElementById('create-test-data-btn').addEventListener('click', createTestData);
+            document.getElementById('clear-storage-btn').addEventListener('click', clearStorage);
+        });
+    </script>
+</body>
+</html>
