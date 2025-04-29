@@ -469,7 +469,19 @@ function saveMenu() {
     }
     
     // Crear estructura de datos del menú
-    const menuItems = [];
+    const menuData = {
+        id: currentEditingMenuId || 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        name: menuName,
+        items: [],
+        startDate: weekStartDate,
+        endDate: calculateEndDate(weekStartDate),
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Organizar los días y platillos
+    const days = [];
     const daySections = document.querySelectorAll('.day-section');
     
     daySections.forEach(daySection => {
@@ -477,9 +489,19 @@ function saveMenu() {
         const dayDate = daySection.getAttribute('data-date');
         const dayName = DAYS_OF_WEEK[dayIndex];
         
+        // Crear objeto para el día
+        const day = {
+            id: dayName.toLowerCase(),
+            name: dayName,
+            date: dayDate,
+            dishes: []
+        };
+        
         // Recopilar platillos por categoría
         Object.keys(CATEGORIES).forEach(categoryKey => {
             const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+            if (!dishesContainer) return;
+            
             const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
             
             dishGroups.forEach(dishGroup => {
@@ -489,47 +511,37 @@ function saveMenu() {
                 
                 // Solo agregar platillos con nombre
                 if (dishName.trim()) {
-                    menuItems.push({
-                        id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    day.dishes.push({
+                        id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                         name: dishName,
                         description: dishDescription,
                         price: isNaN(dishPrice) ? 0 : dishPrice,
-                        category: categoryKey,
-                        day: dayIndex,
-                        dayName: dayName,
-                        date: dayDate
+                        category: categoryKey
                     });
                 }
             });
         });
+        
+        // Solo agregar días con platillos
+        if (day.dishes.length > 0) {
+            days.push(day);
+        }
     });
     
-    // Validar que haya al menos un platillo
-    if (menuItems.length === 0) {
+    // Validar que haya al menos un día con platillos
+    if (days.length === 0) {
         showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
         return;
     }
     
-    // Crear objeto de menú
-    const menu = new Menu(
-        currentEditingMenuId, // Si estamos editando, usar el ID existente
-        menuName,
-        menuItems,
-        new Date(weekStartDate)
-    );
-    
-    // Validar menú
-    const validation = menu.validate();
-    if (!validation.valid) {
-        showNotification(validation.error, 'error');
-        return;
-    }
+    // Agregar días al menú
+    menuData.days = days;
     
     // Guardar menú en almacenamiento
     let success;
     if (currentEditingMenuId) {
         // Actualizar menú existente
-        success = StorageUtil.Menus.update(currentEditingMenuId, menu);
+        success = StorageUtil.Menus.update(currentEditingMenuId, menuData);
         if (success) {
             showNotification('Menú actualizado correctamente.');
         } else {
@@ -537,7 +549,7 @@ function saveMenu() {
         }
     } else {
         // Crear nuevo menú
-        success = StorageUtil.Menus.add(menu);
+        success = StorageUtil.Menus.add(menuData);
         if (success) {
             showNotification('Menú guardado correctamente.');
         } else {
@@ -550,6 +562,18 @@ function saveMenu() {
         loadSavedMenus();
         resetForm();
     }
+}
+
+/**
+ * Calcula la fecha de fin basada en la fecha de inicio
+ * @param {string} startDateStr - Fecha de inicio en formato YYYY-MM-DD
+ * @returns {string} - Fecha de fin en formato YYYY-MM-DD (5 días después)
+ */
+function calculateEndDate(startDateStr) {
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 4); // 5 días en total (lunes a viernes)
+    return endDate.toISOString().split('T')[0];
 }
 
 /**
@@ -572,7 +596,7 @@ function loadSavedMenus() {
     }
     
     // Ordenar menús por fecha (más reciente primero)
-    menus.sort((a, b) => new Date(b.date) - new Date(a.date));
+    menus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
     
     // Crear elementos para cada menú
     menus.forEach(menu => {
@@ -604,7 +628,7 @@ function createMenuItemElement(menu) {
     
     const menuDate = document.createElement('div');
     menuDate.className = 'menu-date';
-    menuDate.textContent = new Date(menu.date).toLocaleDateString('es-ES', { 
+    menuDate.textContent = new Date(menu.startDate).toLocaleDateString('es-ES', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
@@ -645,16 +669,13 @@ function createMenuItemElement(menu) {
     
     // Agrupar platillos por día
     const itemsByDay = {};
-    menu.items.forEach(item => {
-        if (!itemsByDay[item.day]) {
-            itemsByDay[item.day] = [];
-        }
-        itemsByDay[item.day].push(item);
+    menu.days.forEach(day => {
+        itemsByDay[day.id] = day.dishes;
     });
     
     // Crear secciones para cada día
-    Object.keys(itemsByDay).sort((a, b) => parseInt(a) - parseInt(b)).forEach(dayIndex => {
-        const dayItems = itemsByDay[dayIndex];
+    Object.keys(itemsByDay).sort((a, b) => a.localeCompare(b)).forEach(dayId => {
+        const dayItems = itemsByDay[dayId];
         if (dayItems.length === 0) return;
         
         const daySection = document.createElement('div');
@@ -662,7 +683,7 @@ function createMenuItemElement(menu) {
         
         const dayTitle = document.createElement('h5');
         dayTitle.className = 'menu-day-title';
-        dayTitle.textContent = dayItems[0].dayName + ' - ' + new Date(dayItems[0].date).toLocaleDateString('es-ES');
+        dayTitle.textContent = dayId.charAt(0).toUpperCase() + dayId.slice(1) + ' - ' + new Date(menu.startDate).toLocaleDateString('es-ES');
         
         daySection.appendChild(dayTitle);
         
@@ -744,43 +765,56 @@ function editMenu(menuId) {
     
     // Llenar formulario con datos del menú
     document.getElementById('menu-name').value = menu.name;
-    document.getElementById('week-start-date').value = formatDateForInput(new Date(menu.date));
+    document.getElementById('week-start-date').value = menu.startDate;
     
     // Generar días de la semana
-    generateWeekDays(formatDateForInput(new Date(menu.date)));
+    generateWeekDays(menu.startDate);
     
     // Llenar campos de platillos
-    menu.items.forEach(item => {
-        const daySection = document.querySelector(`.day-section[data-day="${item.day}"]`);
+    menu.days.forEach(day => {
+        const daySection = document.querySelector(`.day-section[data-day="${DAYS_OF_WEEK.indexOf(day.name)}"]`);
         if (!daySection) return;
         
-        const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${item.category}"]`);
-        if (!dishesContainer) return;
-        
-        // Buscar un campo vacío o crear uno nuevo
-        let emptyInputGroup = null;
-        const inputGroups = dishesContainer.querySelectorAll('.dish-input-group');
-        
-        for (let i = 0; i < inputGroups.length; i++) {
-            const nameInput = inputGroups[i].querySelector('.dish-input');
-            if (!nameInput.value) {
-                emptyInputGroup = inputGroups[i];
-                break;
+        // Recopilar platillos por categoría
+        Object.keys(CATEGORIES).forEach(categoryKey => {
+            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+            if (!dishesContainer) return;
+            
+            // Buscar un campo vacío o crear uno nuevo
+            let emptyInputGroup = null;
+            const inputGroups = dishesContainer.querySelectorAll('.dish-input-group');
+            
+            for (let i = 0; i < inputGroups.length; i++) {
+                const nameInput = inputGroups[i].querySelector('.dish-input');
+                if (!nameInput.value) {
+                    emptyInputGroup = inputGroups[i];
+                    break;
+                }
             }
-        }
-        
-        if (!emptyInputGroup) {
-            // No hay campos vacíos, crear uno nuevo
-            const dayName = DAYS_OF_WEEK[item.day].toLowerCase();
-            const index = inputGroups.length;
-            emptyInputGroup = createDishInputGroup(dayName, item.category, index);
-            dishesContainer.appendChild(emptyInputGroup);
-        }
-        
-        // Llenar campos
-        emptyInputGroup.querySelector('.dish-input').value = item.name;
-        emptyInputGroup.querySelector('.dish-description').value = item.description || '';
-        emptyInputGroup.querySelector('.dish-price').value = item.price || '';
+            
+            if (!emptyInputGroup) {
+                // No hay campos vacíos, crear uno nuevo
+                const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
+                const index = inputGroups.length;
+                emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
+                dishesContainer.appendChild(emptyInputGroup);
+            }
+            
+            // Llenar campos
+            day.dishes.forEach(dish => {
+                if (dish.category === categoryKey) {
+                    emptyInputGroup.querySelector('.dish-input').value = dish.name;
+                    emptyInputGroup.querySelector('.dish-description').value = dish.description || '';
+                    emptyInputGroup.querySelector('.dish-price').value = dish.price || '';
+                    
+                    // Crear un nuevo campo vacío
+                    const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
+                    const index = inputGroups.length;
+                    emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
+                    dishesContainer.appendChild(emptyInputGroup);
+                }
+            });
+        });
     });
     
     // Desplazarse al formulario
@@ -932,30 +966,24 @@ const CoordinatorManagement = {
             accessCode = this.generateAccessCode();
         }
         
-        // Crear objeto de coordinador
-        const coordinator = new Coordinator(
-            this.currentEditingCoordinatorId,
-            name,
-            email,
-            phone,
-            department
-        );
-        
-        // Agregar código de acceso (no es parte del modelo original)
-        coordinator.accessCode = accessCode;
-        
-        // Validar coordinador
-        const validation = coordinator.validate();
-        if (!validation.valid) {
-            showNotification(validation.error, 'error');
-            return;
-        }
+        // Crear objeto de coordinador directamente
+        const coordinatorData = {
+            id: this.currentEditingCoordinatorId || 'coord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            name: name,
+            email: email,
+            phone: phone,
+            department: department,
+            accessCode: accessCode,
+            active: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
         
         // Guardar coordinador en almacenamiento
         let success;
         if (this.currentEditingCoordinatorId) {
             // Actualizar coordinador existente
-            success = StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinator);
+            success = StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
             if (success) {
                 showNotification('Coordinador actualizado correctamente.');
             } else {
@@ -963,7 +991,7 @@ const CoordinatorManagement = {
             }
         } else {
             // Crear nuevo coordinador
-            success = StorageUtil.Coordinators.add(coordinator);
+            success = StorageUtil.Coordinators.add(coordinatorData);
             if (success) {
                 showNotification('Coordinador guardado correctamente.');
             } else {
