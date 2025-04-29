@@ -1,0 +1,154 @@
+/* Estilos específicos para dispositivos móviles - Comedor Empresarial */
+/* Este archivo complementa los estilos base y se enfoca en optimizaciones móviles */
+
+@media (max-width: 600px) {
+    /* Estructura básica */
+    body {
+        font-size: 14px;
+    }
+    
+    .container {
+        padding: 8px;
+        max-width: 100%;
+    }
+    
+    /* Encabezado y navegación */
+    header {
+        margin-bottom: 10px;
+    }
+    
+    h1 {
+        font-size: 1.4rem;
+        text-align: center;
+    }
+    
+    h2 {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    nav ul {
+        flex-wrap: wrap;
+    }
+    
+    nav ul li {
+        flex: 1;
+        margin-right: 0;
+        text-align: center;
+    }
+    
+    nav ul li a {
+        padding: 12px 5px;
+        font-size: 0.9rem;
+    }
+    
+    /* Secciones y contenedores */
+    section {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    
+    /* Formularios */
+    .form-group {
+        margin-bottom: 10px;
+    }
+    
+    label {
+        font-size: 0.9rem;
+    }
+    
+    input[type="date"],
+    input[type="number"] {
+        padding: 10px;
+        font-size: 16px; /* Evita zoom en iOS */
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 12px;
+        margin-top: 5px;
+        font-size: 1rem;
+    }
+    
+    /* Filtros e importación */
+    .filter-container,
+    .import-container {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .filter-container input,
+    .filter-container button,
+    .import-container input {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    /* Registros */
+    .record-item {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px;
+    }
+    
+    .record-item button {
+        margin-top: 8px;
+        align-self: flex-end;
+    }
+    
+    /* Resumen */
+    .summary {
+        margin: 10px 0;
+        padding: 8px;
+    }
+    
+    .summary p {
+        margin: 3px 0;
+        font-size: 0.9rem;
+    }
+    
+    /* Mensajes */
+    .message {
+        padding: 8px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+    }
+    
+    /* Modo ultra-compacto para pantallas muy pequeñas */
+    @media (max-width: 320px) {
+        body {
+            font-size: 13px;
+        }
+        
+        h1 {
+            font-size: 1.2rem;
+        }
+        
+        h2 {
+            font-size: 1rem;
+        }
+        
+        .container {
+            padding: 5px;
+        }
+        
+        section {
+            padding: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 8px;
+        }
+        
+        input[type="date"],
+        input[type="number"] {
+            padding: 8px;
+        }
+        
+        .btn {
+            padding: 10px;
+        }
+    }
+}

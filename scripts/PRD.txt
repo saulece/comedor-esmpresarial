@@ -1,257 +1,97 @@
-# Sistema de Confirmación de Asistencias para Comedor Empresarial - Plan de Optimización
-
+<context>
 # Overview  
-El Sistema de Confirmación de Asistencias para Comedor Empresarial requiere optimizaciones importantes para mejorar seguridad, rendimiento, usabilidad y escalabilidad. Esta propuesta mantiene la esencia de la aplicación existente mientras incorpora mejoras técnicas y funcionales para superar las limitaciones actuales, especialmente aquellas relacionadas con el almacenamiento local y la experiencia de usuario.
+Este proyecto tiene como objetivo desarrollar una versión extremadamente simplificada del sistema de confirmación de asistencias para comedor empresarial.  
+El sistema debe mantener solo lo esencial para permitir a los coordinadores registrar confirmaciones de asistencia diarias, y a los administradores visualizar un resumen básico.
+
+Toda funcionalidad, estructura, estilo o archivo que no sea estrictamente necesario debe ser eliminado o reescrito para reducir la complejidad técnica y de interfaz.
 
 # Core Features  
 
-## 1. Seguridad Mejorada
-- **Qué hace**: Implementa encriptación de contraseñas, tokens de sesión seguros y validación avanzada de datos.
-- **Por qué es importante**: Protege la información sensible de los usuarios y previene vulnerabilidades comunes como XSS e inyección de código.
-- **Cómo funciona**: Utiliza algoritmos de hashing para contraseñas, implementa JWT para sesiones y añade sanitización de datos para todas las entradas de usuario.
+## Confirmación básica de asistencia
+- **Qué hace**: Permite ingresar manualmente la cantidad de personas que asistirán a comer en un día específico.
+- **Por qué es importante**: Es la función principal del sistema.
+- **Cómo funciona**: Un formulario sencillo con selección de fecha y número de personas.
 
-## 2. Rendimiento Optimizado
-- **Qué hace**: Mejora los tiempos de carga, reduce el uso de memoria y optimiza la manipulación del DOM.
-- **Por qué es importante**: Proporciona una experiencia más fluida, especialmente en dispositivos de gama baja o con conexiones lentas.
-- **Cómo funciona**: Implementa lazy loading, minificación de código, compresión avanzada de datos en IndexedDB y técnicas de virtualización para listas largas.
-
-## 3. Experiencia de Usuario Refinada
-- **Qué hace**: Refina la interfaz de usuario y añade características que mejoran la experiencia del usuario.
-- **Por qué es importante**: Aumenta la satisfacción del usuario, reduce la curva de aprendizaje y minimiza errores en la entrada de datos.
-- **Cómo funciona**: Implementa accesibilidad WCAG, modo oscuro, atajos de teclado y asistentes interactivos para tareas complejas.
-
-## 4. Almacenamiento y Escalabilidad
-- **Qué hace**: Añade soporte para sincronización opcional con backend y mejora la gestión de datos locales.
-- **Por qué es importante**: Supera las limitaciones de localStorage y permite escalar a organizaciones más grandes o con múltiples dispositivos.
-- **Cómo funciona**: Implementa IndexedDB para almacenamiento local, añade soporte para sincronización con API REST y mejora la gestión de conflictos de datos.
-
-## 5. Reportes y Análisis Avanzados
-- **Qué hace**: Expande las capacidades de generación de reportes con visualizaciones interactivas y análisis predictivos.
-- **Por qué es importante**: Permite a los administradores tomar decisiones más informadas basadas en tendencias históricas.
-- **Cómo funciona**: Implementa biblioteca de gráficos optimizada, exportación en múltiples formatos y algoritmos de predicción para asistencia futura.
+## Visualización de confirmaciones
+- **Qué hace**: Muestra un resumen de las confirmaciones realizadas.
+- **Por qué es importante**: Da visibilidad al administrador sin generar reportes complejos.
+- **Cómo funciona**: Una lista por fecha con totales de asistencia.
 
 # User Experience  
 
 ## Personas de Usuario
 
-### Administrador del Comedor (Mejorado)
-- Necesita visualización de datos avanzada para planificación estratégica
-- Requiere plantillas reutilizables para optimizar la creación de menús recurrentes
-- Valora métricas de rendimiento y análisis predictivo para toma de decisiones
+### Coordinador
+- Puede registrar asistencias por fecha.
+- No necesita login.
+- Interfaz simple desde cualquier navegador.
 
-### Coordinador de Área/Departamento (Mejorado)
-- Busca simplificación en el proceso de confirmación diaria
-- Requiere recordatorios y notificaciones para no olvidar fechas límite
-- Valora la posibilidad de delegar temporalmente y ver históricos de su equipo
+### Administrador
+- Puede ver la lista de asistencias registradas.
+- No modifica ni administra usuarios.
 
-## Flujos de Usuario Clave
-
-### Flujo del Administrador Optimizado
-1. Inicia sesión con autenticación mejorada (opcional 2FA)
-2. Accede a dashboard personalizable con KPIs relevantes
-3. Gestiona menús con sistema de plantillas y asistente de creación
-4. Visualiza reportes interactivos con análisis predictivo
-5. Administra usuarios con herramientas avanzadas de gestión
-
-### Flujo del Coordinador Optimizado
-1. Inicia sesión con opción "recordarme" y acceso rápido
-2. Visualiza en un solo panel los menús activos y confirmaciones pendientes
-3. Confirma asistencias con sugerencias basadas en patrones históricos
-4. Recibe notificaciones y recordatorios automatizados
-5. Accede a su historial de confirmaciones con visualizaciones simplificadas
+## Flujos Clave
+- Coordinador accede → elige fecha → ingresa número de personas → confirma.
+- Administrador accede → ve lista de fechas con cantidad de asistentes.
 
 ## Consideraciones UI/UX
-- Implementación de estándares WCAG 2.1 nivel AA para accesibilidad universal
-- Modo oscuro y temas personalizables para reducir fatiga visual
-- Diseño móvil optimizado con gestos intuitivos
-- Sistema de ayuda contextual integrado en la interfaz
-- Feedback visual mejorado con microinteracciones y transiciones
+- Sin diseño personalizado, usar HTML/CSS básico.
+- Compatible con navegador moderno.
+- Funciona bien en escritorio y tablet.
+- Evitar animaciones, gráficos o estilos avanzados.
 
+</context>
+<PRD>
 # Technical Architecture  
 
 ## Componentes del Sistema
-- **Frontend**: HTML, CSS y JavaScript vanilla optimizado con bundling
-- **Persistencia de datos**: Migración de localStorage a IndexedDB con compresión
-- **Offline**: Service Workers para funcionamiento sin conexión
-- **Sincronización**: API REST opcional para organizaciones más grandes
+- **Frontend**: HTML, CSS y JS plano.
+- **Persistencia**: IndexedDB o archivo JSON local.
+- **Backend**: Ninguno. Sincronización deshabilitada.
 
 ## Modelos de Datos
 
-### Usuario Mejorado
+### Confirmación
 ```javascript
 {
-  id: String,
-  username: String,
-  password: String, // Hash bcrypt o similar
-  role: String, // 'admin' o 'coordinator'
-  maxPeople: Number, // Solo para coordinadores
-  name: String,
-  preferences: {
-    theme: String,
-    notifications: Boolean,
-    dashboardLayout: Object
-  },
-  lastLogin: Date,
-  authToken: String, // JWT
-  refreshToken: String // Para renovación de sesión
+  date: String, // YYYY-MM-DD
+  peopleCount: Number
 }
 ```
-
-### Menú Semanal Mejorado
-```javascript
-{
-  id: String,
-  weekStartDate: Date,
-  status: String, // 'draft', 'published', 'archived'
-  template: Boolean, // Indica si es una plantilla reutilizable
-  createdBy: String, // ID del usuario que lo creó
-  lastModified: Date,
-  days: [
-    {
-      dayOfWeek: Number,
-      date: Date,
-      mainDish: String,
-      sideDish: String,
-      beverage: String,
-      allergens: Array, // Información sobre alérgenos
-      nutritionalInfo: Object, // Información nutricional básica
-      published: Boolean
-    }
-  ]
-}
-```
-
-### Confirmación Mejorada
-```javascript
-{
-  id: String,
-  coordinatorId: String,
-  menuId: String,
-  lastUpdated: Date,
-  status: String, // 'draft', 'confirmed', 'modified'
-  comments: String, // Comentarios opcionales del coordinador
-  confirmations: [
-    {
-      dayOfWeek: Number,
-      date: Date,
-      peopleCount: Number,
-      specialRequests: Array, // Requerimientos dietéticos especiales
-      timestamp: Date, // Cuando se confirmó ese día específico
-      modificationHistory: Array // Historial de cambios si se modifica
-    }
-  ]
-}
-```
-
-## Infraestructura
-- Aplicación web estática con soporte offline mediante Service Workers
-- Almacenamiento principal en IndexedDB con fallback a localStorage
-- Preparación para sincronización con backend REST opcional
-- Sistema de logging y análisis de uso para mejora continua
 
 # Development Roadmap  
 
-## Fase 1: Optimizaciones Fundamentales
-- Implementar sistema de encriptación para datos sensibles (passwords, sesiones)
-- Migrar localStorage a IndexedDB para mayor capacidad y mejor rendimiento
-- Refactorizar componentes UI para mejorar reusabilidad y mantenibilidad
-- Implementar Service Workers para soporte offline básico
-- Optimizar manejo de memoria y rendimiento
+## Fase 1: MVP Minimal
+- Crear pantalla para ingresar fecha y número de asistentes.
+- Guardar datos localmente (IndexedDB o JSON).
+- Crear pantalla para listar confirmaciones anteriores.
+- Permitir borrar registros individualmente si es necesario.
 
-## Fase 2: Mejoras de Experiencia de Usuario
-- Rediseñar el dashboard principal con widgets personalizables
-- Implementar modo oscuro y temas personalizables
-- Mejorar la navegación móvil con gestos y diseño optimizado
-- Añadir funcionalidades de accesibilidad (WCAG 2.1 AA)
-- Implementar sistema de plantillas para menús recurrentes
-- Mejorar la visualización de reportes con gráficos interactivos
-
-## Fase 3: Características Avanzadas
-- Desarrollar sistema de notificaciones inteligentes
-- Implementar sincronización con backend opcional
-- Añadir exportación avanzada con formatos personalizables y programación
-- Implementar análisis predictivo para sugerir confirmaciones basadas en históricos
-- Añadir soporte para requerimientos dietéticos y alérgenos
-- Desarrollar API para integraciones con otros sistemas empresariales
-
-## Fase 4: Escalabilidad Empresarial
-- Implementar autenticación con sistemas corporativos (LDAP, OAuth)
-- Añadir soporte para múltiples comedores/locaciones
-- Desarrollar herramientas administrativas avanzadas para grandes organizaciones
-- Implementar integración con sistemas de inventario y compras
-- Añadir módulo de presupuesto y análisis de costos
-- Desarrollar aplicación móvil nativa utilizando la misma API
+## Fase 2: Limpieza
+- Eliminar todo archivo, dependencia o función no necesaria.
+- Reescribir componentes para reducir líneas de código.
+- Unificar estilos en un solo archivo CSS (mínimo).
 
 # Logical Dependency Chain
-
-1. **Fundación Optimizada**:
-   - Migración de LocalStorage a IndexedDB
-   - Implementación de encriptación y seguridad
-   - Refactorización de componentes UI
-   - Service Workers para soporte offline
-
-2. **Mejoras de UX**:
-   - Dashboard personalizable
-   - Modo oscuro y personalización
-   - Optimización móvil
-   - Accesibilidad WCAG
-
-3. **Características Avanzadas**:
-   - Sistema de notificaciones
-   - Sincronización con backend
-   - Exportaciones avanzadas
-   - Análisis predictivo
-
-4. **Escalabilidad Empresarial**:
-   - Integración con sistemas corporativos
-   - Soporte multi-locación
-   - Herramientas administrativas avanzadas
-   - Integraciones con sistemas de inventario
+1. Formulario de confirmación.
+2. Almacenamiento local.
+3. Visualización de registros.
+4. Limpieza del código y estructura.
+5. Eliminación de cualquier módulo o función sobrante.
 
 # Risks and Mitigations  
 
-## Desafíos Técnicos
-- **Riesgo**: Incompatibilidad con navegadores al migrar a IndexedDB
-  - **Mitigación**: Implementar capa de abstracción y fallback a localStorage para navegadores no compatibles
+## Riesgo: Complejidad Residual
+- **Mitigación**: Revisar cada archivo con IA para sugerencias de eliminación/simplificación.
 
-- **Riesgo**: Rendimiento deficiente con grandes volúmenes de datos
-  - **Mitigación**: Implementar paginación, virtualización y archivado automático de datos antiguos
+## Riesgo: Interfaz confusa
+- **Mitigación**: Usar componentes HTML nativos y layout sencillo sin JavaScript innecesario.
 
-- **Riesgo**: Complejidad excesiva en la sincronización con backend
-  - **Mitigación**: Desarrollar algoritmos robustos de resolución de conflictos y mantener la sincronización como característica opcional
-
-## Consideraciones de Adopción
-- **Riesgo**: Resistencia al cambio por parte de usuarios acostumbrados al sistema actual
-  - **Mitigación**: Implementar cambios graduales, ofrecer tours interactivos y periodo de transición con ambas interfaces disponibles
-
-- **Riesgo**: Curva de aprendizaje pronunciada para nuevas características
-  - **Mitigación**: Crear documentación visual, asistentes interactivos y tooltips contextuales
-
-## Restricciones de Recursos
-- **Riesgo**: Pérdida de datos durante la migración a nuevos sistemas de almacenamiento
-  - **Mitigación**: Sistema robusto de backup antes de cada actualización y herramientas de verificación post-migración
-
-- **Riesgo**: Aumento de la complejidad del código sin beneficio proporcional
-  - **Mitigación**: Evaluación constante de relación esfuerzo/beneficio y pruebas de usabilidad con usuarios reales
+## Riesgo: Pérdida de datos locales
+- **Mitigación**: Incluir botón manual de exportación a JSON.
 
 # Appendix  
-
-## Métricas de Éxito
-- Reducción del tiempo de carga en un 40%
-- Disminución de errores de usuario en un 60%
-- Aumento en la satisfacción del usuario (NPS +20 puntos)
-- Reducción del uso de memoria del navegador en un 30%
-- Conformidad WCAG 2.1 AA verificada
-
-## Pruebas y Validación
-- Test A/B para cambios significativos en la interfaz
-- Pruebas de rendimiento automatizadas comparando con la versión actual
-- Sesiones de usabilidad con usuarios reales
-- Benchmarking contra soluciones similares
-
-## Consideraciones Futuras
-- Estrategia de versionado semántico (SemVer)
-- Implementación de CI/CD para despliegues automatizados
-- Documentación exhaustiva de API y arquitectura
-- Análisis de telemetría anónima (opt-in) para identificar oportunidades de mejora continua
-- Plan de migración incremental a infraestructura en la nube
+- Evitar uso de frameworks.
+- No se requiere autenticación.
+- Todo el proyecto debe caber en pocos archivos: `index.html`, `style.css`, `script.js`, y `data.json` (opcional).
+</PRD>

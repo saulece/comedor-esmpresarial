@@ -3,453 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Confirmación de Asistencias - Comedor Empresarial</title>
-    <meta name="description" content="Sistema para la gestión y confirmación de asistencias al comedor empresarial">
-    <link rel="stylesheet" href="css/normalize.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/mobile.css" media="(max-width: 768px)">
-    <link rel="stylesheet" href="css/performance-optimizations.css">
-    <link rel="stylesheet" href="css/virtual-components.css">
-    <link rel="stylesheet" href="css/responsive-layout.css">
-    <link rel="stylesheet" href="css/accessibility.css">
-    <!-- Nuevos archivos CSS de accesibilidad -->
-    <link rel="stylesheet" href="css/skip-navigation.css">
-    <link rel="stylesheet" href="css/accessibility-panel.css">
-    <!-- Modo oscuro -->
-    <link rel="stylesheet" href="css/dark-mode.css">
-    <!-- Gestos táctiles -->
-    <link rel="stylesheet" href="css/touch-gestures.css">
-    <!-- Plantillas de menús -->
-    <link rel="stylesheet" href="css/menu-templates.css">
-    <!-- Estilos para el dashboard -->
-    <link rel="stylesheet" href="css/dashboard.css">
-    <style>
-        /* Estilos para el indicador de carga */
-        .loading-indicator {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            font-size: 18px;
-        }
-        .loading-indicator span {
-            background-color: #333;
-            padding: 15px 25px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-        }
-    </style>
+    <title>Comedor Empresarial - Confirmación de Asistencia</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="avika-mobile.css">
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
-    <div id="app" role="application">
-        <!-- Contenedor principal de la aplicación -->
-        <header class="header">
-            <div class="container">
-                <h1>Comedor Empresarial</h1>
-                <div id="user-info" class="user-info"></div>
-            </div>
+    <div class="container">
+        <header>
+            <h1>Comedor Empresarial</h1>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active" id="nav-confirm">Confirmar Asistencia</a></li>
+                    <li><a href="#" id="nav-view">Ver Confirmaciones</a></li>
+                </ul>
+            </nav>
         </header>
-
-        <main id="main-content" class="main-content" tabindex="-1">
-            <div class="container">
-                <!-- Sección de login (visible inicialmente) -->
-                <section id="login-section" class="section login-section">
-                    <h2>Iniciar Sesión</h2>
-                    <form id="login-form" class="form">
-                        <div class="form-group">
-                            <label for="username">Usuario:</label>
-                            <input type="text" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Contraseña:</label>
-                            <input type="password" id="password" name="password" required>
-                        </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Ingresar</button>
-                        </div>
-                    </form>
-                </section>
-
-                <!-- Sección de administrador (oculta inicialmente) -->
-                <section id="admin-section" class="section admin-section hidden">
-                    <div class="tabs">
-                        <button class="tab-btn active" data-tab="menu-tab">Gestión de Menús</button>
-                        <button class="tab-btn" data-tab="users-tab">Gestión de Usuarios</button>
-                        <button class="tab-btn" data-tab="reports-tab">Reportes de Asistencia</button>
-                        <button class="tab-btn" data-tab="export-import-tab">Exportar/Importar</button>
-                        <button class="tab-btn" data-tab="storage-tab">Almacenamiento</button>
+        
+        <main>
+            <section id="confirmation-form" class="active-section">
+                <h2>Confirmar Asistencia</h2>
+                <form id="attendance-form">
+                    <div class="form-group">
+                        <label for="attendance-date">Fecha:</label>
+                        <input type="date" id="attendance-date" required>
                     </div>
-
-                    <div id="menu-tab" class="tab-content active">
-                        <h3>Gestión de Menús Semanales</h3>
-                        <div id="menu-form-container"></div>
-                        <div id="menu-list-container"></div>
+                    <div class="form-group">
+                        <label for="people-count">Número de personas:</label>
+                        <input type="number" id="people-count" min="1" required>
                     </div>
-
-                    <div id="users-tab" class="tab-content">
-                        <h3>Gestión de Coordinadores</h3>
-                        <div id="user-form-container"></div>
-                        <div id="user-list-container"></div>
-                    </div>
-
-                    <div id="reports-tab" class="tab-content">
-                        <h3>Reportes de Asistencia</h3>
-                        <div id="reports-container"></div>
-                    </div>
-
-                    <div id="export-import-tab" class="tab-content">
-                        <h3>Exportación e Importación de Datos</h3>
-                        <p>Seleccione el tipo de datos que desea exportar o importar.</p>
-                        
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h4>Exportar Datos</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="export-data-type">Tipo de Datos:</label>
-                                    <select id="export-data-type" class="form-control">
-                                        <option value="menus">Menús Semanales</option>
-                                        <option value="confirmations">Confirmaciones de Asistencia</option>
-                                        <option value="coordinators">Coordinadores</option>
-                                        <option value="report">Reporte de Asistencia</option>
-                                    </select>
-                                </div>
-                                
-                                <div id="report-options" class="form-group" style="display: none;">
-                                    <label for="report-menu-id">Seleccionar Menú para Reporte:</label>
-                                    <select id="report-menu-id" class="form-control">
-                                        <!-- Se llenará dinámicamente -->
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Formato de Exportación:</label>
-                                    <div class="btn-group">
-                                        <button id="export-excel" class="btn btn-primary">Excel (.xlsx)</button>
-                                        <button id="export-csv" class="btn btn-secondary">CSV (.csv)</button>
-                                        <button id="export-json" class="btn btn-secondary">JSON (.json)</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card">
-                            <div class="card-header">
-                                <h4>Importar Datos</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="import-data-type">Tipo de Datos:</label>
-                                    <select id="import-data-type" class="form-control">
-                                        <option value="menus">Menús Semanales</option>
-                                        <option value="confirmations">Confirmaciones de Asistencia</option>
-                                        <option value="coordinators">Coordinadores</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="import-file">Archivo a Importar:</label>
-                                    <input type="file" id="import-file" class="form-control" accept=".xlsx,.csv,.json">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <button id="import-button" class="btn btn-primary">Importar Datos</button>
-                                </div>
-                                
-                                <div class="alert alert-warning mt-3">
-                                    <strong>Nota:</strong> La importación reemplazará los datos existentes del tipo seleccionado. Asegúrese de tener una copia de seguridad antes de proceder.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="storage-tab" class="tab-content">
-                        <h3>Gestión de Almacenamiento</h3>
-                        <p>Administre el almacenamiento local de datos y realice tareas de mantenimiento.</p>
-                        
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h4>Estado del Almacenamiento</h4>
-                            </div>
-                            <div class="card-body">
-                                <div id="storage-status-container">
-                                    <div class="mb-3">
-                                        <label>Espacio Utilizado:</label>
-                                        <div class="progress">
-                                            <div id="storage-usage-bar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                                        </div>
-                                        <small id="storage-usage-details">Calculando...</small>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="card">
-                                                <div class="card-body text-center">
-                                                    <h5>Menús</h5>
-                                                    <p id="menus-count">0 activos</p>
-                                                    <p id="archived-menus-count">0 archivados</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card">
-                                                <div class="card-body text-center">
-                                                    <h5>Confirmaciones</h5>
-                                                    <p id="confirmations-count">0 activas</p>
-                                                    <p id="archived-confirmations-count">0 archivadas</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card">
-                                                <div class="card-body text-center">
-                                                    <h5>Usuarios</h5>
-                                                    <p id="users-count">0 usuarios</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header">
-                                        <h4>Mantenimiento de Datos</h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="form-group mb-3">
-                                            <label for="archive-threshold">Umbral de Archivado (días):</label>
-                                            <input type="number" id="archive-threshold" class="form-control" min="7" max="365" value="30">
-                                            <small class="text-muted">Menús y confirmaciones más antiguos que este umbral serán archivados.</small>
-                                        </div>
-                                        
-                                        <div class="form-group mb-3">
-                                            <label for="cleanup-threshold">Umbral de Limpieza (días):</label>
-                                            <input type="number" id="cleanup-threshold" class="form-control" min="30" max="730" value="90">
-                                            <small class="text-muted">Datos archivados más antiguos que este umbral serán eliminados permanentemente.</small>
-                                        </div>
-                                        
-                                        <div class="btn-group">
-                                            <button id="archive-data-btn" class="btn btn-primary">Archivar Datos Antiguos</button>
-                                            <button id="cleanup-data-btn" class="btn btn-warning">Limpiar Datos Archivados</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header">
-                                        <h4>Respaldo y Restauración</h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="backup-info" class="mb-3">
-                                            <p>Último respaldo: <span id="last-backup-date">Nunca</span></p>
-                                        </div>
-                                        
-                                        <div class="btn-group mb-3">
-                                            <button id="create-backup-btn" class="btn btn-primary">Crear Respaldo</button>
-                                            <button id="download-backup-btn" class="btn btn-secondary">Descargar Respaldo</button>
-                                        </div>
-                                        
-                                        <div class="form-group">
-                                            <label for="restore-backup-file">Restaurar desde Respaldo:</label>
-                                            <input type="file" id="restore-backup-file" class="form-control" accept=".json">
-                                        </div>
-                                        
-                                        <button id="restore-backup-btn" class="btn btn-warning mt-2">Restaurar</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Sección de coordinador (oculta inicialmente) -->
-                <section id="coordinator-section" class="section coordinator-section hidden">
-                    <h2>Menú Semanal y Confirmación de Asistencias</h2>
-                    <div id="coordinator-menu-view"></div>
-                    <div id="attendance-form-container"></div>
-                    <div id="attendance-history-container"></div>
-                </section>
-            </div>
+                    <button type="submit" class="btn">Confirmar</button>
+                </form>
+                <div id="confirmation-message" class="message hidden"></div>
+            </section>
+            
+            <section id="attendance-list" class="hidden">
+                <h2>Confirmaciones Registradas</h2>
+                <div class="filter-container">
+                    <label for="filter-date">Filtrar por fecha:</label>
+                    <input type="date" id="filter-date">
+                    <button id="apply-filter" class="btn">Filtrar</button>
+                    <button id="clear-filter" class="btn">Limpiar</button>
+                </div>
+                <div class="import-container">
+                    <label for="import-file">Importar datos:</label>
+                    <input type="file" id="import-file" accept=".json">
+                </div>
+                <div id="attendance-records">
+                    <!-- Los registros se cargarán dinámicamente aquí -->
+                </div>
+            </section>
         </main>
-
-        <footer class="footer">
-            <div class="container">
-                <p>&copy; 2025 Sistema de Confirmación de Asistencias - Comedor Empresarial</p>
-            </div>
+        
+        <footer>
+            <p>Sistema de Confirmación de Asistencia - Comedor Empresarial</p>
         </footer>
     </div>
-
-    <!-- Módulos críticos que se cargan inmediatamente -->
-    <script src="js/config.js"></script>
-    <script src="js/utils.js"></script>
     
-    <!-- Sistema de carga dinámica de módulos y optimización -->
-    <script src="js/module-loader.js"></script>
-    <script src="js/code-splitter.js"></script>
-    <script src="js/dom-optimizer.js"></script>
-    <script src="js/render-optimizer.js"></script>
-    <script src="js/virtual-renderer.js"></script>
-    <script src="js/virtual-list.js"></script>
-    <script src="js/virtual-table.js"></script>
-    <script src="js/responsive-layout.js"></script>
-    
-    <!-- Script de inicialización -->
-    <script>
-        // Mostrar indicador de carga
-        const showLoadingIndicator = function() {
-            const loadingEl = document.createElement('div');
-            loadingEl.className = 'loading-indicator';
-            loadingEl.innerHTML = '<span>Cargando aplicación...</span>';
-            document.body.appendChild(loadingEl);
-            return loadingEl;
-        };
-        
-        // Ocultar indicador de carga
-        const hideLoadingIndicator = function(loadingEl) {
-            if (loadingEl) {
-                loadingEl.classList.add('fade-out');
-                setTimeout(() => {
-                    if (loadingEl.parentNode) {
-                        loadingEl.parentNode.removeChild(loadingEl);
-                    }
-                }, 300);
-            }
-        };
-        
-        // Mostrar indicador de carga mientras se inicializa la aplicación
-        const loadingIndicator = showLoadingIndicator();
-        
-        // Inicializar cargador de módulos
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar el cargador de módulos
-            ModuleLoader.init({
-                preloadGroups: ['core'] // Cargar módulos core inmediatamente
-            });
-            
-            // Inicializar optimizadores de DOM y renderizado
-            if (typeof DOMOptimizer !== 'undefined') {
-                DOMOptimizer.init({
-                    batchUpdates: true,
-                    useDocumentFragment: true,
-                    deferNonCriticalUpdates: true
-                });
-            }
-            
-            if (typeof RenderOptimizer !== 'undefined') {
-                RenderOptimizer.init({
-                    enableVirtualDOM: true,
-                    enableLazyRendering: true,
-                    mobileOptimizations: true
-                });
-                
-                // Optimizar imágenes con carga diferida
-                RenderOptimizer.optimizeImages('img[data-src]');
-            }
-            
-            // Inicializar sistema de layout responsivo
-            if (typeof ResponsiveLayout !== 'undefined') {
-                ResponsiveLayout.init({
-                    ultraCompactMode: true,
-                    mobileFirst: true,
-                    enableMediaQueries: true
-                });
-                
-                // Registrar callback para cambios de modo de layout
-                ResponsiveLayout.onModeChange(function(mode, state) {
-                    console.info(`[ResponsiveLayout] Modo de layout cambiado a: ${mode}`);
-                    
-                    // Aplicar optimizaciones específicas según el modo
-                    if (mode === 'ultra-compact') {
-                        // Reducir elementos no esenciales en modo ultra-compacto
-                        document.querySelectorAll('.compact-hide').forEach(el => {
-                            el.style.display = 'none';
-                        });
-                    }
-                });
-            }
-            
-            // Cargar módulos críticos y luego inicializar la aplicación
-            Promise.all([
-                ModuleLoader.loadModuleGroup('core'),
-                ModuleLoader.loadScript('js/models.js'),
-                ModuleLoader.loadScript('js/component-system.js'),
-                ModuleLoader.loadScript('js/auth.js'),
-                ModuleLoader.loadScript('js/accessibility.js'),
-                ModuleLoader.loadScript('js/screen-reader-support.js'),
-                // Nuevos módulos de accesibilidad WCAG 2.1 AA
-                ModuleLoader.loadScript('js/skip-navigation.js'),
-                ModuleLoader.loadScript('js/accessibility-manager.js'),
-                ModuleLoader.loadScript('js/accessibility-init.js'),
-                // Modo oscuro
-                ModuleLoader.loadScript('js/dark-mode.js'),
-                // Gestos táctiles para móviles
-                ModuleLoader.loadScript('js/touch-gestures.js'),
-                ModuleLoader.loadScript('js/touch-gestures-init.js'),
-                // Plantillas de menús
-                ModuleLoader.loadScript('js/menu-templates.js'),
-                // Sistema de almacenamiento mejorado
-                ModuleLoader.loadScript('js/data-compression.js'),
-                ModuleLoader.loadScript('js/secure-storage.js'),
-                ModuleLoader.loadScript('js/storage-fallback.js'),
-                ModuleLoader.loadScript('js/indexeddb-manager.js'),
-                ModuleLoader.loadScript('js/indexeddb-crud.js'),
-                ModuleLoader.loadScript('js/storage-service.js'),
-                ModuleLoader.loadScript('js/storage-init.js'),
-                
-                // Dashboard personalizable
-                ModuleLoader.loadScript('js/dashboard.js'),
-                
-                ModuleLoader.loadScript('js/app.js')
-            ])
-            .then(() => {
-                // Inicializar divisor de código
-                if (typeof CodeSplitter !== 'undefined') {
-                    CodeSplitter.init();
-                }
-                
-                // Ocultar indicador de carga
-                hideLoadingIndicator(loadingIndicator);
-                
-                // Optimizar renderizado después de cargar la aplicación
-                document.addEventListener('app:initialized', function() {
-                    // Diferir renderizado de elementos no críticos
-                    document.querySelectorAll('.defer-render').forEach(element => {
-                        if (RenderOptimizer) {
-                            RenderOptimizer.observeElement(element, {
-                                once: true,
-                                onVisible: (el) => {
-                                    el.classList.add('render-visible');
-                                }
-                            });
-                        }
-                    });
-                });
-            })
-            .catch(error => {
-                console.error('Error al cargar módulos críticos:', error);
-                // Mostrar mensaje de error
-                if (loadingIndicator) {
-                    loadingIndicator.innerHTML = '<span>Error al cargar la aplicación. Por favor, recarga la página.</span>';
-                }
-            });
-        });
-    </script>
-    <!-- SheetJS (XLSX) para exportación a Excel -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="storage.js"></script>
+    <script src="ui.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
