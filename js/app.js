@@ -20,6 +20,31 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('StorageManager no está disponible. Verifica que el archivo js/storage-manager.js esté incluido en index.html antes de app.js');
   }
   
+  // Inicializar módulos de análisis de rendimiento UI
+  if (typeof UIPerformanceAnalyzer !== 'undefined') {
+    try {
+      // Inicializar analizador de rendimiento
+      UIPerformanceAnalyzer.init({
+        enabled: true,
+        logLevel: 'info'
+      });
+      
+      // Inicializar métricas de rendimiento
+      if (typeof UIPerformanceMetrics !== 'undefined') {
+        UIPerformanceMetrics.init();
+      }
+      
+      // Inicializar dashboard de rendimiento
+      if (typeof UIPerformanceDashboard !== 'undefined') {
+        UIPerformanceDashboard.init();
+      }
+      
+      console.log('Sistema de análisis de rendimiento UI inicializado correctamente');
+    } catch (error) {
+      console.error('Error al inicializar el sistema de análisis de rendimiento UI:', error);
+    }
+  }
+  
   // Inicializar módulo de administrador
   Admin.init();
   

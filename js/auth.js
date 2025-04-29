@@ -8,6 +8,11 @@ const Auth = {
    * Usuario actualmente autenticado
    */
   currentUser: null,
+  
+  /**
+   * Indica si se está utilizando autenticación JWT
+   */
+  useJWT: true,
 
   /**
    * Inicializa el sistema de autenticación
@@ -24,15 +29,39 @@ const Auth = {
   },
 
   /**
-   * Carga la sesión del usuario desde localStorage
+   * Carga la sesión del usuario desde localStorage o JWT
    */
   loadUserSession: function() {
-    const savedUser = Utils.getFromStorage(CONFIG.STORAGE_KEYS.CURRENT_USER);
-    if (savedUser) {
-      this.currentUser = savedUser;
-      this._updateUIForAuthenticatedUser();
+    if (this.useJWT && typeof JWTAuth !== 'undefined') {
+      // Usar autenticación JWT si está disponible
+      if (JWTAuth.isAuthenticated()) {
+        this.currentUser = JWTAuth.getCurrentUser();
+        this._updateUIForAuthenticatedUser();
+      } else {
+        // Intentar refrescar el token si hay un token de refresco
+        const tokens = JWTAuth.getStoredTokens();
+        if (tokens.refreshToken) {
+          const newTokens = JWTAuth.refreshAccessToken(tokens.refreshToken);
+          if (newTokens) {
+            JWTAuth.storeTokens(newTokens);
+            this.currentUser = JWTAuth.getCurrentUser();
+            this._updateUIForAuthenticatedUser();
+          } else {
+            this._showLoginForm();
+          }
+        } else {
+          this._showLoginForm();
+        }
+      }
     } else {
-      this._showLoginForm();
+      // Fallback al método anterior si JWT no está disponible
+      const savedUser = Utils.getFromStorage(CONFIG.STORAGE_KEYS.CURRENT_USER);
+      if (savedUser) {
+        this.currentUser = savedUser;
+        this._updateUIForAuthenticatedUser();
+      } else {
+        this._showLoginForm();
+      }
     }
   },
 
@@ -40,37 +69,58 @@ const Auth = {
    * Inicia sesión con nombre de usuario y contraseña
    * @param {string} username - Nombre de usuario
    * @param {string} password - Contraseña
-   * @returns {boolean} True si el inicio de sesión fue exitoso
+   * @returns {Promise<boolean>} Promesa que se resuelve con true si el inicio de sesión fue exitoso
    */
-  login: function(username, password) {
+  login: async function(username, password) {
     const user = Models.User.getByUsername(username);
     
-    if (!user || user.password !== password) {
-      // Mostrar error con el nuevo sistema de toasts
-      Components.showToast('Usuario o contraseña incorrectos', 'danger');
-      
-      // Marcar campos como inválidos
-      const usernameField = document.getElementById('username');
-      const passwordField = document.getElementById('password');
-      
-      if (usernameField && passwordField) {
-        // Aplicar efecto de shake a los campos para feedback visual
-        usernameField.classList.add('shake');
-        passwordField.classList.add('shake');
+    if (!user) {
+      this._handleLoginError('Usuario no encontrado');
+      return false;
+    }
+    
+    // Verificar si el usuario tiene campos de seguridad
+    if (this.useJWT && user.securityFields && typeof PasswordHash !== 'undefined') {
+      // Usar verificación de contraseña con hash
+      try {
+        const isValid = await PasswordHash.verifyPassword(
+          password,
+          user.securityFields.passwordHash,
+          user.securityFields.salt,
+          {
+            algorithm: user.securityFields.hashAlgorithm,
+            iterations: user.securityFields.hashIterations
+          }
+        );
         
-        // Quitar la clase después de la animación
-        setTimeout(() => {
-          usernameField.classList.remove('shake');
-          passwordField.classList.remove('shake');
-        }, 500);
+        if (!isValid) {
+          this._handleLoginError('Contraseña incorrecta');
+          return false;
+        }
+        
+        // Generar tokens JWT si está disponible
+        if (typeof JWTAuth !== 'undefined') {
+          const tokens = JWTAuth.generateTokenPair(user);
+          JWTAuth.storeTokens(tokens);
+        }
+      } catch (error) {
+        console.error('Error al verificar contraseña:', error);
+        this._handleLoginError('Error al verificar credenciales');
+        return false;
       }
-      
+    } else if (user.password !== password) {
+      // Fallback a verificación simple si no hay campos de seguridad
+      this._handleLoginError('Contraseña incorrecta');
       return false;
     }
     
     // Guardar usuario en sesión
     this.currentUser = user;
-    Utils.saveToStorage(CONFIG.STORAGE_KEYS.CURRENT_USER, user);
+    
+    // Si no estamos usando JWT, guardar en localStorage
+    if (!this.useJWT || typeof JWTAuth === 'undefined') {
+      Utils.saveToStorage(CONFIG.STORAGE_KEYS.CURRENT_USER, user);
+    }
     
     // Actualizar UI
     this._updateUIForAuthenticatedUser();
@@ -79,6 +129,32 @@ const Auth = {
     Components.showToast(`Bienvenido, ${user.name}`, 'success');
     
     return true;
+  },
+  
+  /**
+   * Maneja los errores de inicio de sesión
+   * @param {string} message - Mensaje de error
+   * @private
+   */
+  _handleLoginError: function(message) {
+    // Mostrar error con el sistema de toasts
+    Components.showToast(message, 'danger');
+    
+    // Marcar campos como inválidos
+    const usernameField = document.getElementById('username');
+    const passwordField = document.getElementById('password');
+    
+    if (usernameField && passwordField) {
+      // Aplicar efecto de shake a los campos para feedback visual
+      usernameField.classList.add('shake');
+      passwordField.classList.add('shake');
+      
+      // Quitar la clase después de la animación
+      setTimeout(() => {
+        usernameField.classList.remove('shake');
+        passwordField.classList.remove('shake');
+      }, 500);
+    }
   },
 
   /**
@@ -90,6 +166,13 @@ const Auth = {
     
     // Limpiar sesión
     this.currentUser = null;
+    
+    // Limpiar tokens JWT si está disponible
+    if (this.useJWT && typeof JWTAuth !== 'undefined') {
+      JWTAuth.clearTokens();
+    }
+    
+    // Limpiar localStorage en cualquier caso
     localStorage.removeItem(CONFIG.STORAGE_KEYS.CURRENT_USER);
     
     // Mostrar formulario de login con animación de fade
@@ -115,6 +198,12 @@ const Auth = {
    * @returns {boolean} True si hay un usuario autenticado
    */
   isAuthenticated: function() {
+    // Usar JWT si está disponible
+    if (this.useJWT && typeof JWTAuth !== 'undefined') {
+      return JWTAuth.isAuthenticated();
+    }
+    
+    // Fallback al método anterior
     return this.currentUser !== null;
   },
 
@@ -124,6 +213,12 @@ const Auth = {
    * @returns {boolean} True si el usuario tiene el rol especificado
    */
   hasRole: function(role) {
+    // Usar JWT si está disponible
+    if (this.useJWT && typeof JWTAuth !== 'undefined') {
+      return JWTAuth.hasRole(role);
+    }
+    
+    // Fallback al método anterior
     return this.isAuthenticated() && this.currentUser.role === role;
   },
 
@@ -148,29 +243,31 @@ const Auth = {
           const username = document.getElementById('username').value;
           const password = document.getElementById('password').value;
           
-          this.login(username, password);
+          // Mostrar indicador de carga en el botón
+          const loginButton = loginForm.querySelector('button[type="submit"]');
+          if (loginButton) {
+            loginButton.classList.add('loading');
+            loginButton.innerHTML = '<span class="spinner-sm"></span> Ingresando...';
+          }
+          
+          // Usar login asíncrono
+          this.login(username, password)
+            .finally(() => {
+              // Restaurar botón después de completar
+              if (loginButton) {
+                setTimeout(() => {
+                  loginButton.classList.remove('loading');
+                  loginButton.innerHTML = 'Ingresar';
+                }, 500);
+              }
+            });
         }
       });
       
       // Añadir animación al botón de login
       const loginButton = loginForm.querySelector('button[type="submit"]');
       if (loginButton) {
-        loginButton.addEventListener('click', function() {
-          if (!this.classList.contains('loading')) {
-            // Añadir clase de loading solo si el formulario es válido
-            const isValid = Validation.validateForm('login-form', Auth._getLoginValidationRules());
-            if (isValid) {
-              this.classList.add('loading');
-              this.innerHTML = '<span class="spinner-sm"></span> Ingresando...';
-              
-              // Restaurar botón después de un tiempo
-              setTimeout(() => {
-                this.classList.remove('loading');
-                this.innerHTML = 'Ingresar';
-              }, 1500);
-            }
-          }
-        });
+        // Nota: El manejo del botón ahora se hace en el evento submit
       }
     }
     

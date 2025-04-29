@@ -28,8 +28,17 @@ const Validation = {
         workDay: 'La fecha debe ser un día laboral (lunes a viernes)',
         attendanceLimit: 'El número de asistentes excede el límite permitido',
         menuRequired: 'Debe especificar al menos el plato principal para este día',
-        invalidWeek: 'La semana seleccionada no es válida'
+        invalidWeek: 'La semana seleccionada no es válida',
+        // Mensajes de seguridad
+        xss: 'El texto contiene caracteres no permitidos',
+        sql: 'El texto contiene caracteres no permitidos',
+        url: 'La URL ingresada no es válida o segura'
     },
+    
+    /**
+     * Indica si se debe aplicar sanitización automática a las entradas
+     */
+    autoSanitize: true,
     
     /**
      * Valida un campo individual
@@ -38,6 +47,20 @@ const Validation = {
      * @returns {Object} - Resultado de la validación {valid: boolean, message: string}
      */
     validateField: function(field, rules) {
+        // Aplicar sanitización automática si está habilitada y el módulo está disponible
+        if (this.autoSanitize && typeof InputSanitizer !== 'undefined') {
+            // Determinar el tipo de sanitización según las reglas
+            let sanitizeType = 'string';
+            if (rules.email) sanitizeType = 'email';
+            else if (rules.url) sanitizeType = 'url';
+            
+            // Sanitizar el valor
+            const sanitizedValue = this._sanitizeValue(field.value, sanitizeType);
+            if (field.value !== sanitizedValue) {
+                field.value = sanitizedValue;
+            }
+        }
+        
         const value = field.value.trim();
         const result = { valid: true, message: '' };
         
@@ -204,6 +227,11 @@ const Validation = {
         const form = document.getElementById(formId);
         if (!form) return false;
         
+        // Sanitizar todo el formulario primero si está habilitado
+        if (this.autoSanitize && typeof InputSanitizer !== 'undefined') {
+            this._sanitizeForm(form, validationRules);
+        }
+        
         let isValid = true;
         
         // Recorrer todas las reglas y validar cada campo
@@ -240,6 +268,28 @@ const Validation = {
             if (!field) continue;
             
             const rules = validationRules[fieldName];
+            
+            // Determinar el tipo de sanitización según las reglas
+            let sanitizeType = 'string';
+            if (rules.email) sanitizeType = 'email';
+            else if (rules.url) sanitizeType = 'url';
+            
+            // Configurar sanitización en tiempo real si está habilitada
+            if (this.autoSanitize && typeof InputSanitizer !== 'undefined') {
+                // Sanitizar al escribir
+                field.addEventListener('input', () => {
+                    const sanitizedValue = this._sanitizeValue(field.value, sanitizeType);
+                    if (field.value !== sanitizedValue) {
+                        // Guardar la posición del cursor
+                        const cursorPos = field.selectionStart;
+                        field.value = sanitizedValue;
+                        // Restaurar la posición del cursor si es posible
+                        if (cursorPos <= sanitizedValue.length) {
+                            field.setSelectionRange(cursorPos, cursorPos);
+                        }
+                    }
+                });
+            }
             
             // Validar al perder el foco
             field.addEventListener('blur', () => {
@@ -487,6 +537,68 @@ Validation.showValidationToast = function(isValid, successMessage = 'Datos valid
         Components.showToast(successMessage, 'success');
     } else {
         Components.showToast(errorMessage, 'danger');
+    }
+};
+
+/**
+ * Métodos privados para sanitización
+ */
+
+/**
+ * Sanitiza un valor según el tipo especificado
+ * @param {string} value - Valor a sanitizar
+ * @param {string} type - Tipo de sanitización (string, email, url, etc.)
+ * @returns {string} - Valor sanitizado
+ * @private
+ */
+Validation._sanitizeValue = function(value, type = 'string') {
+    // Si InputSanitizer no está disponible, devolver el valor original
+    if (typeof InputSanitizer === 'undefined') {
+        return value;
+    }
+    
+    // Sanitizar según el tipo
+    switch (type) {
+        case 'email':
+            return InputSanitizer.sanitizeEmail(value);
+        case 'url':
+            return InputSanitizer.sanitizeUrl(value);
+        case 'html':
+            return InputSanitizer.sanitizeHTML(value);
+        case 'sql':
+            return InputSanitizer.sanitizeForSQL(value);
+        case 'string':
+        default:
+            return InputSanitizer.sanitizeString(value);
+    }
+};
+
+/**
+ * Sanitiza todos los campos de un formulario
+ * @param {HTMLElement} form - Formulario a sanitizar
+ * @param {Object} validationRules - Reglas de validación para determinar el tipo de sanitización
+ * @private
+ */
+Validation._sanitizeForm = function(form, validationRules) {
+    // Si InputSanitizer no está disponible, no hacer nada
+    if (typeof InputSanitizer === 'undefined') {
+        return;
+    }
+    
+    // Para cada campo con reglas, aplicar sanitización
+    for (const fieldName in validationRules) {
+        const field = form.querySelector(`[name="${fieldName}"]`) || document.getElementById(fieldName);
+        if (!field) continue;
+        
+        const rules = validationRules[fieldName];
+        
+        // Determinar el tipo de sanitización según las reglas
+        let sanitizeType = 'string';
+        if (rules.email) sanitizeType = 'email';
+        else if (rules.url) sanitizeType = 'url';
+        
+        // Sanitizar el valor
+        field.value = this._sanitizeValue(field.value, sanitizeType);
     }
 };
 
