@@ -241,29 +241,48 @@ function formatDateForInput(date) {
  * @param {string} startDateStr - Fecha de inicio en formato YYYY-MM-DD
  */
 function generateWeekDays(startDateStr) {
-    // Convertir la fecha de inicio a objeto Date
-    const startDate = new Date(startDateStr);
-    
-    // Limpiar el contenedor de días excepto el primer día (Lunes)
-    const daysContainer = document.getElementById('days-container');
-    const firstDay = daysContainer.querySelector('.day-section[data-day="0"]');
-    daysContainer.innerHTML = '';
-    daysContainer.appendChild(firstDay);
-    
-    // Actualizar la fecha del primer día
-    updateDayDate(firstDay, startDate);
-    
-    // Generar los demás días de la semana
-    for (let i = 1; i < 7; i++) {
-        const nextDate = new Date(startDate);
-        nextDate.setDate(startDate.getDate() + i);
+    try {
+        // Convertir la fecha de inicio a objeto Date
+        const startDate = new Date(startDateStr);
         
-        const daySection = createDaySection(i, DAYS_OF_WEEK[i], nextDate);
-        daysContainer.appendChild(daySection);
+        // Limpiar el contenedor de días
+        const daysContainer = document.getElementById('days-container');
+        if (!daysContainer) {
+            console.error('No se encontró el contenedor de días');
+            return;
+        }
+        
+        // Guardar referencia al primer día si existe
+        const firstDay = daysContainer.querySelector('.day-section[data-day="0"]');
+        
+        // Limpiar el contenedor
+        daysContainer.innerHTML = '';
+        
+        // Añadir el primer día de vuelta si existía
+        if (firstDay) {
+            daysContainer.appendChild(firstDay);
+            // Actualizar la fecha del primer día
+            updateDayDate(firstDay, startDate);
+        } else {
+            // Si no existía, crear el primer día (Lunes)
+            const mondaySection = createDaySection(0, DAYS_OF_WEEK[0], startDate);
+            daysContainer.appendChild(mondaySection);
+        }
+        
+        // Generar los demás días de la semana
+        for (let i = 1; i < 7; i++) {
+            const nextDate = new Date(startDate);
+            nextDate.setDate(startDate.getDate() + i);
+            
+            const daySection = createDaySection(i, DAYS_OF_WEEK[i], nextDate);
+            daysContainer.appendChild(daySection);
+        }
+        
+        // Configurar botones para agregar platillos en los nuevos días
+        setupAddDishButtons();
+    } catch (error) {
+        console.error('Error al generar los días de la semana:', error);
     }
-    
-    // Configurar botones para agregar platillos en los nuevos días
-    setupAddDishButtons();
 }
 
 /**
