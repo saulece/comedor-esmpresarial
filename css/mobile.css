@@ -1,0 +1,142 @@
+/* 
+ * Estilos para dispositivos móviles - Sistema de Confirmación de Asistencias
+ * Este archivo contiene adaptaciones específicas para pantallas pequeñas
+ */
+
+/* Ajustes generales para móvil */
+body {
+  font-size: 14px; /* Reducir tamaño de fuente base */
+}
+
+.container {
+  padding: 0 var(--spacing-sm);
+}
+
+/* Header responsivo */
+.header h1 {
+  font-size: 1.2rem;
+}
+
+.user-info {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+}
+
+/* Ajustes para el contenido principal */
+.main-content {
+  padding: var(--spacing-md) 0;
+}
+
+.section {
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Formularios en móvil */
+.form-group {
+  margin-bottom: var(--spacing-sm);
+}
+
+.form-group label {
+  font-size: 0.9rem;
+}
+
+/* Tabs responsivos */
+.tabs {
+  flex-direction: column;
+  border-bottom: none;
+}
+
+.tab-btn {
+  text-align: left;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-btn.active {
+  border-left: 2px solid var(--secondary-color);
+  border-bottom: 1px solid #ddd;
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* Tablas responsivas */
+.table th,
+.table td {
+  padding: var(--spacing-xs);
+  font-size: 0.9rem;
+}
+
+/* Modo ultra-compacto para tablas */
+.table.ultra-compact th,
+.table.ultra-compact td {
+  padding: 2px 4px;
+  font-size: 0.8rem;
+}
+
+/* Botones adaptados */
+.btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
+/* Ajustes para menús y confirmaciones */
+.menu-day-card {
+  margin-bottom: var(--spacing-sm);
+}
+
+.menu-day-card .card-header {
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.menu-day-card .card-body {
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Optimizaciones para formularios de asistencia */
+.attendance-form .form-group {
+  display: flex;
+  align-items: center;
+}
+
+.attendance-form .form-group label {
+  width: 40%;
+  margin-bottom: 0;
+  margin-right: var(--spacing-xs);
+}
+
+.attendance-form .form-group input {
+  width: 60%;
+}
+
+/* Ajustes para reportes */
+.report-container {
+  overflow-x: auto;
+}
+
+/* Ajustes para los controles numéricos */
+input[type="number"] {
+  width: 60px;
+}
+
+/* Estilos para pantallas muy pequeñas */
+@media (max-width: 320px) {
+  body {
+    font-size: 13px;
+  }
+  
+  .header .container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header h1 {
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .user-info {
+    align-items: flex-start;
+    width: 100%;
+  }
+}

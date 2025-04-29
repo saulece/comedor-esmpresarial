@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demostración de Componentes - Comedor Empresarial</title>
+    <meta name="description" content="Demostración de componentes reutilizables para el Sistema de Confirmación de Asistencias">
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/mobile.css" media="(max-width: 768px)">
+</head>
+<body>
+    <div id="app">
+        <!-- Contenedor principal de la aplicación -->
+        <header class="header">
+            <div class="container">
+                <h1>Biblioteca de Componentes</h1>
+                <div class="user-info">
+                    <span class="username">Demostración</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="container">
+                <section class="section">
+                    <h2>Componentes Reutilizables</h2>
+                    <p>Esta página muestra los componentes reutilizables disponibles en la biblioteca de componentes del Sistema de Confirmación de Asistencias para Comedor Empresarial.</p>
+                    
+                    <div class="tabs" id="demo-tabs">
+                        <button class="tab-btn active" data-tab="alerts">Alertas</button>
+                        <button class="tab-btn" data-tab="cards">Tarjetas</button>
+                        <button class="tab-btn" data-tab="buttons">Botones</button>
+                        <button class="tab-btn" data-tab="modals">Modales</button>
+                        <button class="tab-btn" data-tab="tables">Tablas</button>
+                        <button class="tab-btn" data-tab="misc">Otros</button>
+                    </div>
+                    
+                    <!-- Tab de Alertas -->
+                    <div id="alerts" class="tab-content active">
+                        <h3>Alertas</h3>
+                        <p>Las alertas proporcionan mensajes importantes para el usuario.</p>
+                        
+                        <div class="demo-container" id="alerts-container">
+                            <!-- Las alertas se generarán aquí -->
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-success" id="show-success-alert">Alerta de Éxito</button>
+                            <button class="btn btn-danger" id="show-danger-alert">Alerta de Error</button>
+                            <button class="btn btn-warning" id="show-warning-alert">Alerta de Advertencia</button>
+                            <button class="btn btn-secondary" id="show-info-alert">Alerta de Información</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab de Tarjetas -->
+                    <div id="cards" class="tab-content">
+                        <h3>Tarjetas</h3>
+                        <p>Las tarjetas son contenedores flexibles para mostrar contenido.</p>
+                        
+                        <div class="demo-container" id="cards-container">
+                            <!-- Las tarjetas se generarán aquí -->
+                        </div>
+                    </div>
+                    
+                    <!-- Tab de Botones -->
+                    <div id="buttons" class="tab-content">
+                        <h3>Botones</h3>
+                        <p>Diferentes estilos y tamaños de botones disponibles.</p>
+                        
+                        <h4>Variantes de Botones</h4>
+                        <div class="demo-row">
+                            <button class="btn btn-primary">Primario</button>
+                            <button class="btn btn-secondary">Secundario</button>
+                            <button class="btn btn-success">Éxito</button>
+                            <button class="btn btn-danger">Peligro</button>
+                            <button class="btn btn-outline">Contorno</button>
+                        </div>
+                        
+                        <h4>Tamaños de Botones</h4>
+                        <div class="demo-row">
+                            <button class="btn btn-primary btn-sm">Pequeño</button>
+                            <button class="btn btn-primary">Normal</button>
+                            <button class="btn btn-primary btn-lg">Grande</button>
+                        </div>
+                        
+                        <h4>Estado Deshabilitado</h4>
+                        <div class="demo-row">
+                            <button class="btn btn-primary" disabled>Deshabilitado</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab de Modales -->
+                    <div id="modals" class="tab-content">
+                        <h3>Modales</h3>
+                        <p>Los modales muestran contenido superpuesto que requiere interacción del usuario.</p>
+                        
+                        <div class="demo-row">
+                            <button class="btn btn-primary" id="show-modal-sm">Modal Pequeño</button>
+                            <button class="btn btn-primary" id="show-modal-md">Modal Mediano</button>
+                            <button class="btn btn-primary" id="show-modal-lg">Modal Grande</button>
+                            <button class="btn btn-secondary" id="show-confirm-dialog">Diálogo de Confirmación</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab de Tablas -->
+                    <div id="tables" class="tab-content">
+                        <h3>Tablas</h3>
+                        <p>Diferentes estilos de tablas para mostrar datos tabulares.</p>
+                        
+                        <div id="tables-container">
+                            <!-- Las tablas se generarán aquí -->
+                        </div>
+                    </div>
+                    
+                    <!-- Tab de Otros Componentes -->
+                    <div id="misc" class="tab-content">
+                        <h3>Otros Componentes</h3>
+                        
+                        <h4>Spinners</h4>
+                        <div class="demo-row">
+                            <div id="spinners-container">
+                                <!-- Los spinners se generarán aquí -->
+                            </div>
+                        </div>
+                        
+                        <h4>Badges</h4>
+                        <div class="demo-row">
+                            <div id="badges-container">
+                                <!-- Los badges se generarán aquí -->
+                            </div>
+                        </div>
+                        
+                        <h4>Toasts</h4>
+                        <div class="demo-row">
+                            <button class="btn btn-success" id="show-success-toast">Toast de Éxito</button>
+                            <button class="btn btn-danger" id="show-danger-toast">Toast de Error</button>
+                            <button class="btn btn-warning" id="show-warning-toast">Toast de Advertencia</button>
+                            <button class="btn btn-secondary" id="show-info-toast">Toast de Información</button>
+                        </div>
+                        
+                        <h4>Gráfico de Barras</h4>
+                        <div id="chart-container">
+                            <!-- El gráfico se generará aquí -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>Sistema de Confirmación de Asistencias para Comedor Empresarial</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Estilos adicionales para la demo -->
+    <style>
+        .demo-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: var(--border-width-thin) solid var(--color-border);
+            border-radius: var(--border-radius-md);
+            background-color: var(--color-background-alt);
+        }
+        
+        .demo-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            align-items: center;
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/components.js"></script>
+    
+    <!-- Script para la demostración -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar tabs
+            initTabs();
+            
+            // Inicializar demos de componentes
+            initAlertDemo();
+            initCardDemo();
+            initModalDemo();
+            initTableDemo();
+            initMiscDemo();
+        });
+        
+        function initTabs() {
+            const tabBtns = document.querySelectorAll('#demo-tabs .tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Desactivar todas las pestañas
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Activar la pestaña seleccionada
+                    btn.classList.add('active');
+                    const tabId = btn.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+        
+        function initAlertDemo() {
+            // Mostrar ejemplos de alertas
+            const alertsContainer = document.getElementById('alerts-container');
+            
+            // Alerta de éxito
+            alertsContainer.appendChild(
+                Components.createAlert('Operación completada con éxito.', 'success', true, 0)
+            );
+            
+            // Alerta de error
+            alertsContainer.appendChild(
+                Components.createAlert('Ha ocurrido un error al procesar la solicitud.', 'danger', true, 0)
+            );
+            
+            // Alerta de advertencia
+            alertsContainer.appendChild(
+                Components.createAlert('Atención: Esta acción no se puede deshacer.', 'warning', true, 0)
+            );
+            
+            // Alerta de información
+            alertsContainer.appendChild(
+                Components.createAlert('El sistema se actualizará en 5 minutos.', 'info', true, 0)
+            );
+            
+            // Botones para mostrar alertas
+            document.getElementById('show-success-alert').addEventListener('click', () => {
+                Components.showAlert('Operación completada con éxito.', 'success', 'alerts-container', true, 3000);
+            });
+            
+            document.getElementById('show-danger-alert').addEventListener('click', () => {
+                Components.showAlert('Ha ocurrido un error al procesar la solicitud.', 'danger', 'alerts-container', true, 3000);
+            });
+            
+            document.getElementById('show-warning-alert').addEventListener('click', () => {
+                Components.showAlert('Atención: Esta acción no se puede deshacer.', 'warning', 'alerts-container', true, 3000);
+            });
+            
+            document.getElementById('show-info-alert').addEventListener('click', () => {
+                Components.showAlert('El sistema se actualizará en 5 minutos.', 'info', 'alerts-container', true, 3000);
+            });
+        }
+        
+        function initCardDemo() {
+            const cardsContainer = document.getElementById('cards-container');
+            
+            // Crear contenedor de grid para las tarjetas
+            const cardGrid = document.createElement('div');
+            cardGrid.className = 'card-grid';
+            cardsContainer.appendChild(cardGrid);
+            
+            // Tarjeta básica
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta Básica',
+                    content: '<p>Esta es una tarjeta básica con título y contenido.</p>'
+                })
+            );
+            
+            // Tarjeta con footer
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta con Footer',
+                    content: '<p>Esta tarjeta incluye un footer con acciones.</p>',
+                    footer: '<button class="btn btn-sm btn-primary">Aceptar</button> <button class="btn btn-sm btn-secondary">Cancelar</button>'
+                })
+            );
+            
+            // Tarjeta primaria
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta Primaria',
+                    content: '<p>Tarjeta con variante primaria.</p>',
+                    variant: 'primary'
+                })
+            );
+            
+            // Tarjeta secundaria
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta Secundaria',
+                    content: '<p>Tarjeta con variante secundaria.</p>',
+                    variant: 'secondary'
+                })
+            );
+            
+            // Tarjeta de éxito
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta de Éxito',
+                    content: '<p>Tarjeta con variante de éxito.</p>',
+                    variant: 'success'
+                })
+            );
+            
+            // Tarjeta de peligro
+            cardGrid.appendChild(
+                Components.createCard({
+                    title: 'Tarjeta de Peligro',
+                    content: '<p>Tarjeta con variante de peligro.</p>',
+                    variant: 'danger'
+                })
+            );
+        }
+        
+        function initModalDemo() {
+            // Modal pequeño
+            document.getElementById('show-modal-sm').addEventListener('click', () => {
+                const modal = Components.createModal({
+                    id: 'demo-modal-sm',
+                    title: 'Modal Pequeño',
+                    content: '<p>Este es un modal de tamaño pequeño.</p>',
+                    size: 'sm'
+                });
+                
+                document.body.appendChild(modal);
+                Components.openModal('demo-modal-sm');
+            });
+            
+            // Modal mediano
+            document.getElementById('show-modal-md').addEventListener('click', () => {
+                const modal = Components.createModal({
+                    id: 'demo-modal-md',
+                    title: 'Modal Mediano',
+                    content: '<p>Este es un modal de tamaño mediano con más contenido.</p><p>Los modales son útiles para mostrar información adicional o solicitar confirmación del usuario.</p>',
+                    footer: '<button class="btn btn-primary" onclick="Components.closeModal(\'demo-modal-md\')">Aceptar</button>',
+                    size: 'md'
+                });
+                
+                document.body.appendChild(modal);
+                Components.openModal('demo-modal-md');
+            });
+            
+            // Modal grande
+            document.getElementById('show-modal-lg').addEventListener('click', () => {
+                const modal = Components.createModal({
+                    id: 'demo-modal-lg',
+                    title: 'Modal Grande',
+                    content: `
+                        <p>Este es un modal de tamaño grande con mucho contenido.</p>
+                        <p>Los modales grandes son útiles para mostrar formularios complejos o grandes cantidades de información.</p>
+                        <div class="form">
+                            <div class="form-group">
+                                <label for="demo-input">Campo de ejemplo:</label>
+                                <input type="text" id="demo-input" placeholder="Ingrese texto aquí">
+                            </div>
+                            <div class="form-group">
+                                <label for="demo-select">Selección de ejemplo:</label>
+                                <select id="demo-select">
+                                    <option value="1">Opción 1</option>
+                                    <option value="2">Opción 2</option>
+                                    <option value="3">Opción 3</option>
+                                </select>
+                            </div>
+                        </div>
+                    `,
+                    footer: '<button class="btn btn-secondary" onclick="Components.closeModal(\'demo-modal-lg\')">Cancelar</button> <button class="btn btn-primary" onclick="Components.closeModal(\'demo-modal-lg\')">Guardar</button>',
+                    size: 'lg'
+                });
+                
+                document.body.appendChild(modal);
+                Components.openModal('demo-modal-lg');
+            });
+            
+            // Diálogo de confirmación
+            document.getElementById('show-confirm-dialog').addEventListener('click', () => {
+                Components.confirm({
+                    title: 'Confirmar Acción',
+                    message: '¿Está seguro de que desea realizar esta acción?',
+                    confirmText: 'Sí, continuar',
+                    cancelText: 'No, cancelar',
+                    onConfirm: () => {
+                        Components.showToast('Acción confirmada', 'success');
+                    },
+                    onCancel: () => {
+                        Components.showToast('Acción cancelada', 'info');
+                    }
+                });
+            });
+        }
+        
+        function initTableDemo() {
+            const tablesContainer = document.getElementById('tables-container');
+            
+            // Tabla básica
+            const basicTable = Components.createTable({
+                headers: ['ID', 'Nombre', 'Correo', 'Rol'],
+                rows: [
+                    ['1', 'Juan Pérez', 'juan@ejemplo.com', 'Administrador'],
+                    ['2', 'María López', 'maria@ejemplo.com', 'Coordinador'],
+                    ['3', 'Carlos Gómez', 'carlos@ejemplo.com', 'Coordinador']
+                ]
+            });
+            
+            const basicTableTitle = document.createElement('h4');
+            basicTableTitle.textContent = 'Tabla Básica';
+            tablesContainer.appendChild(basicTableTitle);
+            tablesContainer.appendChild(basicTable);
+            
+            // Tabla con rayas
+            const stripedTable = Components.createTable({
+                headers: ['ID', 'Nombre', 'Correo', 'Rol'],
+                rows: [
+                    ['1', 'Juan Pérez', 'juan@ejemplo.com', 'Administrador'],
+                    ['2', 'María López', 'maria@ejemplo.com', 'Coordinador'],
+                    ['3', 'Carlos Gómez', 'carlos@ejemplo.com', 'Coordinador']
+                ],
+                striped: true
+            });
+            
+            const stripedTableTitle = document.createElement('h4');
+            stripedTableTitle.textContent = 'Tabla con Rayas';
+            stripedTableTitle.className = 'mt-4';
+            tablesContainer.appendChild(stripedTableTitle);
+            tablesContainer.appendChild(stripedTable);
+            
+            // Tabla con bordes
+            const borderedTable = Components.createTable({
+                headers: ['ID', 'Nombre', 'Correo', 'Rol'],
+                rows: [
+                    ['1', 'Juan Pérez', 'juan@ejemplo.com', 'Administrador'],
+                    ['2', 'María López', 'maria@ejemplo.com', 'Coordinador'],
+                    ['3', 'Carlos Gómez', 'carlos@ejemplo.com', 'Coordinador']
+                ],
+                bordered: true
+            });
+            
+            const borderedTableTitle = document.createElement('h4');
+            borderedTableTitle.textContent = 'Tabla con Bordes';
+            borderedTableTitle.className = 'mt-4';
+            tablesContainer.appendChild(borderedTableTitle);
+            tablesContainer.appendChild(borderedTable);
+        }
+        
+        function initMiscDemo() {
+            // Spinners
+            const spinnersContainer = document.getElementById('spinners-container');
+            
+            spinnersContainer.appendChild(Components.createSpinner('sm'));
+            spinnersContainer.appendChild(Components.createSpinner('md'));
+            spinnersContainer.appendChild(Components.createSpinner('lg'));
+            spinnersContainer.appendChild(Components.createSpinner('md', 'Cargando...'));
+            
+            // Badges
+            const badgesContainer = document.getElementById('badges-container');
+            
+            badgesContainer.appendChild(Components.createBadge('Primario', 'primary'));
+            badgesContainer.appendChild(Components.createBadge('Secundario', 'secondary'));
+            badgesContainer.appendChild(Components.createBadge('Éxito', 'success'));
+            badgesContainer.appendChild(Components.createBadge('Advertencia', 'warning'));
+            badgesContainer.appendChild(Components.createBadge('Peligro', 'danger'));
+            badgesContainer.appendChild(Components.createBadge('Información', 'info'));
+            
+            // Toasts
+            document.getElementById('show-success-toast').addEventListener('click', () => {
+                Components.showToast('Operación completada con éxito.', 'success');
+            });
+            
+            document.getElementById('show-danger-toast').addEventListener('click', () => {
+                Components.showToast('Ha ocurrido un error al procesar la solicitud.', 'danger');
+            });
+            
+            document.getElementById('show-warning-toast').addEventListener('click', () => {
+                Components.showToast('Atención: Esta acción no se puede deshacer.', 'warning');
+            });
+            
+            document.getElementById('show-info-toast').addEventListener('click', () => {
+                Components.showToast('El sistema se actualizará en 5 minutos.', 'info');
+            });
+            
+            // Gráfico de barras
+            const chartContainer = document.getElementById('chart-container');
+            
+            const barChart = Components.createBarChart({
+                title: 'Asistencia Semanal',
+                labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
+                values: [45, 52, 49, 60, 55],
+                compareValues: [40, 45, 52, 48, 50],
+                legend: {
+                    current: 'Semana Actual',
+                    compare: 'Semana Anterior'
+                }
+            });
+            
+            chartContainer.appendChild(barChart);
+        }
+    </script>
+</body>
+</html>

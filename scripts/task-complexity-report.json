@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "generatedAt": "2025-04-25T19:33:34.680Z",
+    "tasksAnalyzed": 10,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": false
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Configurar estructura básica del proyecto",
+      "complexityScore": 3,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the project structure setup into specific subtasks covering directory creation, base file setup, HTML structure implementation, and responsive design configuration",
+      "reasoning": "This is a foundational task with clear boundaries. It involves standard project setup activities that are well-defined and don't require complex logic or integrations."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implementar sistema de autenticación",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the authentication system implementation into subtasks covering UI form creation, credential validation logic, session management, role-based redirections, and logout functionality",
+      "reasoning": "Authentication involves both UI and business logic components, with moderate complexity due to role-based access control and session management requirements using localStorage."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Desarrollar gestión de usuarios",
+      "complexityScore": 5,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the user management functionality into subtasks covering the creation form, data storage implementation, user listing view, form validations, and CRUD operations",
+      "reasoning": "This task requires implementing multiple CRUD operations with form validations and data persistence, but uses familiar localStorage patterns established in task 2."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Implementar gestión de menús semanales",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Divide the weekly menu management into subtasks covering menu input interface, date selection functionality, data storage implementation, publication status toggling, validation logic, and preview functionality",
+      "reasoning": "This task has higher complexity due to the multi-day menu structure, date handling, and publication status management. It requires a more sophisticated data model and UI interactions."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Desarrollar sistema de confirmación de asistencias",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the attendance confirmation system into subtasks covering weekly menu display, attendance input form with validations, data storage implementation, update functionality, and visual feedback components",
+      "reasoning": "This task involves complex validation rules (maximum attendees per coordinator) and depends on the menu system. It requires careful state management and user feedback."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implementar dashboard de reportes de asistencia",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the attendance reporting dashboard into subtasks covering data aggregation functions, total attendance display, coordinator breakdown views, visual indicators for attendance levels, and historical data filtering",
+      "reasoning": "This task requires complex data aggregation and visualization. The calculations and filtering options add significant complexity, especially for historical data handling."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Optimizar interfaz de usuario y experiencia de usuario",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the UI/UX optimization into subtasks covering CSS styling system, reusable component creation, navigation improvements, user feedback mechanisms, responsive design implementation, and animation/transition effects",
+      "reasoning": "This is a broad task that touches every part of the application. Creating a consistent design system with responsive behavior and animations requires significant effort and expertise."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Implementar validaciones y manejo de errores",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the validation and error handling implementation into subtasks covering form validation system, error message creation, localStorage error handling, confirmation dialogs, and notification system",
+      "reasoning": "This cross-cutting concern affects multiple components and requires careful implementation to ensure consistent behavior throughout the application. Error handling edge cases add complexity."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Desarrollar funcionalidad de exportación de datos",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the data export functionality into subtasks covering library research and selection, data transformation functions, export UI implementation, and Excel file formatting",
+      "reasoning": "While this involves integrating a third-party library, the scope is limited to a specific feature with clear requirements. The complexity comes from data transformation and formatting."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Implementar sistema de persistencia y limpieza de datos",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the data persistence and cleanup system into subtasks covering data archiving mechanism, automatic cleanup functionality, storage space management, backup/restore implementation, and data compression",
+      "reasoning": "This task involves complex data lifecycle management with technical challenges around localStorage limitations. Implementing compression and backup/restore functionality adds significant complexity."
+    }
+  ]
+}
