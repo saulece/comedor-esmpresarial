@@ -7,9 +7,7 @@
 let currentEditingMenuId = null;
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const CATEGORIES = {
-    'entrada': 'Entradas',
     'plato_fuerte': 'Platos Fuertes',
-    'postre': 'Postres',
     'bebida': 'Bebidas'
 };
 
