@@ -119,32 +119,40 @@ function initAdminInterface() {
  * @param {string} type - Tipo de notificación ('success' o 'error')
  */
 function showNotification(message, type = 'success') {
-    // Eliminar notificaciones existentes
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => {
-        document.body.removeChild(notification);
-    });
-    
-    // Crear nueva notificación
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    // Agregar al DOM
-    document.body.appendChild(notification);
-    
-    // Mostrar con animación
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    // Ocultar después de 3 segundos
-    setTimeout(() => {
-        notification.classList.remove('show');
+    try {
+        // Eliminar notificaciones existentes
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => {
+            if (notification && notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        });
+        
+        // Crear nueva notificación
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        // Agregar al DOM
+        document.body.appendChild(notification);
+        
+        // Mostrar con animación
         setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
+            notification.classList.add('show');
+        }, 10);
+        
+        // Ocultar después de 3 segundos
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    } catch (error) {
+        console.error('Error al mostrar notificación:', error);
+    }
 }
 
 /**
