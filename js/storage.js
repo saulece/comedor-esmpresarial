@@ -728,33 +728,16 @@ const StorageUtil = {
 // NOTA: Comentado para evitar reinicialización en cada carga de página
 // document.addEventListener('DOMContentLoaded', function() {
 //     StorageUtil.initStorage();
-//     console.log('Sistema de almacenamiento inicializado');
 // });
 
-// En su lugar, verificamos si el almacenamiento ya está inicializado
-// y solo lo inicializamos si es necesario
+// Inicializar el almacenamiento solo la primera vez
 (function() {
-    // Verificar si el estado de la aplicación ya existe
-    const appState = localStorage.getItem(StorageUtil.KEYS.APP_STATE);
-    
-    // Si no existe, inicializar el almacenamiento
-    if (appState === null) {
-        console.log('Inicializando almacenamiento por primera vez...');
+    // Verificar si el almacenamiento ya ha sido inicializado
+    if (!localStorage.getItem('comedor_app_initialized')) {
+        console.log('Primera ejecución detectada, inicializando almacenamiento...');
         StorageUtil.initStorage();
+        localStorage.setItem('comedor_app_initialized', 'true');
     } else {
-        console.log('Almacenamiento ya inicializado, preservando datos existentes');
-        
-        // Verificar que todas las colecciones existan
-        let needsInit = false;
-        Object.values(StorageUtil.KEYS).forEach(key => {
-            if (localStorage.getItem(key) === null) {
-                needsInit = true;
-            }
-        });
-        
-        if (needsInit) {
-            console.log('Algunas colecciones faltantes, inicializando...');
-            StorageUtil.initStorage();
-        }
+        console.log('Almacenamiento ya inicializado previamente, omitiendo inicialización');
     }
 })();
