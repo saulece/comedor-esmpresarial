@@ -1,5 +1,5 @@
 // js/firebase.js
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Usar la instancia de Firebase inicializada globalmente
 let db;
@@ -35,6 +35,24 @@ if (window.firestoreDB) {
 
 // Exportar la instancia de Firestore
 export { db };
+
+// Habilitar persistencia offline para Firestore
+if (db) {
+    enableIndexedDbPersistence(db)
+        .then(() => {
+            console.log('Persistencia offline habilitada correctamente');
+        })
+        .catch((err) => {
+            console.error('Error al habilitar persistencia offline:', err);
+            if (err.code == 'failed-precondition') {
+                // Múltiples pestañas abiertas, solo una puede usar persistencia
+                console.warn('La persistencia offline solo funciona en una pestaña a la vez');
+            } else if (err.code == 'unimplemented') {
+                // El navegador actual no soporta persistencia
+                console.warn('Este navegador no soporta persistencia offline');
+            }
+        });
+}
 
 // Función para verificar y configurar el acceso a Firestore
 export async function verifyFirestoreAccess() {

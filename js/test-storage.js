@@ -3,6 +3,11 @@
  * Script para probar la funcionalidad de los modelos y el almacenamiento
  */
 
+// Importar el módulo de almacenamiento de Firestore
+import StorageUtil from './storage-firestore.js';
+// Importar modelos si son necesarios
+import { Coordinator, Menu, Confirmation } from './models.js';
+
 // Función para ejecutar las pruebas
 function runTests() {
     console.log('Iniciando pruebas de almacenamiento...');

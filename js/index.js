@@ -6,6 +6,7 @@
 // Importar módulos necesarios
 import { db, verifyFirestoreAccess } from './firebase.js';
 import StorageUtil from './storage-firestore.js';
+import { migrateLocalDataToFirestore } from './data-migration.js';
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Página de inicio inicializada');
@@ -18,6 +19,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             await verifyFirestoreAccess();
             console.log('Acceso a Firestore verificado y configurado correctamente');
+            
+            // Migrar datos locales a Firestore (solo se ejecutará una vez)
+            try {
+                await migrateLocalDataToFirestore();
+                console.log('Proceso de migración de datos completado');
+            } catch (migrationError) {
+                console.error('Error durante la migración de datos:', migrationError);
+            }
         } catch (error) {
             console.error('Error al verificar acceso a Firestore:', error);
         }

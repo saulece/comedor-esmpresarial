@@ -3,6 +3,9 @@
  * Funcionalidades específicas para la vista de administración
  */
 
+// Importar el módulo de almacenamiento de Firestore
+import StorageUtil from './storage-firestore.js';
+
 // Variables globales
 let currentEditingMenuId = null;
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
