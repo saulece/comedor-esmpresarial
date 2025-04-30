@@ -61,10 +61,35 @@
         </div>
     </footer>
 
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDyCRgqHkCy7gusyAeB724Okmc4IVXNXIE",
+            authDomain: "comedor-empresarial.firebaseapp.com",
+            projectId: "comedor-empresarial",
+            storageBucket: "comedor-empresarial.firebasestorage.app",
+            messagingSenderId: "786660040665",
+            appId: "1:786660040665:web:2c25dff6524f57f763c3c8"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Make Firebase available globally
+        window.firebaseApp = app;
+        window.firestoreDB = db;
+    </script>
+    
+    <!-- Application scripts -->
     <script src="js/firebase.js" type="module"></script>
     <script src="js/storage-firestore.js" type="module"></script>
     <script src="js/models.js"></script>
-    <script src="js/index.js"></script>
+    <script src="js/index.js" type="module"></script>
     <script src="js/debug.js"></script>
 </body>
 </html>

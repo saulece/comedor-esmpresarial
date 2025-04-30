@@ -3,28 +3,34 @@
  * Funcionalidades específicas para la vista de coordinación
  */
 
+// Importar módulos necesarios
+import { db } from './firebase.js';
+import StorageUtil from './storage-firestore.js';
+
 // Inicialización cuando el DOM está listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Módulo de coordinación inicializado');
     
-    // Inicializar el sistema de almacenamiento si es necesario
-    if (typeof StorageUtil !== 'undefined') {
-        // Inicializar datos de ejemplo si no hay menús
-        initSampleDataIfNeeded();
-        
-        // Verificar si hay una sesión activa
-        const hasSession = checkSession();
-        
-        if (hasSession) {
-            // Ya hay una sesión activa, inicializar la interfaz
-            initCoordinatorInterface();
-        } else {
-            // No hay sesión, mostrar modal de login
-            showLoginModal();
-        }
+    // Verificar que Firebase esté correctamente inicializado
+    if (db) {
+        console.log('Firebase inicializado correctamente en coordinador');
     } else {
-        console.error('StorageUtil no está definido. Asegúrate de cargar storage.js antes de coordinator.js');
-        document.body.innerHTML = '<div class="error-message">Error al cargar el sistema de almacenamiento. Por favor, recarga la página.</div>';
+        console.error('Error al inicializar Firebase en coordinador');
+    }
+    
+    // Inicializar el sistema de almacenamiento
+    // Inicializar datos de ejemplo si no hay menús
+    initSampleDataIfNeeded();
+    
+    // Verificar si hay una sesión activa
+    const hasSession = checkSession();
+    
+    if (hasSession) {
+        // Ya hay una sesión activa, inicializar la interfaz
+        initCoordinatorInterface();
+    } else {
+        // No hay sesión, mostrar modal de login
+        showLoginModal();
     }
 });
 

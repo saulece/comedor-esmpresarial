@@ -3,8 +3,19 @@
  * Maneja el inicio de sesión de coordinadores
  */
 
+// Importar módulos necesarios
+import { db } from './firebase.js';
+import StorageUtil from './storage-firestore.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Página de inicio inicializada');
+    
+    // Verificar que Firebase esté correctamente inicializado
+    if (db) {
+        console.log('Firebase inicializado correctamente');
+    } else {
+        console.error('Error al inicializar Firebase');
+    }
     
     // Inicializar el formulario de inicio de sesión
     initCoordinatorLogin();
