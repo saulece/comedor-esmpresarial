@@ -23,7 +23,7 @@ function initCoordinatorLogin() {
     checkExistingSession();
     
     // Manejar envío del formulario
-    loginForm.addEventListener('submit', function(event) {
+    loginForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         
         // Ocultar mensaje de error previo
@@ -43,8 +43,8 @@ function initCoordinatorLogin() {
             return;
         }
         
-        // Verificar código de acceso
-        verifyAccessCode(accessCode);
+        // Verificar código de acceso (ahora es async)
+        await verifyAccessCode(accessCode);
     });
 }
 
@@ -62,19 +62,44 @@ function validateAccessCode(code) {
  * Verifica el código de acceso contra la base de datos
  * @param {string} accessCode - Código de acceso a verificar
  */
-function verifyAccessCode(accessCode) {
-    // Obtener todos los coordinadores
-    const coordinators = StorageUtil.Coordinators.getAll();
-    
-    // Buscar coordinador con el código de acceso proporcionado
-    const coordinator = coordinators.find(c => c.accessCode === accessCode);
-    
-    if (coordinator) {
-        // Código válido, iniciar sesión
-        loginCoordinator(coordinator);
-    } else {
-        // Código inválido, mostrar error
-        showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+async function verifyAccessCode(accessCode) {
+    try {
+        // Mostrar indicador de carga
+        const loginBtn = document.querySelector('#coordinator-login-form button[type="submit"]');
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        }
+        
+        // Obtener todos los coordinadores (esperar a que se resuelva la promesa)
+        const coordinators = await StorageUtil.Coordinators.getAll();
+        
+        // Buscar coordinador con el código de acceso proporcionado
+        const coordinator = coordinators.find(c => c.accessCode === accessCode);
+        
+        // Restaurar botón
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Ingresar';
+        }
+        
+        if (coordinator) {
+            // Código válido, iniciar sesión
+            loginCoordinator(coordinator);
+        } else {
+            // Código inválido, mostrar error
+            showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+        }
+    } catch (error) {
+        console.error('Error al verificar código de acceso:', error);
+        showLoginError('Error al verificar el código. Por favor, intente de nuevo.');
+        
+        // Restaurar botón en caso de error
+        const loginBtn = document.querySelector('#coordinator-login-form button[type="submit"]');
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Ingresar';
+        }
     }
 }
 
