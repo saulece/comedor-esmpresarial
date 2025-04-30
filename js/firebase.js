@@ -36,6 +36,33 @@ if (window.firestoreDB) {
 // Exportar la instancia de Firestore
 export { db };
 
+// Función para verificar y configurar el acceso a Firestore
+export async function verifyFirestoreAccess() {
+    try {
+        console.log('Verificando acceso a Firestore...');
+        
+        // Intentar leer datos para verificar el acceso
+        const testRef = doc(db, 'app_state', 'access_test');
+        
+        // Intentar escribir datos de prueba
+        await setDoc(testRef, {
+            timestamp: new Date().toISOString(),
+            device: navigator.userAgent,
+            test: 'cross_device_access'
+        });
+        
+        console.log('Acceso a Firestore verificado correctamente');
+        return true;
+    } catch (error) {
+        console.error('Error al verificar acceso a Firestore:', error);
+        
+        // Mostrar mensaje de error al usuario
+        alert('Error de acceso a la base de datos. Es posible que necesites configurar las reglas de seguridad de Firestore.\n\nPara solucionar este problema, sigue estos pasos:\n1. Ve a la consola de Firebase (https://console.firebase.google.com)\n2. Selecciona tu proyecto "comedor-empresarial"\n3. Ve a Firestore Database > Reglas\n4. Actualiza las reglas con las siguientes:\n\nrules_version = "2";\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}\n\nNota: Estas reglas permiten acceso completo a la base de datos. Para producción, deberías implementar reglas más restrictivas.');
+        
+        return false;
+    }
+}
+
 // Funciones utilitarias para Firestore
 export const getCollectionRef = (collectionName) => collection(db, collectionName);
 export const getDocRef = (collectionName, docId) => doc(db, collectionName, docId);

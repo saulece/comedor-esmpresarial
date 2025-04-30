@@ -146,6 +146,23 @@
         // Make Firebase available globally
         window.firebaseApp = app;
         window.firestoreDB = db;
+        
+        // Configurar Firestore para permitir acceso sin conexión
+        try {
+            // Habilitar persistencia de datos offline
+            // Esto permite que la aplicación funcione sin conexión y sincronice cuando vuelva a estar online
+            import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js').then(({ enableIndexedDbPersistence }) => {
+                enableIndexedDbPersistence(db)
+                    .then(() => {
+                        console.log('Persistencia de Firestore habilitada');
+                    })
+                    .catch((err) => {
+                        console.warn('Error al habilitar persistencia:', err);
+                    });
+            });
+        } catch (error) {
+            console.warn('Error al configurar persistencia de Firestore:', error);
+        }
     </script>
     
     <!-- Application scripts -->

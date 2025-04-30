@@ -4,15 +4,23 @@
  */
 
 // Importar módulos necesarios
-import { db } from './firebase.js';
+import { db, verifyFirestoreAccess } from './firebase.js';
 import StorageUtil from './storage-firestore.js';
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('Página de inicio inicializada');
     
     // Verificar que Firebase esté correctamente inicializado
     if (db) {
         console.log('Firebase inicializado correctamente');
+        
+        // Verificar y configurar acceso a Firestore para permitir sincronización entre dispositivos
+        try {
+            await verifyFirestoreAccess();
+            console.log('Acceso a Firestore verificado y configurado correctamente');
+        } catch (error) {
+            console.error('Error al verificar acceso a Firestore:', error);
+        }
     } else {
         console.error('Error al inicializar Firebase');
     }

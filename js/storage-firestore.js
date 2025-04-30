@@ -6,6 +6,7 @@
  */
 
 import { db, getCollectionRef, getDocRef, createQuery } from './firebase.js';
+import { addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const StorageUtil = {
     // Nombres de las colecciones en Firestore
@@ -49,11 +50,22 @@ const StorageUtil = {
      */
     save: async function(collectionName, data, id = null) {
         try {
-            const ref = id ? getDocRef(collectionName, id) : getCollectionRef(collectionName);
-            await setDoc(ref, data);
-            return true;
+            if (id) {
+                // Si se proporciona un ID, usar setDoc con un documento específico
+                const docRef = getDocRef(collectionName, id);
+                await setDoc(docRef, data);
+                console.log(`Datos guardados en ${collectionName}/${id}:`, data);
+                return true;
+            } else {
+                // Si no hay ID, usar addDoc para generar un ID automático
+                const collectionRef = getCollectionRef(collectionName);
+                const docRef = await addDoc(collectionRef, data);
+                console.log(`Datos guardados en ${collectionName}/${docRef.id}:`, data);
+                return true;
+            }
         } catch (error) {
             console.error(`Error al guardar datos en ${collectionName}:`, error);
+            console.error('Detalles del error:', error);
             return false;
         }
     },
@@ -110,11 +122,21 @@ const StorageUtil = {
      */
     addItem: async function(collectionName, item) {
         try {
-            const ref = getCollectionRef(collectionName);
-            await setDoc(ref, item);
+            // Usar addDoc para agregar un documento con ID automático
+            // o setDoc si el item ya tiene un ID definido
+            if (item.id) {
+                const docRef = getDocRef(collectionName, item.id);
+                await setDoc(docRef, item);
+                console.log(`Documento agregado con ID especificado en ${collectionName}/${item.id}:`, item);
+            } else {
+                const collectionRef = getCollectionRef(collectionName);
+                const docRef = await addDoc(collectionRef, item);
+                console.log(`Documento agregado con ID automático en ${collectionName}/${docRef.id}:`, item);
+            }
             return true;
         } catch (error) {
             console.error(`Error al agregar documento a ${collectionName}:`, error);
+            console.error('Detalles del error:', error);
             return false;
         }
     },
