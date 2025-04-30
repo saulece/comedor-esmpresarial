@@ -1,5 +1,18 @@
 // js/firebase.js
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { 
+    collection, 
+    doc, 
+    setDoc, 
+    getDoc, 
+    getDocs, 
+    updateDoc, 
+    deleteDoc, 
+    query, 
+    where, 
+    enableIndexedDbPersistence,
+    addDoc,
+    onSnapshot
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Usar la instancia de Firebase inicializada globalmente
 let db;
@@ -33,8 +46,22 @@ if (window.firestoreDB) {
     }
 }
 
-// Exportar la instancia de Firestore
-export { db };
+// Exportar la instancia de Firestore y todas las funciones necesarias
+export { 
+    db, 
+    collection, 
+    doc, 
+    setDoc, 
+    getDoc, 
+    getDocs, 
+    updateDoc, 
+    deleteDoc, 
+    query, 
+    where, 
+    enableIndexedDbPersistence,
+    addDoc,
+    onSnapshot
+};
 
 // Habilitar persistencia offline para Firestore
 if (db) {
@@ -86,9 +113,11 @@ export const getCollectionRef = (collectionName) => collection(db, collectionNam
 export const getDocRef = (collectionName, docId) => doc(db, collectionName, docId);
 export const createQuery = (collectionRef, ...conditions) => {
     let q = query(collectionRef);
-    conditions.forEach(([field, operator, value]) => {
-        q = where(field, operator, value);
-    });
+    if (conditions && conditions.length > 0) {
+        conditions.forEach(([field, operator, value]) => {
+            q = query(q, where(field, operator, value));
+        });
+    }
     return q;
 };
 

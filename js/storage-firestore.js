@@ -5,8 +5,7 @@
  * para facilitar el almacenamiento y recuperación de datos estructurados.
  */
 
-import { db, getCollectionRef, getDocRef, createQuery } from './firebase.js';
-import { addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { db, getCollectionRef, getDocRef, createQuery, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc } from './firebase.js';
 
 const StorageUtil = {
     // Nombres de las colecciones en Firestore

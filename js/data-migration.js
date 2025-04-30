@@ -5,8 +5,7 @@
  * de localStorage a Firestore para permitir sincronización entre dispositivos.
  */
 
-import { db } from './firebase.js';
-import { collection, doc, setDoc, getDoc, addDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { db, collection, doc, setDoc, getDoc, addDoc, onSnapshot } from './firebase.js';
 
 // Claves de localStorage a migrar
 const LOCAL_STORAGE_KEYS = {
