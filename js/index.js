@@ -62,19 +62,46 @@ function validateAccessCode(code) {
  * Verifica el código de acceso contra la base de datos
  * @param {string} accessCode - Código de acceso a verificar
  */
-function verifyAccessCode(accessCode) {
-    // Obtener todos los coordinadores
-    const coordinators = StorageUtil.Coordinators.getAll();
-    
-    // Buscar coordinador con el código de acceso proporcionado
-    const coordinator = coordinators.find(c => c.accessCode === accessCode);
-    
-    if (coordinator) {
-        // Código válido, iniciar sesión
-        loginCoordinator(coordinator);
-    } else {
-        // Código inválido, mostrar error
-        showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+async function verifyAccessCode(accessCode) {
+    try {
+        // Mostrar indicador de carga
+        const submitButton = document.querySelector('#coordinator-login-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Verificando...';
+        }
+        
+        // Obtener todos los coordinadores (ahora es asíncrono)
+        const coordinators = await StorageUtil.Coordinators.getAll();
+        console.log('Coordinadores obtenidos:', coordinators);
+        
+        // Verificar que coordinators sea un array
+        if (!Array.isArray(coordinators)) {
+            console.error('Error: coordinators no es un array', coordinators);
+            showLoginError('Error al verificar el código. Por favor, intente nuevamente.');
+            return;
+        }
+        
+        // Buscar coordinador con el código de acceso proporcionado
+        const coordinator = coordinators.find(c => c && c.accessCode === accessCode);
+        
+        if (coordinator) {
+            // Código válido, iniciar sesión
+            loginCoordinator(coordinator);
+        } else {
+            // Código inválido, mostrar error
+            showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+        }
+    } catch (error) {
+        console.error('Error al verificar el código de acceso:', error);
+        showLoginError('Error al verificar el código. Por favor, intente nuevamente.');
+    } finally {
+        // Restaurar botón
+        const submitButton = document.querySelector('#coordinator-login-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Ingresar';
+        }
     }
 }
 
@@ -109,7 +136,6 @@ function showLoginError(message) {
  */
 function checkExistingSession() {
     const coordinatorId = sessionStorage.getItem('coordinatorId');
-    
     if (coordinatorId) {
         // Ya hay una sesión activa, redirigir a la página de coordinador
         window.location.href = 'coordinator.html';
@@ -121,7 +147,7 @@ function checkExistingSession() {
  * Función expuesta globalmente para ser usada desde otras páginas
  */
 function logoutCoordinator() {
-    // Limpiar información de sesión
+    // Limpiar datos de sesión
     sessionStorage.removeItem('coordinatorId');
     sessionStorage.removeItem('coordinatorName');
     sessionStorage.removeItem('loginTime');
@@ -129,3 +155,6 @@ function logoutCoordinator() {
     // Redirigir a la página de inicio
     window.location.href = 'index.html';
 }
+
+// Exponer función de cierre de sesión globalmente
+window.logoutCoordinator = logoutCoordinator;
