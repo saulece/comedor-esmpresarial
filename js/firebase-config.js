@@ -12,7 +12,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDyCRgqHkCy7gusyAeB724Okmc4IVXNXIE",
   authDomain: "comedor-empresarial.firebaseapp.com",
   projectId: "comedor-empresarial",
-  storageBucket: "comedor-empresarial.firebasestorage.app",
+  storageBucket: "comedor-empresarial.appspot.com",
   messagingSenderId: "786660040665",
   appId: "1:786660040665:web:2c25dff6524f57f763c3c8"
 };
@@ -25,18 +25,35 @@ let db;
 function initFirebase() {
   // Verificar que firebase esté disponible (cargado vía CDN)
   if (typeof firebase !== 'undefined') {
-    // Inicializar Firebase
-    firebaseApp = firebase.initializeApp(firebaseConfig);
-    
-    // Inicializar Firestore
-    db = firebase.firestore();
-    console.log('Firebase inicializado correctamente');
-    return true;
+    try {
+      // Inicializar Firebase (solo si no está ya inicializado)
+      if (!firebase.apps || !firebase.apps.length) {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+      } else {
+        firebaseApp = firebase.app(); // Si ya está inicializado, usar la instancia existente
+      }
+      
+      // Inicializar Firestore
+      db = firebase.firestore();
+      console.log('Firebase inicializado correctamente');
+      return true;
+    } catch (error) {
+      console.error('Error al inicializar Firebase:', error);
+      return false;
+    }
   } else {
     console.error('Firebase no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
     return false;
   }
 }
+
+// Inicializar Firebase automáticamente cuando se carga el script
+document.addEventListener('DOMContentLoaded', function() {
+  const success = initFirebase();
+  if (!success) {
+    console.error('No se pudo inicializar Firebase. La aplicación no funcionará correctamente.');
+  }
+});
 
 // Exportar para uso en otros módulos
 const FirebaseService = {

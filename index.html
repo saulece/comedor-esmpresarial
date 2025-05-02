@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Firebase App (the core Firebase SDK) - Cargar en el head para asegurar disponibilidad -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <header>
@@ -61,14 +66,8 @@
         </div>
     </footer>
 
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <!-- Firebase Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    
-    <!-- Scripts de la aplicación -->
+    <!-- Scripts de la aplicación - Orden optimizado para inicialización correcta -->
     <script src="js/models.js"></script>
-    <script src="js/storage.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/firebase-storage.js"></script>
     <script src="js/storage-adapter.js"></script>

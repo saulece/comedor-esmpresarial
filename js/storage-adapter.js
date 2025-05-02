@@ -1,155 +1,86 @@
 /**
  * storage-adapter.js
- * Adaptador para facilitar la transición de localStorage a Firebase
- * Mantiene la misma interfaz de StorageUtil pero permite cambiar entre implementaciones
+ * Adaptador para facilitar el uso de Firebase como almacenamiento principal
+ * Mantiene la misma interfaz de StorageUtil pero usa Firebase exclusivamente
  */
 
-// Variable para controlar qué implementación usar
+// Variable para controlar qué implementación usar - Siempre Firebase
 let useFirebase = true;
 
-// Función para cambiar entre implementaciones
-function setStorageImplementation(useFirebaseImpl) {
-    useFirebase = useFirebaseImpl;
-    console.log(`Usando implementación de ${useFirebase ? 'Firebase' : 'localStorage'}`);
+// Función para inicializar la implementación de Firebase
+function initFirebaseStorage() {
+    console.log('Usando implementación de Firebase exclusivamente');
     
-    // Inicializar la implementación seleccionada
-    if (useFirebase) {
-        // Asegurarse de que Firebase esté inicializado
-        if (typeof FirebaseService !== 'undefined') {
-            FirebaseService.initFirebase();
-        } else {
-            console.error('FirebaseService no está disponible. Revisa que firebase-config.js esté cargado.');
-            // Fallback a localStorage si Firebase no está disponible
-            useFirebase = false;
-        }
+    // Asegurarse de que Firebase esté inicializado
+    if (typeof FirebaseService !== 'undefined') {
+        return FirebaseService.initFirebase();
+    } else {
+        console.error('FirebaseService no está disponible. Revisa que firebase-config.js esté cargado.');
+        return false;
     }
 }
 
-// Función para convertir métodos síncronos a asíncronos cuando sea necesario
-async function asyncWrapper(fn, ...args) {
-    try {
-        const result = fn(...args);
-        return result;
-    } catch (error) {
-        console.error('Error en asyncWrapper:', error);
-        throw error;
-    }
-}
-
-// Objeto que intercepta las llamadas y las redirige a la implementación correcta
+// Objeto que intercepta las llamadas y las redirige a la implementación de Firebase
 const StorageAdapter = {
-    // Referencia a las implementaciones
-    localStorage: window.StorageUtil, // La implementación original
+    // Referencia a la implementación de Firebase
     firebase: window.FirestoreUtil,   // La implementación de Firebase
     
     // Método para inicializar el almacenamiento
     async initStorage() {
-        if (useFirebase) {
-            return await this.firebase.initStorage();
-        } else {
-            return this.localStorage.initStorage();
-        }
+        return await this.firebase.initStorage();
     },
     
     // Métodos principales
     async save(key, data) {
-        if (useFirebase) {
-            return await this.firebase.save(key, data);
-        } else {
-            return this.localStorage.save(key, data);
-        }
+        return await this.firebase.save(key, data);
     },
     
     async get(key, defaultValue = null) {
-        if (useFirebase) {
-            return await this.firebase.get(key, defaultValue);
-        } else {
-            return this.localStorage.get(key, defaultValue);
-        }
+        return await this.firebase.get(key, defaultValue);
     },
     
     async updateItem(key, itemId, newData) {
-        if (useFirebase) {
-            return await this.firebase.updateItem(key, itemId, newData);
-        } else {
-            return this.localStorage.updateItem(key, itemId, newData);
-        }
+        return await this.firebase.updateItem(key, itemId, newData);
     },
     
     async deleteItem(key, itemId) {
-        if (useFirebase) {
-            return await this.firebase.deleteItem(key, itemId);
-        } else {
-            return this.localStorage.deleteItem(key, itemId);
-        }
+        return await this.firebase.deleteItem(key, itemId);
     },
     
     async addItem(key, item) {
-        if (useFirebase) {
-            return await this.firebase.addItem(key, item);
-        } else {
-            return this.localStorage.addItem(key, item);
-        }
+        return await this.firebase.addItem(key, item);
     },
     
     async getItem(key, itemId) {
-        if (useFirebase) {
-            return await this.firebase.getItem(key, itemId);
-        } else {
-            return this.localStorage.getItem(key, itemId);
-        }
+        return await this.firebase.getItem(key, itemId);
     },
     
     async remove(key) {
-        if (useFirebase) {
-            return await this.firebase.remove(key);
-        } else {
-            return this.localStorage.remove(key);
-        }
+        return await this.firebase.remove(key);
     },
     
     async clear() {
-        if (useFirebase) {
-            return await this.firebase.clear();
-        } else {
-            return this.localStorage.clear();
-        }
+        return await this.firebase.clear();
     },
     
     // Exportar/importar datos
     async exportData() {
-        if (useFirebase) {
-            return await this.firebase.exportData();
-        } else {
-            return this.localStorage.exportData();
-        }
+        return await this.firebase.exportData();
     },
     
     async downloadData() {
-        if (useFirebase) {
-            return await this.firebase.downloadData();
-        } else {
-            return this.localStorage.downloadData();
-        }
+        return await this.firebase.downloadData();
     },
     
     async importData(data) {
-        if (useFirebase) {
-            return await this.firebase.importData(data);
-        } else {
-            return this.localStorage.importData(data);
-        }
+        return await this.firebase.importData(data);
     },
     
     async importFromFile(file) {
-        if (useFirebase) {
-            return await this.firebase.importFromFile(file);
-        } else {
-            return this.localStorage.importFromFile(file);
-        }
+        return await this.firebase.importFromFile(file);
     },
     
-    // Claves para las colecciones (mantener sincronizadas con ambas implementaciones)
+    // Claves para las colecciones (mantener sincronizadas con la implementación de Firebase)
     KEYS: {
         USERS: 'comedor_users',
         DISHES: 'comedor_dishes',
@@ -166,22 +97,15 @@ const StorageAdapter = {
 const createCollectionProxy = (collectionName) => {
     return new Proxy({}, {
         get: function(target, prop) {
-            // Si la propiedad es una función, devolver una función que redirecciona
-            if (typeof StorageAdapter.localStorage[collectionName][prop] === 'function') {
+            // Si la propiedad es una función, devolver una función que redirecciona a Firebase
+            if (typeof StorageAdapter.firebase[collectionName][prop] === 'function') {
                 return async function(...args) {
-                    if (useFirebase) {
-                        return await StorageAdapter.firebase[collectionName][prop](...args);
-                    } else {
-                        // Para localStorage, envolver en una promesa para mantener la interfaz consistente
-                        return await asyncWrapper(StorageAdapter.localStorage[collectionName][prop], ...args);
-                    }
+                    return await StorageAdapter.firebase[collectionName][prop](...args);
                 };
             }
             
-            // Si no es una función, devolver el valor directamente
-            return useFirebase 
-                ? StorageAdapter.firebase[collectionName][prop]
-                : StorageAdapter.localStorage[collectionName][prop];
+            // Si no es una función, devolver el valor directamente de Firebase
+            return StorageAdapter.firebase[collectionName][prop];
         }
     });
 };
@@ -198,15 +122,14 @@ StorageAdapter.AttendanceConfirmations = createCollectionProxy('AttendanceConfir
 // Reemplazar el StorageUtil global con nuestro adaptador
 window.StorageUtil = StorageAdapter;
 
-// Inicializar con Firebase por defecto
+// Inicializar Firebase cuando se carga el documento
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar si Firebase está disponible
     if (typeof firebase !== 'undefined') {
-        setStorageImplementation(true);
-        console.log('Usando Firebase como almacenamiento');
+        initFirebaseStorage();
+        console.log('Firebase inicializado como almacenamiento principal');
     } else {
-        setStorageImplementation(false);
-        console.warn('Firebase no está disponible, usando localStorage como fallback');
+        console.error('Firebase no está disponible. La aplicación no funcionará correctamente.');
     }
     
     // Inicializar el almacenamiento
