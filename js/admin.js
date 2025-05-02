@@ -391,20 +391,6 @@ function createDishInputGroup(dayName, categoryKey, index) {
     dishInput.name = `dish-${dayName}-${categoryKey}-${index}`;
     dishInput.placeholder = 'Nombre del platillo';
     
-    const dishDescription = document.createElement('input');
-    dishDescription.type = 'text';
-    dishDescription.className = 'dish-description';
-    dishDescription.name = `desc-${dayName}-${categoryKey}-${index}`;
-    dishDescription.placeholder = 'Descripción';
-    
-    const dishPrice = document.createElement('input');
-    dishPrice.type = 'number';
-    dishPrice.className = 'dish-price';
-    dishPrice.name = `price-${dayName}-${categoryKey}-${index}`;
-    dishPrice.placeholder = 'Precio';
-    dishPrice.min = '0';
-    dishPrice.step = '0.01';
-    
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-dish-btn';
@@ -421,8 +407,6 @@ function createDishInputGroup(dayName, categoryKey, index) {
     });
     
     dishInputGroup.appendChild(dishInput);
-    dishInputGroup.appendChild(dishDescription);
-    dishInputGroup.appendChild(dishPrice);
     dishInputGroup.appendChild(removeBtn);
     
     return dishInputGroup;
@@ -457,110 +441,128 @@ function setupAddDishButtons() {
 /**
  * Guarda el menú actual en el almacenamiento
  */
-function saveMenu() {
-    // Recopilar datos del formulario
-    const menuName = document.getElementById('menu-name').value;
-    const weekStartDate = document.getElementById('week-start-date').value;
-    
-    // Validar datos básicos
-    if (!menuName || !weekStartDate) {
-        showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
-        return;
-    }
-    
-    // Crear estructura de datos del menú
-    const menuData = {
-        id: currentEditingMenuId || 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        name: menuName,
-        items: [],
-        startDate: weekStartDate,
-        endDate: calculateEndDate(weekStartDate),
-        active: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    };
-    
-    // Organizar los días y platillos
-    const days = [];
-    const daySections = document.querySelectorAll('.day-section');
-    
-    daySections.forEach(daySection => {
-        const dayIndex = parseInt(daySection.getAttribute('data-day'));
-        const dayDate = daySection.getAttribute('data-date');
-        const dayName = DAYS_OF_WEEK[dayIndex];
+async function saveMenu() {
+    try {
+        // Recopilar datos del formulario
+        const menuName = document.getElementById('menu-name').value;
+        const weekStartDate = document.getElementById('week-start-date').value;
         
-        // Crear objeto para el día
-        const day = {
-            id: dayName.toLowerCase(),
-            name: dayName,
-            date: dayDate,
-            dishes: []
+        // Validar datos básicos
+        if (!menuName || !weekStartDate) {
+            showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
+            return;
+        }
+        
+        // Mostrar indicador de carga
+        const saveButton = document.getElementById('save-menu-btn');
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        }
+        
+        // Crear estructura de datos del menú
+        const menuData = {
+            id: currentEditingMenuId || 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            name: menuName,
+            items: [],
+            startDate: weekStartDate,
+            endDate: calculateEndDate(weekStartDate),
+            active: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         
-        // Recopilar platillos por categoría
-        Object.keys(CATEGORIES).forEach(categoryKey => {
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (!dishesContainer) return;
+        // Organizar los días y platillos
+        const days = [];
+        const daySections = document.querySelectorAll('.day-section');
+        
+        daySections.forEach(daySection => {
+            const dayIndex = parseInt(daySection.getAttribute('data-day'));
+            const dayDate = daySection.getAttribute('data-date');
+            const dayName = DAYS_OF_WEEK[dayIndex];
             
-            const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
+            // Crear objeto para el día
+            const day = {
+                id: dayName.toLowerCase(),
+                name: dayName,
+                date: dayDate,
+                dishes: []
+            };
             
-            dishGroups.forEach(dishGroup => {
-                const dishName = dishGroup.querySelector('.dish-input').value;
-                const dishDescription = dishGroup.querySelector('.dish-description').value;
-                const dishPrice = parseFloat(dishGroup.querySelector('.dish-price').value);
+            // Recopilar platillos por categoría
+            Object.keys(CATEGORIES).forEach(categoryKey => {
+                const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+                if (!dishesContainer) return;
                 
-                // Solo agregar platillos con nombre
-                if (dishName.trim()) {
-                    day.dishes.push({
-                        id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                        name: dishName,
-                        description: dishDescription,
-                        price: isNaN(dishPrice) ? 0 : dishPrice,
-                        category: categoryKey
-                    });
-                }
+                const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
+                
+                dishGroups.forEach(dishGroup => {
+                    const dishName = dishGroup.querySelector('.dish-input').value;
+                    
+                    // Solo agregar platillos con nombre
+                    if (dishName.trim()) {
+                        day.dishes.push({
+                            id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            name: dishName,
+                            category: categoryKey
+                        });
+                    }
+                });
             });
+            
+            // Solo agregar días con platillos
+            if (day.dishes.length > 0) {
+                days.push(day);
+            }
         });
         
-        // Solo agregar días con platillos
-        if (day.dishes.length > 0) {
-            days.push(day);
+        // Validar que haya al menos un día con platillos
+        if (days.length === 0) {
+            showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
+            return;
         }
-    });
-    
-    // Validar que haya al menos un día con platillos
-    if (days.length === 0) {
-        showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
-        return;
-    }
-    
-    // Agregar días al menú
-    menuData.days = days;
-    
-    // Guardar menú en almacenamiento
-    let success;
-    if (currentEditingMenuId) {
-        // Actualizar menú existente
-        success = StorageUtil.Menus.update(currentEditingMenuId, menuData);
-        if (success) {
-            showNotification('Menú actualizado correctamente.');
+        
+        // Agregar días al menú
+        menuData.days = days;
+        
+        // Guardar menú en almacenamiento
+        let success = false;
+        
+        if (currentEditingMenuId) {
+            // Actualizar menú existente
+            success = await StorageUtil.Menus.update(currentEditingMenuId, menuData);
+            if (success) {
+                showNotification('Menú actualizado correctamente.');
+                console.log('Menú actualizado:', menuData);
+            } else {
+                showNotification('Error al actualizar el menú.', 'error');
+            }
         } else {
-            showNotification('Error al actualizar el menú.', 'error');
+            // Crear nuevo menú
+            success = await StorageUtil.Menus.add(menuData);
+            if (success) {
+                showNotification('Menú guardado correctamente.');
+                console.log('Menú guardado:', menuData);
+            } else {
+                showNotification('Error al guardar el menú.', 'error');
+            }
         }
-    } else {
-        // Crear nuevo menú
-        success = StorageUtil.Menus.add(menuData);
+        
+        // Recargar menús guardados y resetear formulario
         if (success) {
-            showNotification('Menú guardado correctamente.');
-        } else {
-            showNotification('Error al guardar el menú.', 'error');
+            await loadSavedMenus();
+            resetForm();
         }
-    }
-    
-    // Recargar menús guardados y resetear formulario
-    if (success) {
-        loadSavedMenus();
-        resetForm();
+    } catch (error) {
+        console.error('Error al guardar menú:', error);
+        showNotification('Error al guardar el menú: ' + error.message, 'error');
+    } finally {
+        // Restaurar botón
+        const saveButton = document.getElementById('save-menu-btn');
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Guardar Menú';
+        }
     }
 }
 
@@ -579,30 +581,51 @@ function calculateEndDate(startDateStr) {
 /**
  * Carga los menús guardados y los muestra en la interfaz
  */
-function loadSavedMenus() {
+async function loadSavedMenus() {
     const savedMenusContainer = document.getElementById('saved-menus-container');
-    const menus = StorageUtil.Menus.getAll();
     
-    // Limpiar contenedor
-    savedMenusContainer.innerHTML = '';
-    
-    if (menus.length === 0) {
-        // Mostrar mensaje si no hay menús
-        const emptyState = document.createElement('p');
-        emptyState.className = 'empty-state';
-        emptyState.textContent = 'No hay menús guardados aún.';
-        savedMenusContainer.appendChild(emptyState);
-        return;
+    try {
+        // Mostrar indicador de carga
+        savedMenusContainer.innerHTML = '<p class="loading-state">Cargando menús...</p>';
+        
+        // Obtener menús del almacenamiento (ahora es asíncrono con Firebase)
+        const menus = await StorageUtil.Menus.getAll();
+        console.log('Menús cargados:', menus);
+        
+        // Limpiar contenedor
+        savedMenusContainer.innerHTML = '';
+        
+        if (!menus || menus.length === 0) {
+            // Mostrar mensaje si no hay menús
+            const emptyState = document.createElement('p');
+            emptyState.className = 'empty-state';
+            emptyState.textContent = 'No hay menús guardados aún.';
+            savedMenusContainer.appendChild(emptyState);
+            return;
+        }
+        
+        // Verificar que menus sea un array
+        if (!Array.isArray(menus)) {
+            console.error('Error: menus no es un array', menus);
+            savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar los menús. Por favor, recargue la página.</p>';
+            return;
+        }
+        
+        // Ordenar menús por fecha (más reciente primero)
+        // Usar slice() para crear una copia del array antes de ordenarlo
+        const sortedMenus = menus.slice().sort((a, b) => {
+            return new Date(b.startDate) - new Date(a.startDate);
+        });
+        
+        // Crear elementos para cada menú
+        sortedMenus.forEach(menu => {
+            const menuItem = createMenuItemElement(menu);
+            savedMenusContainer.appendChild(menuItem);
+        });
+    } catch (error) {
+        console.error('Error al cargar menús:', error);
+        savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar los menús: ' + error.message + '</p>';
     }
-    
-    // Ordenar menús por fecha (más reciente primero)
-    menus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-    
-    // Crear elementos para cada menú
-    menus.forEach(menu => {
-        const menuItem = createMenuItemElement(menu);
-        savedMenusContainer.appendChild(menuItem);
-    });
 }
 
 /**
@@ -720,12 +743,7 @@ function createMenuItemElement(menu) {
                 dishName.className = 'menu-dish-name';
                 dishName.textContent = item.name;
                 
-                const dishPrice = document.createElement('span');
-                dishPrice.className = 'menu-dish-price';
-                dishPrice.textContent = `$${item.price.toFixed(2)}`;
-                
                 dishElement.appendChild(dishName);
-                dishElement.appendChild(dishPrice);
                 dishesList.appendChild(dishElement);
             });
             
@@ -752,100 +770,114 @@ function createMenuItemElement(menu) {
  * Edita un menú existente
  * @param {string} menuId - ID del menú a editar
  */
-function editMenu(menuId) {
-    // Obtener menú del almacenamiento
-    const menu = StorageUtil.Menus.get(menuId);
-    if (!menu) {
-        showNotification('No se encontró el menú.', 'error');
-        return;
-    }
-    
-    // Guardar ID del menú que se está editando
-    currentEditingMenuId = menuId;
-    
-    // Llenar formulario con datos del menú
-    document.getElementById('menu-name').value = menu.name;
-    document.getElementById('week-start-date').value = menu.startDate;
-    
-    // Generar días de la semana
-    generateWeekDays(menu.startDate);
-    
-    // Llenar campos de platillos
-    menu.days.forEach(day => {
-        const daySection = document.querySelector(`.day-section[data-day="${DAYS_OF_WEEK.indexOf(day.name)}"]`);
-        if (!daySection) return;
+async function editMenu(menuId) {
+    try {
+        // Mostrar indicador de carga
+        showNotification('Cargando menú...', 'info');
         
-        // Recopilar platillos por categoría
-        Object.keys(CATEGORIES).forEach(categoryKey => {
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (!dishesContainer) return;
+        // Obtener menú del almacenamiento
+        const menu = await StorageUtil.Menus.get(menuId);
+        if (!menu) {
+            showNotification('No se encontró el menú.', 'error');
+            return;
+        }
+        
+        // Guardar ID del menú que se está editando
+        currentEditingMenuId = menuId;
+        
+        // Llenar formulario con datos del menú
+        document.getElementById('menu-name').value = menu.name;
+        document.getElementById('week-start-date').value = menu.startDate;
+        
+        // Generar días de la semana
+        generateWeekDays(menu.startDate);
+        
+        // Llenar campos de platillos
+        menu.days.forEach(day => {
+            const daySection = document.querySelector(`.day-section[data-day="${DAYS_OF_WEEK.indexOf(day.name)}"]`);
+            if (!daySection) return;
             
-            // Buscar un campo vacío o crear uno nuevo
-            let emptyInputGroup = null;
-            const inputGroups = dishesContainer.querySelectorAll('.dish-input-group');
-            
-            for (let i = 0; i < inputGroups.length; i++) {
-                const nameInput = inputGroups[i].querySelector('.dish-input');
-                if (!nameInput.value) {
-                    emptyInputGroup = inputGroups[i];
-                    break;
+            // Recopilar platillos por categoría
+            Object.keys(CATEGORIES).forEach(categoryKey => {
+                const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+                if (!dishesContainer) return;
+                
+                // Buscar un campo vacío o crear uno nuevo
+                let emptyInputGroup = null;
+                const inputGroups = dishesContainer.querySelectorAll('.dish-input-group');
+                
+                for (let i = 0; i < inputGroups.length; i++) {
+                    const nameInput = inputGroups[i].querySelector('.dish-input');
+                    if (!nameInput.value) {
+                        emptyInputGroup = inputGroups[i];
+                        break;
+                    }
                 }
-            }
-            
-            if (!emptyInputGroup) {
-                // No hay campos vacíos, crear uno nuevo
-                const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
-                const index = inputGroups.length;
-                emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
-                dishesContainer.appendChild(emptyInputGroup);
-            }
-            
-            // Llenar campos
-            day.dishes.forEach(dish => {
-                if (dish.category === categoryKey) {
-                    emptyInputGroup.querySelector('.dish-input').value = dish.name;
-                    emptyInputGroup.querySelector('.dish-description').value = dish.description || '';
-                    emptyInputGroup.querySelector('.dish-price').value = dish.price || '';
-                    
-                    // Crear un nuevo campo vacío
+                
+                if (!emptyInputGroup) {
+                    // No hay campos vacíos, crear uno nuevo
                     const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
                     const index = inputGroups.length;
                     emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
                     dishesContainer.appendChild(emptyInputGroup);
                 }
+                
+                // Llenar campos
+                day.dishes.forEach(dish => {
+                    if (dish.category === categoryKey) {
+                        emptyInputGroup.querySelector('.dish-input').value = dish.name;
+                        
+                        // Crear un nuevo campo vacío
+                        const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
+                        const index = inputGroups.length;
+                        emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
+                        dishesContainer.appendChild(emptyInputGroup);
+                    }
+                });
             });
         });
-    });
-    
-    // Desplazarse al formulario
-    document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-    
-    showNotification('Menú cargado para edición.');
+        
+        // Desplazarse al formulario
+        document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
+        
+        showNotification('Menú cargado para edición.');
+    } catch (error) {
+        console.error('Error al cargar menú para edición:', error);
+        showNotification('Error al cargar menú: ' + error.message, 'error');
+    }
 }
 
 /**
  * Elimina un menú
  * @param {string} menuId - ID del menú a eliminar
  */
-function deleteMenu(menuId) {
-    // Confirmar eliminación
-    if (!confirm('¿Está seguro de que desea eliminar este menú? Esta acción no se puede deshacer.')) {
-        return;
-    }
-    
-    // Eliminar menú del almacenamiento
-    const success = StorageUtil.Menus.delete(menuId);
-    
-    if (success) {
-        showNotification('Menú eliminado correctamente.');
-        loadSavedMenus();
-        
-        // Si estamos editando este menú, resetear el formulario
-        if (currentEditingMenuId === menuId) {
-            resetForm();
+async function deleteMenu(menuId) {
+    try {
+        // Confirmar eliminación
+        if (!confirm('¿Está seguro de que desea eliminar este menú? Esta acción no se puede deshacer.')) {
+            return;
         }
-    } else {
-        showNotification('Error al eliminar el menú.', 'error');
+        
+        // Mostrar indicador de carga
+        showNotification('Eliminando menú...', 'info');
+        
+        // Eliminar menú del almacenamiento
+        const success = await StorageUtil.Menus.delete(menuId);
+        
+        if (success) {
+            showNotification('Menú eliminado correctamente.');
+            await loadSavedMenus();
+            
+            // Si estamos editando este menú, resetear el formulario
+            if (currentEditingMenuId === menuId) {
+                resetForm();
+            }
+        } else {
+            showNotification('Error al eliminar el menú.', 'error');
+        }
+    } catch (error) {
+        console.error('Error al eliminar menú:', error);
+        showNotification('Error al eliminar menú: ' + error.message, 'error');
     }
 }
 
@@ -868,12 +900,8 @@ function resetForm() {
     
     // Limpiar todos los campos de platillos
     const dishInputs = document.querySelectorAll('.dish-input');
-    const dishDescriptions = document.querySelectorAll('.dish-description');
-    const dishPrices = document.querySelectorAll('.dish-price');
     
     dishInputs.forEach(input => input.value = '');
-    dishDescriptions.forEach(input => input.value = '');
-    dishPrices.forEach(input => input.value = '');
 }
 
 /**
