@@ -17,14 +17,35 @@ const firebaseConfig = {
   appId: "1:786660040665:web:2c25dff6524f57f763c3c8"
 };
 
-// Inicializar Firebase (se exporta para uso en otros módulos)
+// Variables para almacenar las instancias de Firebase
 let firebaseApp;
 let db;
+let firebaseInitialized = false;
+let initializationAttempted = false;
 
-// Función para inicializar Firebase
-function initFirebase() {
-  // Verificar que firebase esté disponible (cargado vía CDN)
-  if (typeof firebase !== 'undefined') {
+// Servicio para manejar Firebase
+const FirebaseService = {
+  // Inicializar Firebase
+  initFirebase: function() {
+    // Si ya se intentó inicializar y falló, no intentar de nuevo
+    if (initializationAttempted && !firebaseInitialized) {
+      console.warn('Ya se intentó inicializar Firebase sin éxito. No se intentará de nuevo.');
+      return false;
+    }
+    
+    // Si ya está inicializado, no hacer nada
+    if (firebaseInitialized) {
+      return true;
+    }
+    
+    initializationAttempted = true;
+    
+    // Verificar que firebase esté disponible (cargado vía CDN)
+    if (typeof firebase === 'undefined') {
+      console.error('Firebase no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
+      return false;
+    }
+    
     try {
       // Inicializar Firebase (solo si no está ya inicializado)
       if (!firebase.apps || !firebase.apps.length) {
@@ -36,28 +57,40 @@ function initFirebase() {
       // Inicializar Firestore
       db = firebase.firestore();
       console.log('Firebase inicializado correctamente');
+      firebaseInitialized = true;
       return true;
     } catch (error) {
       console.error('Error al inicializar Firebase:', error);
       return false;
     }
-  } else {
-    console.error('Firebase no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
-    return false;
+  },
+  
+  // Obtener la instancia de Firestore
+  getFirestore: function() {
+    if (!firebaseInitialized) {
+      if (!this.initFirebase()) {
+        throw new Error('No se pudo inicializar Firebase');
+      }
+    }
+    return db;
+  },
+  
+  // Verificar si Firebase está inicializado
+  isInitialized: function() {
+    return firebaseInitialized;
   }
-}
+};
 
 // Inicializar Firebase automáticamente cuando se carga el script
 document.addEventListener('DOMContentLoaded', function() {
-  const success = initFirebase();
-  if (!success) {
-    console.error('No se pudo inicializar Firebase. La aplicación no funcionará correctamente.');
-  }
+  console.log('Inicializando Firebase automáticamente...');
+  FirebaseService.initFirebase();
 });
 
-// Exportar para uso en otros módulos
-const FirebaseService = {
-  initFirebase,
-  getFirestore: () => db,
-  getApp: () => firebaseApp
-};
+// Intentar inicializar inmediatamente también (por si el DOM ya está cargado)
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  console.log('DOM ya cargado, inicializando Firebase inmediatamente...');
+  setTimeout(function() {
+    FirebaseService.initFirebase();
+  }, 1);
+}

@@ -219,6 +219,7 @@ const FirestoreUtil = {
     addItem: async function(key, item) {
         if (!this.db) {
             if (!this.init()) {
+                console.error(`No se pudo inicializar Firestore al intentar agregar a ${key}`);
                 return false;
             }
         }
@@ -230,17 +231,29 @@ const FirestoreUtil = {
                 return false;
             }
             
-            // Verificar si ya existe un elemento con el mismo ID
-            const docRef = this.db.collection(key).doc(item.id);
-            const doc = await docRef.get();
+            console.log(`Intentando agregar elemento a ${key} con ID ${item.id}`);
             
-            if (doc.exists) {
-                console.warn(`Ya existe un elemento con ID ${item.id} en ${key}`);
-                return false;
+            // Usar el ID como clave del documento
+            const docRef = this.db.collection(key).doc(item.id);
+            
+            // Verificar si ya existe un elemento con el mismo ID
+            try {
+                const doc = await docRef.get();
+                
+                if (doc.exists) {
+                    console.warn(`Ya existe un elemento con ID ${item.id} en ${key}, se intentará actualizar`);
+                    await docRef.update(item);
+                    console.log(`Elemento actualizado en ${key} con ID ${item.id}`);
+                    return true;
+                }
+            } catch (checkError) {
+                console.error(`Error al verificar existencia de documento en ${key}:`, checkError);
+                // Continuar con la creación aunque haya error en la verificación
             }
             
-            // Agregar el elemento
+            // Agregar el elemento como un nuevo documento
             await docRef.set(item);
+            console.log(`Elemento agregado exitosamente a ${key} con ID ${item.id}`);
             
             return true;
         } catch (error) {

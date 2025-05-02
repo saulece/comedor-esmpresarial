@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Firebase - Comedor Empresarial</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Estilos básicos -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        #console-log {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        .log-entry {
+            margin: 5px 0;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+        .log-error {
+            color: #ff6b6b;
+        }
+        .log-warn {
+            color: #feca57;
+        }
+        .log-info {
+            color: #54a0ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prueba de Firebase - Comedor Empresarial</h1>
+    
+    <div class="card">
+        <h2>Diagnóstico de Conexión</h2>
+        <p>Esta página ejecuta pruebas para verificar la conexión con Firebase y el correcto funcionamiento del guardado de menús.</p>
+        <button id="run-test" class="btn">Ejecutar Prueba</button>
+    </div>
+    
+    <div class="card">
+        <h2>Resultado de la Prueba</h2>
+        <div id="test-result">
+            <p>Haga clic en "Ejecutar Prueba" para iniciar el diagnóstico.</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Consola de Logs</h2>
+        <div id="console-log"></div>
+    </div>
+    
+    <!-- Scripts de la aplicación -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-storage.js"></script>
+    <script src="js/storage-adapter.js"></script>
+    
+    <!-- Script de prueba -->
+    <script src="js/test-firebase.js"></script>
+    
+    <script>
+        // Capturar logs de consola para mostrarlos en la página
+        (function() {
+            const consoleLogDiv = document.getElementById('console-log');
+            
+            // Guardar las funciones originales
+            const originalConsoleLog = console.log;
+            const originalConsoleError = console.error;
+            const originalConsoleWarn = console.warn;
+            const originalConsoleInfo = console.info;
+            
+            // Sobreescribir console.log
+            console.log = function() {
+                // Llamar a la función original
+                originalConsoleLog.apply(console, arguments);
+                
+                // Mostrar en nuestra UI
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = Array.from(arguments).map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : arg
+                ).join(' ');
+                consoleLogDiv.appendChild(logEntry);
+                consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+            };
+            
+            // Sobreescribir console.error
+            console.error = function() {
+                // Llamar a la función original
+                originalConsoleError.apply(console, arguments);
+                
+                // Mostrar en nuestra UI
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry log-error';
+                logEntry.textContent = '❌ ERROR: ' + Array.from(arguments).map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : arg
+                ).join(' ');
+                consoleLogDiv.appendChild(logEntry);
+                consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+            };
+            
+            // Sobreescribir console.warn
+            console.warn = function() {
+                // Llamar a la función original
+                originalConsoleWarn.apply(console, arguments);
+                
+                // Mostrar en nuestra UI
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry log-warn';
+                logEntry.textContent = '⚠️ WARN: ' + Array.from(arguments).map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : arg
+                ).join(' ');
+                consoleLogDiv.appendChild(logEntry);
+                consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+            };
+            
+            // Sobreescribir console.info
+            console.info = function() {
+                // Llamar a la función original
+                originalConsoleInfo.apply(console, arguments);
+                
+                // Mostrar en nuestra UI
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry log-info';
+                logEntry.textContent = 'ℹ️ INFO: ' + Array.from(arguments).map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : arg
+                ).join(' ');
+                consoleLogDiv.appendChild(logEntry);
+                consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+            };
+        })();
+        
+        // Configurar botón de prueba
+        document.getElementById('run-test').addEventListener('click', async function() {
+            const resultElement = document.getElementById('test-result');
+            resultElement.innerHTML = '<p>Ejecutando prueba...</p>';
+            
+            try {
+                const result = await testFirebaseConnection();
+                
+                resultElement.innerHTML = `
+                    <h3>Resultado de la prueba de Firebase</h3>
+                    <p><strong>Estado:</strong> <span class="${result.success ? 'success' : 'error'}">${result.success ? 'Exitoso' : 'Fallido'}</span></p>
+                    <p><strong>Mensaje:</strong> ${result.message}</p>
+                    <pre>${JSON.stringify(result.results || result.error, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>Error al ejecutar la prueba</h3>
+                    <p class="error">${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

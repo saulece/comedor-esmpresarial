@@ -519,11 +519,22 @@ async function saveMenu() {
         // Validar que haya al menos un día con platillos
         if (days.length === 0) {
             showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Guardar Menú';
+            }
             return;
         }
         
         // Agregar días al menú
         menuData.days = days;
+        
+        console.log('Guardando menú:', menuData);
+        
+        // Asegurarse de que Firebase esté inicializado
+        if (!StorageAdapter.firebase) {
+            await StorageAdapter.initStorage();
+        }
         
         // Guardar menú en almacenamiento
         let success = false;
@@ -536,6 +547,7 @@ async function saveMenu() {
                 console.log('Menú actualizado:', menuData);
             } else {
                 showNotification('Error al actualizar el menú.', 'error');
+                console.error('Error al actualizar el menú:', menuData);
             }
         } else {
             // Crear nuevo menú
@@ -545,6 +557,7 @@ async function saveMenu() {
                 console.log('Menú guardado:', menuData);
             } else {
                 showNotification('Error al guardar el menú.', 'error');
+                console.error('Error al guardar el menú:', menuData);
             }
         }
         
@@ -588,7 +601,13 @@ async function loadSavedMenus() {
         // Mostrar indicador de carga
         savedMenusContainer.innerHTML = '<p class="loading-state">Cargando menús...</p>';
         
+        // Asegurarse de que Firebase esté inicializado
+        if (!StorageAdapter.firebase) {
+            await StorageAdapter.initStorage();
+        }
+        
         // Obtener menús del almacenamiento (ahora es asíncrono con Firebase)
+        console.log('Solicitando menús a Firebase...');
         const menus = await StorageUtil.Menus.getAll();
         console.log('Menús cargados:', menus);
         
@@ -597,10 +616,7 @@ async function loadSavedMenus() {
         
         if (!menus || menus.length === 0) {
             // Mostrar mensaje si no hay menús
-            const emptyState = document.createElement('p');
-            emptyState.className = 'empty-state';
-            emptyState.textContent = 'No hay menús guardados aún.';
-            savedMenusContainer.appendChild(emptyState);
+            savedMenusContainer.innerHTML = '<p class="empty-state">No hay menús guardados aún.</p>';
             return;
         }
         
