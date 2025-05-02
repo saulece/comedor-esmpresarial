@@ -930,10 +930,7 @@ const CoordinatorManagement = {
         return code;
     },
     
-    /**
-     * Guarda un coordinador en el almacenamiento
-     */
-    saveCoordinator: function() {
+    saveCoordinator: async function() {
         // Recopilar datos del formulario
         const name = document.getElementById('coordinator-name').value.trim();
         const email = document.getElementById('coordinator-email').value.trim();
@@ -979,200 +976,109 @@ const CoordinatorManagement = {
             updatedAt: new Date().toISOString()
         };
         
-        // Guardar coordinador en almacenamiento
-        let success;
-        if (this.currentEditingCoordinatorId) {
-            // Actualizar coordinador existente
-            success = StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
-            if (success) {
-                showNotification('Coordinador actualizado correctamente.');
-            } else {
-                showNotification('Error al actualizar el coordinador.', 'error');
-            }
-        } else {
-            // Crear nuevo coordinador
-            success = StorageUtil.Coordinators.add(coordinatorData);
-            if (success) {
-                showNotification('Coordinador guardado correctamente.');
-            } else {
-                showNotification('Error al guardar el coordinador.', 'error');
-            }
-        }
-        
-        // Recargar coordinadores y resetear formulario
-        if (success) {
-            this.loadCoordinators();
-            this.resetForm();
-        }
-    },
-    
-    /**
-     * Carga los coordinadores guardados y los muestra en la interfaz
-     */
-    loadCoordinators: function() {
-        const coordinatorsList = document.getElementById('coordinators-list');
-        const noCoordinatorsMessage = document.getElementById('no-coordinators-message');
-        const coordinatorsTable = document.getElementById('coordinators-table');
-        
-        // Obtener coordinadores del almacenamiento
-        const coordinators = StorageUtil.Coordinators.getAll();
-        
-        // Limpiar lista
-        coordinatorsList.innerHTML = '';
-        
-        if (coordinators.length === 0) {
-            // Mostrar mensaje si no hay coordinadores
-            noCoordinatorsMessage.style.display = 'block';
-            coordinatorsTable.style.display = 'none';
-            return;
-        }
-        
-        // Ocultar mensaje y mostrar tabla
-        noCoordinatorsMessage.style.display = 'none';
-        coordinatorsTable.style.display = 'table';
-        
-        // Ordenar coordinadores por nombre
-        coordinators.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Crear filas para cada coordinador
-        coordinators.forEach(coordinator => {
-            const row = document.createElement('tr');
+        try {
+            let success = false;
             
-            // Columna de nombre
-            const nameCell = document.createElement('td');
-            nameCell.textContent = coordinator.name;
-            row.appendChild(nameCell);
-            
-            // Columna de departamento
-            const departmentCell = document.createElement('td');
-            departmentCell.textContent = coordinator.department;
-            row.appendChild(departmentCell);
-            
-            // Columna de correo
-            const emailCell = document.createElement('td');
-            emailCell.textContent = coordinator.email;
-            row.appendChild(emailCell);
-            
-            // Columna de código de acceso
-            const accessCodeCell = document.createElement('td');
-            const maskedCode = this.getMaskedCode(coordinator.accessCode);
-            
-            const codeSpan = document.createElement('span');
-            codeSpan.className = 'masked-code';
-            codeSpan.textContent = maskedCode;
-            codeSpan.title = 'Haga clic para mostrar/ocultar';
-            codeSpan.style.cursor = 'pointer';
-            
-            // Alternar entre código enmascarado y completo al hacer clic
-            codeSpan.addEventListener('click', function() {
-                if (codeSpan.textContent === maskedCode) {
-                    codeSpan.textContent = coordinator.accessCode;
+            if (this.currentEditingCoordinatorId) {
+                // Actualizar coordinador existente
+                success = await StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
+                if (success) {
+                    showNotification('Coordinador actualizado correctamente.');
                 } else {
-                    codeSpan.textContent = maskedCode;
+                    showNotification('Error al actualizar el coordinador.', 'error');
                 }
-            });
+            } else {
+                // Crear nuevo coordinador
+                success = await StorageUtil.Coordinators.add(coordinatorData);
+                if (success) {
+                    showNotification('Coordinador guardado correctamente.');
+                    console.log('Coordinador guardado:', coordinatorData);
+                } else {
+                    showNotification('Error al guardar el coordinador.', 'error');
+                }
+            }
             
-            accessCodeCell.appendChild(codeSpan);
-            row.appendChild(accessCodeCell);
+            // Recargar coordinadores y resetear formulario
+            if (success) {
+                this.loadCoordinators();
+                this.resetForm();
+            }
+        } catch (error) {
+            console.error('Error al guardar coordinador:', error);
+            showNotification('Error al guardar el coordinador: ' + error.message, 'error');
             
-            // Columna de acciones
-            const actionsCell = document.createElement('td');
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'action-buttons';
-            
-            // Botón de editar
-            const editBtn = document.createElement('button');
-            editBtn.className = 'action-btn edit-btn';
-            editBtn.textContent = 'Editar';
-            editBtn.addEventListener('click', function() {
-                CoordinatorManagement.editCoordinator(coordinator.id);
-            });
-            
-            // Botón de eliminar
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'action-btn delete-btn';
-            deleteBtn.textContent = 'Eliminar';
-            deleteBtn.addEventListener('click', function() {
-                CoordinatorManagement.deleteCoordinator(coordinator.id);
-            });
-            
-            actionsDiv.appendChild(editBtn);
-            actionsDiv.appendChild(deleteBtn);
-            actionsCell.appendChild(actionsDiv);
-            row.appendChild(actionsCell);
-            
-            coordinatorsList.appendChild(row);
-        });
-    },
-    
-    /**
-     * Obtiene una versión enmascarada del código de acceso
-     * @param {string} code - Código de acceso completo
-     * @returns {string} - Código enmascarado (ej: AB****)
-     */
-    getMaskedCode: function(code) {
-        if (!code || code.length < 2) return '******';
-        return code.substring(0, 2) + '*'.repeat(code.length - 2);
+            // Restaurar botón
+            this.exportBtn.disabled = false;
+            this.exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Datos';
+        }
     },
     
     /**
      * Edita un coordinador existente
      * @param {string} coordinatorId - ID del coordinador a editar
      */
-    editCoordinator: function(coordinatorId) {
-        // Obtener coordinador del almacenamiento
-        const coordinator = StorageUtil.Coordinators.get(coordinatorId);
-        if (!coordinator) {
-            showNotification('No se encontró el coordinador.', 'error');
-            return;
+    editCoordinator: async function(coordinatorId) {
+        try {
+            // Obtener el coordinador del almacenamiento
+            const coordinator = await StorageUtil.Coordinators.get(coordinatorId);
+            
+            if (!coordinator) {
+                showNotification('No se encontró el coordinador especificado.', 'error');
+                return;
+            }
+            
+            // Llenar el formulario con los datos del coordinador
+            document.getElementById('coordinator-name').value = coordinator.name || '';
+            document.getElementById('coordinator-email').value = coordinator.email || '';
+            document.getElementById('coordinator-phone').value = coordinator.phone || '';
+            document.getElementById('coordinator-department').value = coordinator.department || '';
+            
+            // Mostrar el contenedor de código de acceso
+            const accessCodeContainer = document.getElementById('access-code-container');
+            accessCodeContainer.style.display = 'block';
+            
+            // Establecer el código de acceso
+            document.getElementById('coordinator-access-code').value = coordinator.accessCode || '';
+            
+            // Cambiar el texto del botón de guardar
+            const saveButton = document.getElementById('save-coordinator-btn');
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Actualizar Coordinador';
+            
+            // Guardar el ID del coordinador que se está editando
+            this.currentEditingCoordinatorId = coordinatorId;
+            
+            // Desplazarse al formulario
+            document.getElementById('coordinator-form').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Error al editar coordinador:', error);
+            showNotification('Error al cargar los datos del coordinador: ' + error.message, 'error');
         }
-        
-        // Guardar ID del coordinador que se está editando
-        this.currentEditingCoordinatorId = coordinatorId;
-        
-        // Llenar formulario con datos del coordinador
-        document.getElementById('coordinator-name').value = coordinator.name;
-        document.getElementById('coordinator-email').value = coordinator.email;
-        document.getElementById('coordinator-phone').value = coordinator.phone || '';
-        document.getElementById('coordinator-department').value = coordinator.department;
-        
-        // Mostrar contenedor de código de acceso
-        const accessCodeContainer = document.getElementById('access-code-container');
-        accessCodeContainer.style.display = 'block';
-        
-        // Mostrar código de acceso
-        document.getElementById('coordinator-access-code').value = coordinator.accessCode || this.generateAccessCode();
-        
-        // Cambiar texto del botón de guardar
-        document.getElementById('save-coordinator-btn').textContent = 'Actualizar Coordinador';
-        
-        // Desplazarse al formulario
-        document.getElementById('coordinator-form').scrollIntoView({ behavior: 'smooth' });
     },
     
     /**
      * Elimina un coordinador
      * @param {string} coordinatorId - ID del coordinador a eliminar
      */
-    deleteCoordinator: function(coordinatorId) {
+    deleteCoordinator: async function(coordinatorId) {
         // Confirmar eliminación
         if (!confirm('¿Está seguro de que desea eliminar este coordinador? Esta acción no se puede deshacer.')) {
             return;
         }
         
-        // Eliminar coordinador del almacenamiento
-        const success = StorageUtil.Coordinators.delete(coordinatorId);
-        
-        if (success) {
-            showNotification('Coordinador eliminado correctamente.');
-            this.loadCoordinators();
+        try {
+            // Eliminar coordinador del almacenamiento
+            const success = await StorageUtil.Coordinators.delete(coordinatorId);
             
-            // Si estamos editando este coordinador, resetear el formulario
-            if (this.currentEditingCoordinatorId === coordinatorId) {
-                this.resetForm();
+            if (success) {
+                showNotification('Coordinador eliminado correctamente.');
+                // Recargar lista de coordinadores
+                this.loadCoordinators();
+            } else {
+                showNotification('Error al eliminar el coordinador.', 'error');
             }
-        } else {
-            showNotification('Error al eliminar el coordinador.', 'error');
+        } catch (error) {
+            console.error('Error al eliminar coordinador:', error);
+            showNotification('Error al eliminar el coordinador: ' + error.message, 'error');
         }
     },
     
@@ -1230,7 +1136,128 @@ const CoordinatorManagement = {
         
         // Restaurar texto del botón de guardar
         document.getElementById('save-coordinator-btn').textContent = 'Agregar Coordinador';
-    }
+    },
+    
+    /**
+     * Carga los coordinadores guardados y los muestra en la interfaz
+     */
+    loadCoordinators: async function() {
+        const coordinatorsList = document.getElementById('coordinators-list');
+        const noCoordinatorsMessage = document.getElementById('no-coordinators-message');
+        const coordinatorsTable = document.getElementById('coordinators-table');
+        
+        try {
+            // Obtener coordinadores del almacenamiento (ahora es asíncrono con Firebase)
+            const coordinators = await StorageUtil.Coordinators.getAll();
+            console.log('Coordinadores cargados:', coordinators);
+            
+            // Limpiar lista
+            coordinatorsList.innerHTML = '';
+            
+            if (!coordinators || coordinators.length === 0) {
+                // Mostrar mensaje si no hay coordinadores
+                noCoordinatorsMessage.style.display = 'block';
+                coordinatorsTable.style.display = 'none';
+                return;
+            }
+            
+            // Ocultar mensaje y mostrar tabla
+            noCoordinatorsMessage.style.display = 'none';
+            coordinatorsTable.style.display = 'table';
+            
+            // Ordenar coordinadores por nombre
+            coordinators.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Crear filas para cada coordinador
+            coordinators.forEach(coordinator => {
+                const row = document.createElement('tr');
+                
+                // Columna de nombre
+                const nameCell = document.createElement('td');
+                nameCell.textContent = coordinator.name;
+                row.appendChild(nameCell);
+                
+                // Columna de email
+                const emailCell = document.createElement('td');
+                emailCell.textContent = coordinator.email;
+                row.appendChild(emailCell);
+                
+                // Columna de departamento
+                const departmentCell = document.createElement('td');
+                departmentCell.textContent = coordinator.department;
+                row.appendChild(departmentCell);
+                
+                // Columna de código de acceso
+                const accessCodeCell = document.createElement('td');
+                const maskedCode = this.getMaskedCode(coordinator.accessCode);
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'masked-code';
+                codeSpan.textContent = maskedCode;
+                codeSpan.title = 'Haga clic para mostrar/ocultar';
+                codeSpan.style.cursor = 'pointer';
+                
+                // Alternar entre código enmascarado y completo al hacer clic
+                codeSpan.addEventListener('click', function() {
+                    if (codeSpan.textContent === maskedCode) {
+                        codeSpan.textContent = coordinator.accessCode;
+                    } else {
+                        codeSpan.textContent = maskedCode;
+                    }
+                });
+                
+                accessCodeCell.appendChild(codeSpan);
+                row.appendChild(accessCodeCell);
+                
+                // Columna de acciones
+                const actionsCell = document.createElement('td');
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'action-buttons';
+                
+                // Botón de editar
+                const editBtn = document.createElement('button');
+                editBtn.className = 'action-btn edit-btn';
+                editBtn.textContent = 'Editar';
+                editBtn.addEventListener('click', function() {
+                    CoordinatorManagement.editCoordinator(coordinator.id);
+                });
+                
+                // Botón de eliminar
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn delete-btn';
+                deleteBtn.textContent = 'Eliminar';
+                deleteBtn.addEventListener('click', function() {
+                    CoordinatorManagement.deleteCoordinator(coordinator.id);
+                });
+                
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(deleteBtn);
+                actionsCell.appendChild(actionsDiv);
+                row.appendChild(actionsCell);
+                
+                // Agregar fila a la tabla
+                coordinatorsList.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error al cargar coordinadores:', error);
+            showNotification('Error al cargar los coordinadores: ' + error.message, 'error');
+            
+            // Mostrar mensaje de error
+            noCoordinatorsMessage.textContent = 'Error al cargar coordinadores. Por favor, intente de nuevo.';
+            noCoordinatorsMessage.style.display = 'block';
+            coordinatorsTable.style.display = 'none';
+        }
+    },
+    
+    /**
+     * Obtiene una versión enmascarada del código de acceso
+     * @param {string} code - Código de acceso completo
+     * @returns {string} - Código enmascarado (ej: AB****)
+     */
+    getMaskedCode: function(code) {
+        if (!code || code.length < 2) return '******';
+        return code.substring(0, 2) + '*'.repeat(code.length - 2);
+    },
 };
 
 /**
