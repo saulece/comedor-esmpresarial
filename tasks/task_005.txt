@@ -1,37 +1,50 @@
 # Task ID: 5
-# Title: Develop Coordinator Access Mechanism
-# Status: done
-# Dependencies: 4
+# Title: Adapt Admin Menu Management Functionality
+# Status: pending
+# Dependencies: 3, 4
 # Priority: medium
-# Description: Implement a simple access mechanism for coordinators to access their view without complex authentication.
+# Description: Modify the existing admin menu management functionality to use Firebase for storage and implement real-time updates.
 # Details:
-Create a simple login form on the index.html page where coordinators can enter their access code. Store the coordinator ID in sessionStorage upon successful login. Implement a mechanism to verify the access code against the coordinator database. Redirect to the coordinator view upon successful verification. Keep authentication minimal as specified in the PRD.
+1. Update admin.js to use the adapted storage module
+2. Implement menu creation/editing with Firestore
+3. Structure menu data according to the defined Firestore model
+4. Add timestamps for creation and updates
+5. Implement active menu toggling
+6. Set up Firestore listeners for real-time updates
+7. Add loading states and error handling
+8. Ensure proper validation before saving data
 
 # Test Strategy:
-Test login with valid and invalid access codes. Verify that the coordinator ID is correctly stored in sessionStorage. Test session persistence across page refreshes.
+Test menu creation, editing, and activation workflows. Verify data structure in Firestore matches the defined model. Test real-time updates by modifying data from another client. Verify validation prevents invalid data submission.
 
 # Subtasks:
-## 1. Create coordinator login form in index.html [done]
+## 1. Update storage module for Firebase integration [pending]
 ### Dependencies: None
-### Description: Design and implement a simple login form on the index.html page for coordinators to enter their access code
+### Description: Modify the existing storage module to use Firebase Firestore for menu data persistence instead of the current storage method.
 ### Details:
-Add a form to index.html with a text input field for the access code and a submit button. The form should be simple and clearly labeled for coordinators. Include appropriate HTML structure, basic styling to match the application design, and form validation to ensure the access code field is not empty. The form should submit to a JavaScript function that will handle the verification process.
+Create adapter functions in the storage module that map the existing CRUD operations to Firestore methods. Implement functions for: fetchMenus(), saveMenu(menuData), updateMenu(menuId, menuData), deleteMenu(menuId), and setActiveMenu(menuId). Ensure the module exports the same interface as before so integration with admin.js will be smoother in the next subtask.
 
-## 2. Implement coordinator access code verification [done]
+## 2. Implement Firestore data model and validation [pending]
 ### Dependencies: 5.1
-### Description: Create the functionality to verify the entered access code against the coordinator database
+### Description: Define the Firestore collection structure for menus and implement validation logic for menu data.
 ### Details:
-Develop a JavaScript function that takes the access code from the form submission and checks it against the coordinator database. This should use the existing database connection to query the coordinators table and find a matching access code. The function should return a success or failure result along with the coordinator ID if successful. Handle error cases appropriately and provide user feedback for invalid codes.
+Create a 'menus' collection in Firestore. Define the menu document structure with fields: id, name, items (array), isActive (boolean), createdAt, and updatedAt timestamps. Implement validation functions that verify menu data before saving to Firestore, checking for required fields, proper structure of menu items, and data types. Add helper functions to format timestamps consistently using Firestore's server timestamp feature.
 
-## 3. Implement session storage for coordinator authentication [done]
-### Dependencies: 5.2
-### Description: Store the authenticated coordinator's ID in sessionStorage upon successful verification
+## 3. Update admin.js to use Firebase storage module [pending]
+### Dependencies: 5.1, 5.2
+### Description: Modify the admin.js file to use the new Firebase-based storage module and handle the asynchronous nature of Firestore operations.
 ### Details:
-When a coordinator successfully logs in, store their ID in the browser's sessionStorage with an appropriate key (e.g., 'coordinatorId'). This will serve as a simple authentication mechanism that persists during the user's session. Also store a timestamp of when they logged in for potential session timeout functionality. Ensure proper error handling if sessionStorage is not available.
+Refactor admin.js to use the updated storage module. Convert synchronous code to use async/await or Promises. Update the menu creation, editing, and deletion functions to work with the Firebase adapter. Implement proper error handling for Firestore operations. Ensure all UI interactions properly reflect the asynchronous state (loading indicators, success/error messages).
 
-## 4. Create redirection and access control for coordinator views [done]
+## 4. Implement real-time updates with Firestore listeners [pending]
 ### Dependencies: 5.3
-### Description: Implement redirection to coordinator view after successful login and prevent unauthorized access
+### Description: Add Firestore listeners to provide real-time updates when menu data changes.
 ### Details:
-After successful verification and storing the coordinator ID in sessionStorage, redirect the user to the coordinator view page. Additionally, implement a simple check at the beginning of coordinator-specific pages to verify that a valid coordinatorId exists in sessionStorage. If not present, redirect back to the login page. This creates a basic access control mechanism without complex authentication. Include a logout function that clears the sessionStorage and returns to the login page.
+Set up onSnapshot listeners in the admin interface to react to changes in the menus collection. Implement UI updates that respond to real-time data changes. Handle the initial data loading state and subsequent updates differently. Add cleanup functions to unsubscribe from listeners when components unmount or when listening is no longer needed. Implement optimistic UI updates for better user experience.
+
+## 5. Add active menu toggling and finalize UI states [pending]
+### Dependencies: 5.3, 5.4
+### Description: Implement the ability to toggle which menu is active and enhance the UI with appropriate loading and error states.
+### Details:
+Create a toggle function that sets a menu as active and deactivates all others. Update the UI to clearly indicate which menu is currently active. Implement loading indicators during Firestore operations. Add comprehensive error handling with user-friendly error messages. Test the entire flow from menu creation to activation with real-time updates. Ensure all edge cases are handled, such as attempting to delete an active menu or handling concurrent edits.
 

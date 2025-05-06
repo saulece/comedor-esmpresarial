@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comedor Empresarial - Exportación de Datos</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #3498db;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: #3498db;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-warning {
+            background-color: #f39c12;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .btn i {
+            margin-right: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="text"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .checkbox-group {
+            margin-top: 10px;
+        }
+        
+        .checkbox-group label {
+            display: inline-block;
+            margin-right: 15px;
+            font-weight: normal;
+        }
+        
+        .status-indicator {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .status-success {
+            border-left-color: #2ecc71;
+            background-color: #e8f8f5;
+        }
+        
+        .status-error {
+            border-left-color: #e74c3c;
+            background-color: #fdedec;
+        }
+        
+        .status-warning {
+            border-left-color: #f39c12;
+            background-color: #fef9e7;
+        }
+        
+        .status-info {
+            border-left-color: #3498db;
+            background-color: #eaf2f8;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .btn {
+                display: block;
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Comedor Empresarial - Exportación de Datos</h1>
+    </header>
+    
+    <div class="container">
+        <div class="card">
+            <h2><i class="fas fa-info-circle"></i> Información</h2>
+            <p>Esta página demuestra las capacidades de exportación de datos desde Firebase Firestore a formatos como Excel y JSON.</p>
+            <p>Asegúrese de estar conectado a su cuenta para acceder a todas las funcionalidades.</p>
+            
+            <div id="authStatus" class="status-indicator">
+                Verificando estado de autenticación...
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-file-export"></i> Exportación Completa</h2>
+            <p>Exporte todos los datos de la aplicación a un archivo Excel o JSON.</p>
+            
+            <button id="exportAllExcel" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Todo a Excel
+            </button>
+            
+            <button id="exportAllJSON" class="btn btn-secondary">
+                <i class="fas fa-file-code"></i> Exportar Todo a JSON
+            </button>
+            
+            <div class="form-group checkbox-group">
+                <label><input type="checkbox" id="includeTimestamps" checked> Incluir timestamps</label>
+                <label><input type="checkbox" id="formatDates" checked> Formatear fechas</label>
+            </div>
+            
+            <div id="exportStatus" class="status-indicator" style="display: none;">
+                Esperando acción...
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-table"></i> Exportación por Colección</h2>
+            <p>Seleccione una colección específica para exportar.</p>
+            
+            <div class="form-group">
+                <label for="collectionSelect">Colección:</label>
+                <select id="collectionSelect">
+                    <option value="menus">Menús</option>
+                    <option value="coordinators">Coordinadores</option>
+                    <option value="attendanceConfirmations">Confirmaciones de Asistencia</option>
+                    <option value="users">Usuarios</option>
+                </select>
+            </div>
+            
+            <button id="exportCollectionExcel" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Colección a Excel
+            </button>
+            
+            <div id="collectionStatus" class="status-indicator" style="display: none;">
+                Esperando selección de colección...
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-chart-bar"></i> Reportes Específicos</h2>
+            <p>Genere reportes específicos basados en criterios.</p>
+            
+            <div class="form-group">
+                <label for="reportType">Tipo de Reporte:</label>
+                <select id="reportType">
+                    <option value="weeklyAttendance">Asistencia Semanal</option>
+                    <option value="coordinatorSummary">Resumen por Coordinador</option>
+                </select>
+            </div>
+            
+            <div id="weeklyAttendanceOptions">
+                <div class="form-group">
+                    <label for="weekStartDate">Fecha de Inicio de Semana:</label>
+                    <input type="date" id="weekStartDate">
+                </div>
+            </div>
+            
+            <div id="coordinatorSummaryOptions" style="display: none;">
+                <div class="form-group">
+                    <label for="coordinatorSelect">Coordinador:</label>
+                    <select id="coordinatorSelect">
+                        <option value="">Cargando coordinadores...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button id="generateReport" class="btn btn-warning">
+                <i class="fas fa-chart-line"></i> Generar Reporte
+            </button>
+            
+            <div id="reportStatus" class="status-indicator" style="display: none;">
+                Esperando selección de reporte...
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-database"></i> Vista Previa de Datos</h2>
+            <p>Vista previa de los datos disponibles en Firestore.</p>
+            
+            <div class="form-group">
+                <label for="previewCollection">Colección:</label>
+                <select id="previewCollection">
+                    <option value="menus">Menús</option>
+                    <option value="coordinators">Coordinadores</option>
+                    <option value="attendanceConfirmations">Confirmaciones de Asistencia</option>
+                    <option value="users">Usuarios</option>
+                </select>
+            </div>
+            
+            <button id="loadPreview" class="btn">
+                <i class="fas fa-sync"></i> Cargar Vista Previa
+            </button>
+            
+            <div class="table-container">
+                <table id="previewTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Datos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2">Seleccione una colección y haga clic en "Cargar Vista Previa"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-link"></i> Enlaces Útiles</h2>
+            <a href="index.html" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Página Principal
+            </a>
+            <a href="coordinator.html" class="btn btn-secondary">
+                <i class="fas fa-user-tie"></i> Panel de Coordinador
+            </a>
+            <a href="user-management.html" class="btn btn-secondary">
+                <i class="fas fa-users-cog"></i> Gestión de Usuarios
+            </a>
+            <a href="realtime-demo.html" class="btn btn-secondary">
+                <i class="fas fa-sync"></i> Demo en Tiempo Real
+            </a>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
+        import { firebaseConfig } from "./js/firebase-config.js";
+        import FirebaseExport from "./js/firebase-export.js";
+        import { FirestoreUtil } from "./js/firebase-storage.js";
+        
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Elementos DOM
+        const authStatusEl = document.getElementById('authStatus');
+        const exportStatusEl = document.getElementById('exportStatus');
+        const collectionStatusEl = document.getElementById('collectionStatus');
+        const reportStatusEl = document.getElementById('reportStatus');
+        const previewTableEl = document.getElementById('previewTable');
+        const coordinatorSelectEl = document.getElementById('coordinatorSelect');
+        
+        // Verificar autenticación
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                authStatusEl.textContent = `Conectado como: ${user.email}`;
+                authStatusEl.className = 'status-indicator status-success';
+                
+                // Cargar coordinadores para el selector
+                loadCoordinators();
+                
+                // Habilitar botones
+                document.querySelectorAll('button').forEach(btn => {
+                    btn.disabled = false;
+                });
+            } else {
+                authStatusEl.textContent = 'No ha iniciado sesión. Algunas funciones pueden estar limitadas.';
+                authStatusEl.className = 'status-indicator status-warning';
+                
+                // Deshabilitar botones que requieren autenticación
+                document.querySelectorAll('button').forEach(btn => {
+                    if (btn.id !== 'loadPreview') {
+                        btn.disabled = true;
+                    }
+                });
+            }
+        });
+        
+        // Cargar coordinadores
+        async function loadCoordinators() {
+            try {
+                const coordinators = await FirestoreUtil.getAll('coordinators');
+                
+                // Limpiar selector
+                coordinatorSelectEl.innerHTML = '';
+                
+                // Agregar opciones
+                coordinators.forEach(coordinator => {
+                    const option = document.createElement('option');
+                    option.value = coordinator.id;
+                    option.textContent = coordinator.name || coordinator.id;
+                    coordinatorSelectEl.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar coordinadores:', error);
+            }
+        }
+        
+        // Exportar todo a Excel
+        document.getElementById('exportAllExcel').addEventListener('click', async () => {
+            try {
+                exportStatusEl.textContent = 'Exportando datos a Excel...';
+                exportStatusEl.className = 'status-indicator status-info';
+                exportStatusEl.style.display = 'block';
+                
+                const includeTimestamps = document.getElementById('includeTimestamps').checked;
+                const formatDates = document.getElementById('formatDates').checked;
+                
+                await FirebaseExport.downloadExcel({
+                    includeTimestamps,
+                    formatDates
+                });
+                
+                exportStatusEl.textContent = 'Datos exportados correctamente a Excel.';
+                exportStatusEl.className = 'status-indicator status-success';
+            } catch (error) {
+                console.error('Error al exportar a Excel:', error);
+                exportStatusEl.textContent = `Error al exportar: ${error.message}`;
+                exportStatusEl.className = 'status-indicator status-error';
+            }
+        });
+        
+        // Exportar todo a JSON
+        document.getElementById('exportAllJSON').addEventListener('click', async () => {
+            try {
+                exportStatusEl.textContent = 'Exportando datos a JSON...';
+                exportStatusEl.className = 'status-indicator status-info';
+                exportStatusEl.style.display = 'block';
+                
+                await FirebaseExport.downloadJSON();
+                
+                exportStatusEl.textContent = 'Datos exportados correctamente a JSON.';
+                exportStatusEl.className = 'status-indicator status-success';
+            } catch (error) {
+                console.error('Error al exportar a JSON:', error);
+                exportStatusEl.textContent = `Error al exportar: ${error.message}`;
+                exportStatusEl.className = 'status-indicator status-error';
+            }
+        });
+        
+        // Exportar colección a Excel
+        document.getElementById('exportCollectionExcel').addEventListener('click', async () => {
+            try {
+                const collectionName = document.getElementById('collectionSelect').value;
+                
+                collectionStatusEl.textContent = `Exportando colección ${collectionName} a Excel...`;
+                collectionStatusEl.className = 'status-indicator status-info';
+                collectionStatusEl.style.display = 'block';
+                
+                const includeTimestamps = document.getElementById('includeTimestamps').checked;
+                const formatDates = document.getElementById('formatDates').checked;
+                
+                await FirebaseExport.downloadCollectionAsExcel(collectionName, {
+                    includeTimestamps,
+                    formatDates
+                });
+                
+                collectionStatusEl.textContent = `Colección ${collectionName} exportada correctamente a Excel.`;
+                collectionStatusEl.className = 'status-indicator status-success';
+            } catch (error) {
+                console.error('Error al exportar colección a Excel:', error);
+                collectionStatusEl.textContent = `Error al exportar: ${error.message}`;
+                collectionStatusEl.className = 'status-indicator status-error';
+            }
+        });
+        
+        // Generar reporte
+        document.getElementById('generateReport').addEventListener('click', async () => {
+            try {
+                const reportType = document.getElementById('reportType').value;
+                
+                reportStatusEl.textContent = 'Generando reporte...';
+                reportStatusEl.className = 'status-indicator status-info';
+                reportStatusEl.style.display = 'block';
+                
+                if (reportType === 'weeklyAttendance') {
+                    const weekStartDate = document.getElementById('weekStartDate').value;
+                    
+                    if (!weekStartDate) {
+                        throw new Error('Debe seleccionar una fecha de inicio de semana');
+                    }
+                    
+                    await FirebaseExport.downloadWeeklyAttendanceReport(weekStartDate);
+                    
+                    reportStatusEl.textContent = 'Reporte de asistencia semanal generado correctamente.';
+                    reportStatusEl.className = 'status-indicator status-success';
+                } else if (reportType === 'coordinatorSummary') {
+                    const coordinatorId = document.getElementById('coordinatorSelect').value;
+                    
+                    if (!coordinatorId) {
+                        throw new Error('Debe seleccionar un coordinador');
+                    }
+                    
+                    // Implementar lógica para reporte de coordinador
+                    reportStatusEl.textContent = 'Funcionalidad en desarrollo.';
+                    reportStatusEl.className = 'status-indicator status-warning';
+                }
+            } catch (error) {
+                console.error('Error al generar reporte:', error);
+                reportStatusEl.textContent = `Error al generar reporte: ${error.message}`;
+                reportStatusEl.className = 'status-indicator status-error';
+            }
+        });
+        
+        // Cambiar opciones según tipo de reporte
+        document.getElementById('reportType').addEventListener('change', (e) => {
+            const reportType = e.target.value;
+            
+            if (reportType === 'weeklyAttendance') {
+                document.getElementById('weeklyAttendanceOptions').style.display = 'block';
+                document.getElementById('coordinatorSummaryOptions').style.display = 'none';
+            } else if (reportType === 'coordinatorSummary') {
+                document.getElementById('weeklyAttendanceOptions').style.display = 'none';
+                document.getElementById('coordinatorSummaryOptions').style.display = 'block';
+            }
+        });
+        
+        // Cargar vista previa
+        document.getElementById('loadPreview').addEventListener('click', async () => {
+            try {
+                const collectionName = document.getElementById('previewCollection').value;
+                
+                // Obtener datos
+                const data = await FirestoreUtil.getAll(collectionName);
+                
+                // Limpiar tabla
+                const tbody = previewTableEl.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="2">No hay datos en la colección ${collectionName}</td>`;
+                    tbody.appendChild(row);
+                    return;
+                }
+                
+                // Llenar tabla
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    
+                    // Formatear datos para mostrar
+                    const formattedData = { ...item };
+                    delete formattedData.id; // Ya mostramos el ID en la primera columna
+                    
+                    // Convertir a JSON para mostrar
+                    const dataString = JSON.stringify(formattedData, null, 2)
+                        .replace(/[{}"]/g, '')
+                        .replace(/,/g, '<br>')
+                        .replace(/:/g, ': ');
+                    
+                    row.innerHTML = `
+                        <td>${item.id}</td>
+                        <td><pre style="margin: 0; white-space: pre-wrap;">${dataString}</pre></td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error al cargar vista previa:', error);
+                
+                const tbody = previewTableEl.querySelector('tbody');
+                tbody.innerHTML = `<tr><td colspan="2">Error al cargar datos: ${error.message}</td></tr>`;
+            }
+        });
+        
+        // Establecer fecha actual en el selector de fecha
+        const today = new Date();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - today.getDay() + 1); // Lunes de esta semana
+        
+        const formattedDate = monday.toISOString().split('T')[0];
+        document.getElementById('weekStartDate').value = formattedDate;
+    </script>
+</body>
+</html>

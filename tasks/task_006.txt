@@ -1,43 +1,50 @@
 # Task ID: 6
-# Title: Create Coordinator Attendance Confirmation Interface
-# Status: done
-# Dependencies: 3, 5
-# Priority: high
-# Description: Develop the interface for coordinators to view the weekly menu and confirm attendance numbers.
+# Title: Adapt Coordinator Management Functionality
+# Status: pending
+# Dependencies: 3, 4
+# Priority: medium
+# Description: Update the coordinator management functionality to use Firebase for storage and implement access code generation.
 # Details:
-In coordinator.html, display the current week's menu retrieved from IndexedDB. Create a form with number inputs for each day of the week where coordinators can enter the number of employees attending. Implement JavaScript to save the confirmation data to IndexedDB, including the coordinator ID, date, people count, and timestamp. Allow coordinators to update their confirmations if needed.
+1. Update coordinator management in admin.js
+2. Implement coordinator creation with Firestore
+3. Add secure access code generation functionality
+4. Structure coordinator data according to the defined Firestore model
+5. Add active/inactive status management
+6. Set up Firestore listeners for real-time updates
+7. Implement coordinator listing and filtering
+8. Add validation for coordinator data
 
 # Test Strategy:
-Test submitting and updating attendance confirmations. Verify that confirmation data is correctly stored in IndexedDB with all required fields. Test validation for number inputs.
+Test coordinator creation and management workflows. Verify access code generation is secure and unique. Test coordinator activation/deactivation. Verify real-time updates when coordinator data changes.
 
 # Subtasks:
-## 1. Create menu display component in coordinator.html [done]
+## 1. Create Coordinator Firestore Data Model [pending]
 ### Dependencies: None
-### Description: Develop the UI component to display the current week's menu retrieved from IndexedDB
+### Description: Define and implement the Firestore data model for coordinators according to application requirements
 ### Details:
-Create a section in coordinator.html that will display the weekly menu. Add HTML structure with appropriate containers for each day of the week. Implement JavaScript functions to query IndexedDB for the current week's menu data. Create a renderWeeklyMenu() function that populates the menu display with items for each day. Include styling to make the menu display clear and readable. Ensure the component handles cases where menu data might not be available.
+Create a coordinators collection in Firestore with appropriate fields including name, email, phone, status (active/inactive), access code, and creation timestamp. Document the schema in the codebase. Update any existing model definitions to align with the new Firestore structure. Ensure the model supports the required filtering and listing operations.
 
-## 2. Implement attendance form with number inputs [done]
+## 2. Implement Secure Access Code Generation [pending]
 ### Dependencies: 6.1
-### Description: Create a form with number inputs for each day of the week to enter attendance counts
+### Description: Create a utility function for generating secure, unique access codes for coordinators
 ### Details:
-Below the menu display, create a form with number input fields for each weekday (Monday through Friday). Each input should have appropriate labels, min value of 0, and placeholder text. Add validation to ensure only positive integers are entered. Include a date display showing which week the form applies to. Style the form to align with the menu display created in the previous subtask. Add a submit button labeled 'Confirm Attendance'.
+Develop a utility function that generates cryptographically secure, unique access codes for coordinators. The function should create codes that are difficult to guess but easy to share (e.g., 8-10 characters). Include validation to ensure uniqueness by checking against existing codes in Firestore. Add appropriate error handling and documentation. This function will be used during coordinator creation and code regeneration.
 
-## 3. Create IndexedDB schema for attendance confirmations [done]
-### Dependencies: None
-### Description: Design and implement the IndexedDB object store for storing attendance confirmation data
+## 3. Update Coordinator Creation and Management Functions [pending]
+### Dependencies: 6.1, 6.2
+### Description: Refactor the coordinator creation and management functions to use Firestore
 ### Details:
-Create or modify the database schema to include an 'attendanceConfirmations' object store. Define the structure with fields for: coordinatorId (key), date (Date object), weekday (string), attendanceCount (number), and timestamp (Date object). Implement the necessary IndexedDB functions to create and access this store. Include upgrade handling for the database to ensure the store is created properly. Add utility functions for adding, updating, and retrieving confirmation records.
+Modify the existing coordinator management functions in admin.js to use Firestore instead of the current storage method. Implement functions for creating, updating, and managing coordinators including status changes (active/inactive). Integrate the access code generation functionality. Add proper validation for all coordinator data before saving to Firestore. Ensure all operations include appropriate error handling and success confirmations.
 
-## 4. Implement save functionality for attendance confirmations [done]
-### Dependencies: 6.2, 6.3
-### Description: Create JavaScript functions to save the form data to IndexedDB
+## 4. Implement Real-time Coordinator Listing with Firestore Listeners [pending]
+### Dependencies: 6.3
+### Description: Create functionality to display and filter coordinators with real-time updates
 ### Details:
-Implement an event listener for the form submission. On submit, collect all input values and the current coordinator ID (from session/local storage). Create a function saveAttendanceData() that formats the data and stores it in the IndexedDB 'attendanceConfirmations' store. Include error handling for failed database operations. Show appropriate success/error messages to the user after submission. Add a timestamp to each record when saving. Prevent default form submission behavior to handle everything via JavaScript.
+Implement Firestore listeners to provide real-time updates to the coordinator listing UI. Create query functions that support filtering by status, name, or other relevant fields. Ensure the UI updates automatically when coordinator data changes in Firestore. Optimize the listeners to minimize unnecessary re-renders and database reads. Include pagination if the coordinator list might become large.
 
-## 5. Add update capability for existing confirmations [done]
-### Dependencies: 6.4
-### Description: Implement functionality to retrieve and update existing attendance confirmations
+## 5. Update Admin UI for Coordinator Management [pending]
+### Dependencies: 6.3, 6.4
+### Description: Adapt the admin interface to work with the new Firestore-based coordinator management
 ### Details:
-Create a function to check if the coordinator has already submitted attendance for the current week. If existing data is found, pre-populate the form with those values. Modify the save function to update existing records rather than creating duplicates. Add a visual indicator showing whether the form is in 'create' or 'update' mode. Include a timestamp update when records are modified. Add a 'Last updated on...' message that shows when the confirmation was last modified. Consider adding a 'Reset' button to clear form inputs if needed.
+Update the admin UI components to work with the new Firestore-based coordinator management functions. Modify forms for creating and editing coordinators, ensuring they validate input properly. Update the coordinator listing view to display real-time data from Firestore. Add UI elements for managing coordinator status (active/inactive) and regenerating access codes when needed. Test the complete flow from creation to management to ensure all functionality works as expected.
 

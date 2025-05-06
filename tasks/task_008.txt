@@ -1,37 +1,62 @@
 # Task ID: 8
-# Title: Add Data Export and Import Functionality
+# Title: Implement Real-time Synchronization for Admin Dashboard
 # Status: pending
-# Dependencies: 7
+# Dependencies: 5, 6, 7
 # Priority: medium
-# Description: Implement functionality to export and import data for backup purposes.
+# Description: Enhance the admin dashboard to display real-time updates of attendance confirmations across all branches.
 # Details:
-Add buttons to the admin interface to export all data (menus, coordinators, confirmations) as a JSON file. Implement an import function that allows administrators to upload a previously exported JSON file to restore data. Include validation to ensure the imported data has the correct structure. This addresses the data persistence risk mentioned in the PRD.
+1. Implement Firestore listeners for attendance confirmations
+2. Create dashboard view that updates in real-time
+3. Add filtering by date range and branch
+4. Implement summary statistics (total attendees per day, per branch)
+5. Add visual indicators for confirmation status by coordinator
+6. Optimize listeners to minimize Firestore reads
+7. Add export to Excel functionality for filtered data
+8. Implement proper cleanup of listeners when navigating away
 
 # Test Strategy:
-Test exporting data and then importing it back. Verify that all data is correctly restored. Test importing invalid data and ensure appropriate error handling.
+Test dashboard with multiple simultaneous users. Verify real-time updates appear without page refresh. Test filtering functionality. Verify Excel export contains correct data. Monitor Firestore usage to ensure optimization.
 
 # Subtasks:
-## 1. Implement data export functionality [pending]
+## 1. Set up Firestore listeners for attendance data [pending]
 ### Dependencies: None
-### Description: Create the backend functionality to export all application data (menus, coordinators, confirmations) as a JSON file
+### Description: Implement the core Firestore listeners to track attendance confirmations across all branches
 ### Details:
-Create a service that queries all necessary data models and serializes them into a structured JSON format. Implement an API endpoint that triggers this export process and returns the JSON file for download. Ensure proper error handling and include metadata like export timestamp in the JSON structure. The exported JSON should have a consistent schema that can be validated during import.
+Create a service that establishes Firestore listeners for the attendance collections. Implement proper data transformation to standardize the incoming data format. Include error handling for connection issues and implement retry logic. Ensure the listeners are configured to only fetch the necessary fields to minimize data transfer.
 
-## 2. Add export button to admin interface [pending]
+## 2. Develop real-time dashboard UI components [pending]
 ### Dependencies: 8.1
-### Description: Integrate the export functionality into the admin UI with a dedicated export button
+### Description: Create the UI components that will display and update with real-time attendance data
 ### Details:
-Add an 'Export Data' button to the admin interface. When clicked, it should call the export API endpoint and handle the file download process in the browser. Show appropriate loading states during export and success/error notifications. Consider adding a confirmation dialog before export to prevent accidental clicks.
+Design and implement reusable UI components for the dashboard that can efficiently render and update with real-time data. Include loading states, error states, and empty states. Create a component hierarchy that separates the data display from the filtering controls. Use optimized rendering techniques to handle frequent updates without performance degradation.
 
-## 3. Implement data import validation and processing [pending]
-### Dependencies: 8.1
-### Description: Create backend functionality to validate and process imported JSON data
+## 3. Implement date range and branch filtering [pending]
+### Dependencies: 8.2
+### Description: Add filtering capabilities to the dashboard to allow administrators to filter attendance data by date range and branch
 ### Details:
-Develop a validation service that checks if the uploaded JSON file matches the expected schema structure. Implement validation for all required fields and data types. Create a processing service that can take validated JSON data and insert/update the corresponding database records. Include transaction support to ensure all-or-nothing imports that prevent partial data corruption. Add proper error handling with specific error messages for different validation failures.
+Create filter controls for date range selection (with calendar picker) and branch selection (multi-select dropdown). Implement the filtering logic to work with the real-time data stream. Ensure filters are applied efficiently without requiring new Firestore queries when possible. Add the ability to save and load filter presets for quick access to common views.
 
-## 4. Add import functionality to admin interface [pending]
-### Dependencies: 8.2, 8.3
-### Description: Create a file upload component in the admin UI for importing previously exported JSON data
+## 4. Add real-time summary statistics [pending]
+### Dependencies: 8.1, 8.2
+### Description: Implement summary statistics calculations that update in real-time as attendance data changes
 ### Details:
-Add an 'Import Data' button and file upload component to the admin interface. Implement client-side file type validation (JSON only). When a file is selected, show a confirmation dialog warning about potential data overwrite. On confirmation, upload the file to the import API endpoint. Display appropriate progress indicators during upload and import. Show success message on completion or detailed error messages if validation fails. Consider adding an option to preview the data before final import.
+Create a statistics service that calculates key metrics like total attendees per day, per branch, confirmation rates, and trends. Implement efficient algorithms to update these statistics incrementally as new data arrives rather than recalculating everything. Design dashboard widgets to display these statistics with appropriate visualizations (charts, counters, etc.). Ensure statistics respect the current filter settings.
+
+## 5. Implement visual status indicators for coordinators [pending]
+### Dependencies: 8.2
+### Description: Add visual indicators showing the confirmation status for each coordinator across branches
+### Details:
+Design and implement a visual indicator system (using colors, icons, or badges) to show confirmation status by coordinator. Create a coordinator overview component that displays all coordinators and their current status. Include tooltips with detailed information and timestamps. Add the ability to sort and filter the coordinator view based on confirmation status.
+
+## 6. Optimize Firestore listeners for performance [pending]
+### Dependencies: 8.1, 8.4
+### Description: Refine the Firestore listeners to minimize read operations while maintaining real-time updates
+### Details:
+Implement query limiting and pagination strategies to reduce the initial data load. Add logic to aggregate updates on the client side when possible instead of re-fetching data. Implement debouncing for rapid updates to prevent excessive re-renders. Add caching mechanisms for historical data. Monitor and log Firestore usage to identify optimization opportunities. Consider implementing server-side aggregation functions if client-side processing becomes too intensive.
+
+## 7. Add data export and listener cleanup [pending]
+### Dependencies: 8.3, 8.6
+### Description: Implement Excel export functionality and proper cleanup of Firestore listeners
+### Details:
+Create an export service that can convert the filtered dashboard data to Excel format. Implement proper formatting of dates, numbers, and status indicators in the exported file. Add progress indicators for large exports. Ensure all Firestore listeners are properly detached when navigating away from the dashboard to prevent memory leaks and unnecessary background updates. Implement a centralized listener management system that tracks all active listeners and provides methods to detach them individually or as groups.
 

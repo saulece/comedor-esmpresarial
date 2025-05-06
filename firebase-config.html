@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Firebase - Comedor Empresarial</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .config-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #4285F4;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #F1F3F4;
+            color: #202124;
+        }
+        
+        .btn-danger {
+            background-color: #EA4335;
+            color: white;
+        }
+        
+        .status-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .status-success {
+            background-color: #E6F4EA;
+            color: #137333;
+        }
+        
+        .status-error {
+            background-color: #FCE8E6;
+            color: #C5221F;
+        }
+        
+        .status-warning {
+            background-color: #FEF7E0;
+            color: #EA8600;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .migration-progress {
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: #E8EAED;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4285F4;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Configuración de Firebase</h1>
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="admin.html">Panel de Administrador</a>
+            <a href="coordinator.html">Panel de Coordinador</a>
+        </nav>
+    </header>
+    
+    <main class="config-container">
+        <h2>Configuración de Firebase para Comedor Empresarial</h2>
+        <p>Ingrese los datos de configuración de su proyecto de Firebase para habilitar la sincronización en tiempo real.</p>
+        
+        <form id="firebase-config-form">
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <input type="text" id="apiKey" name="apiKey" placeholder="AIzaSyC..." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="authDomain">Auth Domain</label>
+                <input type="text" id="authDomain" name="authDomain" placeholder="your-project-id.firebaseapp.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="projectId">Project ID</label>
+                <input type="text" id="projectId" name="projectId" placeholder="your-project-id" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="storageBucket">Storage Bucket</label>
+                <input type="text" id="storageBucket" name="storageBucket" placeholder="your-project-id.appspot.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="messagingSenderId">Messaging Sender ID</label>
+                <input type="text" id="messagingSenderId" name="messagingSenderId" placeholder="123456789012" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="appId">App ID</label>
+                <input type="text" id="appId" name="appId" placeholder="1:123456789012:web:abc123def456" required>
+            </div>
+            
+            <div class="btn-container">
+                <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                <button type="button" id="test-connection-btn" class="btn btn-secondary">Probar Conexión</button>
+                <button type="button" id="reset-config-btn" class="btn btn-danger">Restablecer</button>
+            </div>
+        </form>
+        
+        <div id="connection-status" class="status-container hidden"></div>
+        
+        <div class="migration-section">
+            <h3>Migración de Datos</h3>
+            <p>Migre los datos existentes en localStorage a Firebase Firestore para habilitar la sincronización en tiempo real.</p>
+            
+            <div class="btn-container">
+                <button type="button" id="migrate-data-btn" class="btn btn-primary">Migrar Datos</button>
+                <button type="button" id="verify-migration-btn" class="btn btn-secondary">Verificar Migración</button>
+            </div>
+            
+            <div id="migration-status" class="status-container hidden"></div>
+            
+            <div id="migration-progress" class="migration-progress hidden">
+                <p>Progreso de la migración: <span id="progress-percentage">0%</span></p>
+                <div class="progress-bar">
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 Sistema de Comedor Empresarial</p>
+    </footer>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import DataMigration from "./js/data-migration.js";
+        
+        // Elementos del DOM
+        const form = document.getElementById('firebase-config-form');
+        const testConnectionBtn = document.getElementById('test-connection-btn');
+        const resetConfigBtn = document.getElementById('reset-config-btn');
+        const migrateDataBtn = document.getElementById('migrate-data-btn');
+        const verifyMigrationBtn = document.getElementById('verify-migration-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const migrationStatus = document.getElementById('migration-status');
+        const migrationProgress = document.getElementById('migration-progress');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const progressPercentage = document.getElementById('progress-percentage');
+        
+        // Clave para almacenar la configuración en localStorage
+        const CONFIG_KEY = 'firebase_config';
+        
+        // Cargar configuración existente si existe
+        loadConfig();
+        
+        // Event listeners
+        form.addEventListener('submit', saveConfig);
+        testConnectionBtn.addEventListener('click', testConnection);
+        resetConfigBtn.addEventListener('click', resetConfig);
+        migrateDataBtn.addEventListener('click', migrateData);
+        verifyMigrationBtn.addEventListener('click', verifyMigration);
+        
+        /**
+         * Carga la configuración existente en el formulario
+         */
+        function loadConfig() {
+            const config = localStorage.getItem(CONFIG_KEY);
+            
+            if (config) {
+                try {
+                    const parsedConfig = JSON.parse(config);
+                    
+                    document.getElementById('apiKey').value = parsedConfig.apiKey || '';
+                    document.getElementById('authDomain').value = parsedConfig.authDomain || '';
+                    document.getElementById('projectId').value = parsedConfig.projectId || '';
+                    document.getElementById('storageBucket').value = parsedConfig.storageBucket || '';
+                    document.getElementById('messagingSenderId').value = parsedConfig.messagingSenderId || '';
+                    document.getElementById('appId').value = parsedConfig.appId || '';
+                    
+                    showStatus(connectionStatus, 'Configuración cargada desde localStorage', 'success');
+                } catch (error) {
+                    console.error('Error al cargar la configuración:', error);
+                    showStatus(connectionStatus, 'Error al cargar la configuración', 'error');
+                }
+            }
+        }
+        
+        /**
+         * Guarda la configuración en localStorage
+         * @param {Event} event - Evento de submit del formulario
+         */
+        function saveConfig(event) {
+            event.preventDefault();
+            
+            const config = {
+                apiKey: document.getElementById('apiKey').value,
+                authDomain: document.getElementById('authDomain').value,
+                projectId: document.getElementById('projectId').value,
+                storageBucket: document.getElementById('storageBucket').value,
+                messagingSenderId: document.getElementById('messagingSenderId').value,
+                appId: document.getElementById('appId').value
+            };
+            
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+            
+            showStatus(connectionStatus, 'Configuración guardada correctamente', 'success');
+            
+            // Actualizar el archivo firebase-config.js
+            updateFirebaseConfigFile(config);
+        }
+        
+        /**
+         * Actualiza el archivo firebase-config.js con la nueva configuración
+         * @param {Object} config - Configuración de Firebase
+         */
+        function updateFirebaseConfigFile(config) {
+            // Esta función no puede modificar archivos directamente desde el navegador
+            // Se muestra un mensaje indicando que se debe actualizar manualmente
+            showStatus(connectionStatus, 'Para aplicar la configuración, actualice manualmente el archivo js/firebase-config.js con los valores ingresados', 'warning');
+        }
+        
+        /**
+         * Prueba la conexión con Firebase
+         */
+        async function testConnection() {
+            const config = localStorage.getItem(CONFIG_KEY);
+            
+            if (!config) {
+                showStatus(connectionStatus, 'No hay configuración guardada', 'error');
+                return;
+            }
+            
+            try {
+                const parsedConfig = JSON.parse(config);
+                
+                // Inicializar Firebase con la configuración
+                const app = initializeApp(parsedConfig);
+                const db = getFirestore(app);
+                const auth = getAuth(app);
+                
+                // Intentar autenticarse anónimamente
+                await signInAnonymously(auth);
+                
+                // Intentar acceder a Firestore
+                const testCollection = collection(db, 'test');
+                await getDocs(testCollection);
+                
+                showStatus(connectionStatus, 'Conexión exitosa con Firebase', 'success');
+            } catch (error) {
+                console.error('Error al probar la conexión:', error);
+                showStatus(connectionStatus, `Error al conectar con Firebase: ${error.message}`, 'error');
+            }
+        }
+        
+        /**
+         * Restablece la configuración
+         */
+        function resetConfig() {
+            if (confirm('¿Está seguro de que desea restablecer la configuración?')) {
+                localStorage.removeItem(CONFIG_KEY);
+                form.reset();
+                showStatus(connectionStatus, 'Configuración restablecida', 'success');
+            }
+        }
+        
+        /**
+         * Migra los datos de localStorage a Firebase
+         */
+        async function migrateData() {
+            if (confirm('¿Está seguro de que desea migrar los datos a Firebase? Esta operación puede tardar varios minutos.')) {
+                try {
+                    // Mostrar progreso
+                    migrationProgress.classList.remove('hidden');
+                    progressBarFill.style.width = '0%';
+                    progressPercentage.textContent = '0%';
+                    
+                    // Simular progreso (en una aplicación real, se actualizaría con el progreso real)
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 5;
+                        if (progress > 90) {
+                            clearInterval(interval);
+                        }
+                        progressBarFill.style.width = `${progress}%`;
+                        progressPercentage.textContent = `${progress}%`;
+                    }, 500);
+                    
+                    // Migrar datos
+                    const result = await DataMigration.migrateAllData();
+                    
+                    // Completar progreso
+                    clearInterval(interval);
+                    progressBarFill.style.width = '100%';
+                    progressPercentage.textContent = '100%';
+                    
+                    if (result) {
+                        showStatus(migrationStatus, 'Migración completada exitosamente', 'success');
+                    } else {
+                        showStatus(migrationStatus, 'Error durante la migración', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error durante la migración:', error);
+                    showStatus(migrationStatus, `Error durante la migración: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        /**
+         * Verifica la migración de datos
+         */
+        async function verifyMigration() {
+            try {
+                const result = await DataMigration.verifyMigration();
+                
+                if (result.success) {
+                    showStatus(migrationStatus, 'Verificación exitosa: todos los datos están sincronizados', 'success');
+                } else if (result.error) {
+                    showStatus(migrationStatus, `Error durante la verificación: ${result.error}`, 'error');
+                } else {
+                    let message = 'Verificación completada con diferencias:\n';
+                    
+                    for (const key in result.collections) {
+                        const collection = result.collections[key];
+                        message += `- ${key}: ${collection.localCount} elementos en localStorage, ${collection.firestoreCount} elementos en Firestore\n`;
+                    }
+                    
+                    showStatus(migrationStatus, message, 'warning');
+                }
+            } catch (error) {
+                console.error('Error durante la verificación:', error);
+                showStatus(migrationStatus, `Error durante la verificación: ${error.message}`, 'error');
+            }
+        }
+        
+        /**
+         * Muestra un mensaje de estado
+         * @param {HTMLElement} container - Contenedor donde mostrar el mensaje
+         * @param {string} message - Mensaje a mostrar
+         * @param {string} type - Tipo de mensaje (success, error, warning)
+         */
+        function showStatus(container, message, type) {
+            container.textContent = message;
+            container.className = 'status-container';
+            
+            switch (type) {
+                case 'success':
+                    container.classList.add('status-success');
+                    break;
+                case 'error':
+                    container.classList.add('status-error');
+                    break;
+                case 'warning':
+                    container.classList.add('status-warning');
+                    break;
+            }
+            
+            container.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

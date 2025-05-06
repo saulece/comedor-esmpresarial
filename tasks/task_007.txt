@@ -1,49 +1,81 @@
 # Task ID: 7
-# Title: Implement Admin Confirmation Visualization
+# Title: Adapt Attendance Confirmation Functionality
 # Status: pending
-# Dependencies: 6
-# Priority: high
-# Description: Create the interface for administrators to view attendance confirmations by day and branch.
+# Dependencies: 3, 4, 5
+# Priority: medium
+# Description: Update the attendance confirmation functionality for coordinators to use Firebase and implement real-time synchronization.
 # Details:
-Add a section to admin.html that displays a table of confirmations. Show days of the week as columns and branches as rows. For each cell, display the number of confirmed attendees or 'Pending' if no confirmation exists. Include totals by day and by branch. Implement filtering by week. Add visual indicators for pending confirmations to easily identify which coordinators have not yet confirmed.
+1. Update coordinator.js to use the adapted storage module
+2. Implement attendance confirmation with Firestore
+3. Structure attendance data according to the defined Firestore model
+4. Set up Firestore listeners for real-time menu updates
+5. Add functionality to update existing confirmations
+6. Implement validation for attendance counts
+7. Add loading states and error handling
+8. Ensure proper date handling for week selection
 
 # Test Strategy:
-Test the display of confirmation data with various scenarios (all confirmed, some pending, none confirmed). Verify that totals are calculated correctly. Test filtering by different weeks.
+Test attendance confirmation workflow. Verify data structure in Firestore matches the defined model. Test updating existing confirmations. Verify real-time updates of menu changes. Test validation of attendance counts.
 
 # Subtasks:
-## 1. Create confirmation table structure in admin.html [pending]
+## 1. Update coordinator.js to use Firebase storage module [pending]
 ### Dependencies: None
-### Description: Add the HTML structure for the confirmation visualization table to the admin interface
+### Description: Refactor the coordinator.js file to use the Firebase storage module instead of the current storage implementation for attendance data management.
 ### Details:
-Create a new section in admin.html with a table structure that has days of the week as columns and branches as rows. Include header rows for days, placeholder cells for data, and footer rows for totals. Add appropriate CSS classes for styling. Include a container for the week selection filter above the table.
+1. Import the Firebase storage module
+2. Replace existing storage method calls with Firebase equivalents
+3. Update any attendance data retrieval functions
+4. Ensure proper error handling for Firebase operations
+5. Test basic connectivity with Firebase
 
-## 2. Implement week selection filter [pending]
+## 2. Implement Firestore data structure for attendance [pending]
 ### Dependencies: 7.1
-### Description: Create a date picker or dropdown that allows administrators to filter the confirmation data by week
+### Description: Create the appropriate Firestore collection and document structure for storing attendance confirmation data according to the defined model.
 ### Details:
-Add a date input or dropdown component that allows selecting a specific week. Implement JavaScript functionality to update the selected week when changed. Set the default value to the current week. Include previous/next week navigation buttons for easier browsing. Ensure the component is positioned above the confirmation table.
+1. Create an 'attendance' collection in Firestore
+2. Define document structure with fields for date, meal type, confirmed count, coordinator info
+3. Implement helper functions to convert between app data models and Firestore documents
+4. Add functions to create, read and update attendance documents
+5. Include proper timestamp handling for created/updated fields
 
-## 3. Create API endpoint for confirmation data [pending]
-### Dependencies: None
-### Description: Develop a backend API endpoint that returns confirmation data aggregated by day and branch
+## 3. Implement attendance confirmation core functionality [pending]
+### Dependencies: 7.2
+### Description: Build the core functionality for coordinators to confirm attendance numbers using the new Firebase backend.
 ### Details:
-Create a new API endpoint (e.g., '/api/admin/confirmations') that accepts a week parameter. The endpoint should query the database for all confirmations within the specified week, aggregate the data by day and branch, and return a structured JSON response with counts of confirmed attendees for each day-branch combination. Include a 'pending' flag for combinations without confirmations.
+1. Create functions to submit new attendance confirmations to Firestore
+2. Implement validation logic for attendance counts (e.g., minimum/maximum values)
+3. Add functionality to update existing confirmations
+4. Ensure proper date handling for week selection
+5. Implement basic error handling for failed operations
 
-## 4. Implement data fetching and table population [pending]
-### Dependencies: 7.1, 7.2, 7.3
-### Description: Create JavaScript functionality to fetch confirmation data and populate the table
+## 4. Set up real-time synchronization with Firestore listeners [pending]
+### Dependencies: 7.3
+### Description: Implement Firestore listeners to enable real-time updates when attendance data changes.
 ### Details:
-Implement a JavaScript function that calls the API endpoint with the selected week parameter. Process the returned data to populate the table cells with confirmation counts or 'Pending' labels. Update the table whenever the week selection changes. Include error handling for failed API requests. Use appropriate loading indicators during data fetching.
+1. Set up Firestore onSnapshot listeners for the attendance collection
+2. Implement logic to update the UI when remote changes occur
+3. Handle listener attachment/detachment during component lifecycle
+4. Add conflict resolution for concurrent updates
+5. Test real-time updates with multiple clients
 
-## 5. Calculate and display totals [pending]
+## 5. Add loading states and comprehensive error handling [pending]
 ### Dependencies: 7.4
-### Description: Add functionality to calculate and display totals by day and by branch
+### Description: Enhance the user experience by implementing loading indicators and comprehensive error handling throughout the attendance confirmation flow.
 ### Details:
-Extend the table population logic to calculate row totals (sum of confirmations for each branch across all days) and column totals (sum of confirmations for each day across all branches). Update the totals in the corresponding footer row and last column of the table. Ensure totals are recalculated whenever the table data changes.
+1. Add loading indicators during Firebase operations
+2. Implement error states for network issues
+3. Add user-friendly error messages for validation failures
+4. Implement retry mechanisms for failed operations
+5. Add offline detection and appropriate messaging
 
-## 6. Implement visual indicators for pending confirmations [pending]
-### Dependencies: 7.4
-### Description: Add visual styling to highlight pending confirmations in the table
+## 6. Implement week selection with proper date handling [pending]
+### Dependencies: 7.5
+### Description: Enhance the attendance confirmation interface with proper date handling for week selection and viewing historical data.
 ### Details:
-Create CSS styles for cells with pending confirmations (e.g., yellow background, warning icon). Apply these styles to cells where the confirmation status is pending. Add a color legend below the table explaining the visual indicators. Consider adding tooltips to pending cells with information about the branch coordinator who needs to confirm. Ensure the styling is accessible and maintains sufficient contrast.
+1. Implement a week selector component
+2. Add date filtering for attendance records
+3. Ensure proper date formatting and timezone handling
+4. Implement navigation between weeks
+5. Add date-based queries to Firestore for efficient data loading
+6. Test edge cases like month/year boundaries
 
