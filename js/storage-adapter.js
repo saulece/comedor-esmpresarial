@@ -50,17 +50,17 @@ const StorageAdapter = {
             console.log('[DEBUG] Firebase ya está inicializado');
         }
         
-        // Verificar que FirestoreUtil esté disponible
+        // Verificar que StorageUtil esté disponible
         if (!this.firebase) {
-            if (typeof FirestoreUtil !== 'undefined') {
-                this.firebase = window.FirestoreUtil;
-                console.log('[INFO] FirestoreUtil asignado correctamente a StorageAdapter');
+            if (typeof StorageUtil !== 'undefined') {
+                this.firebase = StorageUtil;
+                console.log('[INFO] StorageUtil asignado correctamente a StorageAdapter');
             } else {
-                console.error('[ERROR] FirestoreUtil no está disponible. Revisa que firebase-storage.js esté cargado.');
+                console.error('[ERROR] StorageUtil no está disponible. Revisa que firebase-storage.js esté cargado.');
                 return false;
             }
         } else {
-            console.log('[DEBUG] FirestoreUtil ya estaba asignado a StorageAdapter');
+            console.log('[DEBUG] StorageUtil ya estaba asignado a StorageAdapter');
         }
         
         try {

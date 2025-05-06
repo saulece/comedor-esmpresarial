@@ -541,7 +541,7 @@ async function saveMenu() {
         
         if (currentEditingMenuId) {
             // Actualizar menú existente
-            success = await StorageUtil.Menus.update(currentEditingMenuId, menuData);
+            success = await StorageAdapter.Menus.update(currentEditingMenuId, menuData);
             if (success) {
                 showNotification('Menú actualizado correctamente.');
                 console.log('Menú actualizado:', menuData);
@@ -551,7 +551,7 @@ async function saveMenu() {
             }
         } else {
             // Crear nuevo menú
-            success = await StorageUtil.Menus.add(menuData);
+            success = await StorageAdapter.Menus.add(menuData);
             if (success) {
                 showNotification('Menú guardado correctamente.');
                 console.log('Menú guardado:', menuData);
@@ -601,14 +601,14 @@ async function loadSavedMenus() {
         // Mostrar indicador de carga
         savedMenusContainer.innerHTML = '<p class="loading-state">Cargando menús...</p>';
         
-        // Asegurarse de que Firebase esté inicializado
+        // Asegurarse de que StorageAdapter esté inicializado
         if (!StorageAdapter.firebase) {
             await StorageAdapter.initStorage();
         }
         
         // Obtener menús del almacenamiento (ahora es asíncrono con Firebase)
         console.log('Solicitando menús a Firebase...');
-        const menus = await StorageUtil.Menus.getAll();
+        const menus = await StorageAdapter.Menus.getAll();
         console.log('Menús cargados:', menus);
         
         // Limpiar contenedor
@@ -792,7 +792,7 @@ async function editMenu(menuId) {
         showNotification('Cargando menú...', 'info');
         
         // Obtener menú del almacenamiento
-        const menu = await StorageUtil.Menus.get(menuId);
+        const menu = await StorageAdapter.Menus.get(menuId);
         if (!menu) {
             showNotification('No se encontró el menú.', 'error');
             return;
@@ -878,7 +878,7 @@ async function deleteMenu(menuId) {
         showNotification('Eliminando menú...', 'info');
         
         // Eliminar menú del almacenamiento
-        const success = await StorageUtil.Menus.delete(menuId);
+        const success = await StorageAdapter.Menus.delete(menuId);
         
         if (success) {
             showNotification('Menú eliminado correctamente.');
@@ -1025,7 +1025,7 @@ const CoordinatorManagement = {
             
             if (this.currentEditingCoordinatorId) {
                 // Actualizar coordinador existente
-                success = await StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
+                success = await StorageAdapter.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
                 if (success) {
                     showNotification('Coordinador actualizado correctamente.');
                 } else {
@@ -1033,7 +1033,7 @@ const CoordinatorManagement = {
                 }
             } else {
                 // Crear nuevo coordinador
-                success = await StorageUtil.Coordinators.add(coordinatorData);
+                success = await StorageAdapter.Coordinators.add(coordinatorData);
                 if (success) {
                     showNotification('Coordinador guardado correctamente.');
                     console.log('Coordinador guardado:', coordinatorData);
@@ -1064,7 +1064,7 @@ const CoordinatorManagement = {
     editCoordinator: async function(coordinatorId) {
         try {
             // Obtener el coordinador del almacenamiento
-            const coordinator = await StorageUtil.Coordinators.get(coordinatorId);
+            const coordinator = await StorageAdapter.Coordinators.get(coordinatorId);
             
             if (!coordinator) {
                 showNotification('No se encontró el coordinador especificado.', 'error');
@@ -1111,7 +1111,7 @@ const CoordinatorManagement = {
         
         try {
             // Eliminar coordinador del almacenamiento
-            const success = await StorageUtil.Coordinators.delete(coordinatorId);
+            const success = await StorageAdapter.Coordinators.delete(coordinatorId);
             
             if (success) {
                 showNotification('Coordinador eliminado correctamente.');
