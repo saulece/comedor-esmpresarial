@@ -211,64 +211,135 @@ const FirestoreUtil = {
     },
 
     /**
-     * Agrega un elemento a una colección
+     * Agrega un elemento a una colección con mejor manejo de errores
      * @param {string} key - Nombre de la colección
      * @param {any} item - Elemento a agregar
      * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
      */
     addItem: async function(key, item) {
-        console.log(`[DEBUG] addItem llamado para ${key} con item:`, JSON.stringify(item));
+        console.log(`[Firestore] Agregando item a colección ${key}`);
         
-        if (!this.db) {
-            console.warn(`[DEBUG] this.db no está inicializado, intentando inicializar...`);
-            if (!this.init()) {
-                console.error(`[ERROR] No se pudo inicializar Firestore al intentar agregar a ${key}`);
-                return false;
-            }
-            console.log(`[DEBUG] Inicialización exitosa de this.db`);
+        // 1. Validación de parámetros
+        if (!key) {
+            console.error(`[Firestore] ERROR: Nombre de colección no proporcionado`);
+            return false;
         }
         
-        try {
-            // Verificar que el elemento tenga un ID
-            if (!item.id) {
-                console.error(`[ERROR] No se puede agregar un elemento sin ID a ${key}`);
+        if (!item) {
+            console.error(`[Firestore] ERROR: Item no proporcionado para colección ${key}`);
+            return false;
+        }
+        
+        // 2. Verificar que el elemento tenga un ID válido
+        if (!item.id || typeof item.id !== 'string' || item.id.trim() === '') {
+            console.error(`[Firestore] ERROR: Item sin ID válido para colección ${key}:`, item);
+            return false;
+        }
+        
+        // 3. Asegurar que Firestore esté inicializado
+        if (!this.db) {
+            console.warn(`[Firestore] Base de datos no inicializada, intentando inicializar...`);
+            try {
+                const initResult = this.init();
+                if (!initResult) {
+                    console.error(`[Firestore] ERROR: No se pudo inicializar Firestore`);
+                    return false;
+                }
+                console.log(`[Firestore] Inicialización exitosa de Firestore`);
+            } catch (initError) {
+                console.error(`[Firestore] ERROR: Excepción al inicializar Firestore:`, initError);
                 return false;
             }
+        }
+        
+        // 4. Verificar nuevamente que this.db esté disponible después de la inicialización
+        if (!this.db) {
+            console.error(`[Firestore] ERROR: Firestore no disponible después de inicialización`);
+            return false;
+        }
+        
+        // 5. Procesar el item para asegurar que sea compatible con Firestore
+        const processedItem = this.processItemForFirestore(item);
+        
+        try {
+            // 6. Crear referencia al documento
+            const docRef = this.db.collection(key).doc(processedItem.id);
             
-            console.log(`[INFO] Intentando agregar elemento a ${key} con ID ${item.id}`);
+            // 7. Intentar la operación de escritura con reintentos
+            let success = false;
+            let attempts = 0;
+            const maxAttempts = 3;
             
-            // Usar el ID como clave del documento
-            const docRef = this.db.collection(key).doc(item.id);
-            console.log(`[DEBUG] Referencia al documento creada para ${key}/${item.id}`);
-            
-            // Verificar si ya existe un elemento con el mismo ID
-            try {
-                console.log(`[DEBUG] Verificando si ya existe el documento ${key}/${item.id}`);
-                const doc = await docRef.get();
-                
-                if (doc.exists) {
-                    console.warn(`[WARN] Ya existe un elemento con ID ${item.id} en ${key}, se intentará actualizar`);
-                    await docRef.update(item);
-                    console.log(`[INFO] Elemento actualizado en ${key} con ID ${item.id}`);
-                    return true;
-                } else {
-                    console.log(`[DEBUG] El documento ${key}/${item.id} no existe, se creará uno nuevo`);
+            while (!success && attempts < maxAttempts) {
+                attempts++;
+                try {
+                    // Intentar guardar el documento
+                    await docRef.set(processedItem);
+                    success = true;
+                    console.log(`[Firestore] Item guardado exitosamente en ${key}/${processedItem.id} (intento ${attempts})`);
+                } catch (writeError) {
+                    if (attempts < maxAttempts) {
+                        console.warn(`[Firestore] Error al guardar en intento ${attempts}, reintentando:`, writeError);
+                        // Esperar un momento antes de reintentar
+                        await new Promise(resolve => setTimeout(resolve, 500 * attempts));
+                    } else {
+                        // Último intento falló, propagar el error
+                        throw writeError;
+                    }
                 }
-            } catch (checkError) {
-                console.error(`[ERROR] Error al verificar existencia de documento en ${key}:`, checkError);
-                // Continuar con la creación aunque haya error en la verificación
             }
-            
-            // Agregar el elemento como un nuevo documento
-            console.log(`[DEBUG] Intentando crear documento ${key}/${item.id} con datos:`, JSON.stringify(item));
-            await docRef.set(item);
-            console.log(`[SUCCESS] Elemento agregado exitosamente a ${key} con ID ${item.id}`);
             
             return true;
         } catch (error) {
-            console.error(`[ERROR] Error al agregar elemento a ${key}:`, error);
+            console.error(`[Firestore] ERROR: No se pudo guardar el item en ${key}:`, error);
+            
+            // 8. Intentar guardar localmente como respaldo si falla Firebase
+            try {
+                if (window.localStorage) {
+                    const backupKey = `firebase_backup_${key}_${item.id}`;
+                    localStorage.setItem(backupKey, JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        collection: key,
+                        item: processedItem
+                    }));
+                    console.warn(`[Firestore] Item guardado como respaldo local en ${backupKey}`);
+                }
+            } catch (backupError) {
+                console.error(`[Firestore] ERROR: No se pudo crear respaldo local:`, backupError);
+            }
+            
             return false;
         }
+    },
+    
+    /**
+     * Procesa un item para asegurar que sea compatible con Firestore
+     * @private
+     * @param {Object} item - Item a procesar
+     * @returns {Object} - Item procesado
+     */
+    processItemForFirestore: function(item) {
+        // Crear una copia para no modificar el original
+        const processed = JSON.parse(JSON.stringify(item));
+        
+        // Asegurar que las fechas estén en formato ISO string
+        if (processed.createdAt instanceof Date) {
+            processed.createdAt = processed.createdAt.toISOString();
+        }
+        
+        if (processed.updatedAt instanceof Date) {
+            processed.updatedAt = processed.updatedAt.toISOString();
+        }
+        
+        // Si no tiene timestamps, agregarlos
+        if (!processed.createdAt) {
+            processed.createdAt = new Date().toISOString();
+        }
+        
+        processed.updatedAt = new Date().toISOString();
+        
+        return processed;
+    }
     },
 
     /**

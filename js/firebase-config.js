@@ -25,24 +25,81 @@ let initializationAttempted = false;
 
 // Servicio para manejar Firebase
 const FirebaseService = {
-  // Inicializar Firebase
+  // Inicializar Firebase con promesa para mejor manejo asíncrono
+  initFirebaseAsync: async function() {
+    return new Promise((resolve, reject) => {
+      try {
+        // Si ya está inicializado, resolver inmediatamente
+        if (firebaseInitialized) {
+          console.log('[Firebase] Ya inicializado, usando instancia existente');
+          resolve(true);
+          return;
+        }
+        
+        // Si ya se intentó inicializar y falló, no intentar de nuevo
+        if (initializationAttempted && !firebaseInitialized) {
+          console.warn('[Firebase] Ya se intentó inicializar sin éxito. No se intentará de nuevo.');
+          resolve(false);
+          return;
+        }
+        
+        initializationAttempted = true;
+        
+        // Verificar que firebase esté disponible (cargado vía CDN)
+        if (typeof firebase === 'undefined') {
+          console.error('[Firebase] Firebase SDK no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
+          resolve(false);
+          return;
+        }
+        
+        // Inicializar Firebase (solo si no está ya inicializado)
+        if (!firebase.apps || !firebase.apps.length) {
+          console.log('[Firebase] Inicializando nueva instancia...');
+          firebaseApp = firebase.initializeApp(firebaseConfig);
+        } else {
+          console.log('[Firebase] Usando instancia existente...');
+          firebaseApp = firebase.app(); // Si ya está inicializado, usar la instancia existente
+        }
+        
+        // Inicializar Firestore con manejo de errores mejorado
+        db = firebase.firestore();
+        
+        // Verificar la conexión a Firestore con una operación simple
+        db.collection('system').doc('status').get()
+          .then(() => {
+            console.log('[Firebase] Conexión a Firestore verificada correctamente');
+            firebaseInitialized = true;
+            resolve(true);
+          })
+          .catch(error => {
+            console.error('[Firebase] Error al verificar conexión a Firestore:', error);
+            resolve(false);
+          });
+      } catch (error) {
+        console.error('[Firebase] Error al inicializar Firebase:', error);
+        resolve(false);
+      }
+    });
+  },
+  
+  // Método sincrónico para compatibilidad con código existente
   initFirebase: function() {
-    // Si ya se intentó inicializar y falló, no intentar de nuevo
-    if (initializationAttempted && !firebaseInitialized) {
-      console.warn('Ya se intentó inicializar Firebase sin éxito. No se intentará de nuevo.');
-      return false;
-    }
-    
-    // Si ya está inicializado, no hacer nada
+    // Si ya está inicializado, retornar inmediatamente
     if (firebaseInitialized) {
       return true;
+    }
+    
+    // Si ya se intentó inicializar y falló, no intentar de nuevo
+    if (initializationAttempted && !firebaseInitialized) {
+      console.warn('[Firebase] Ya se intentó inicializar sin éxito. No se intentará de nuevo.');
+      return false;
     }
     
     initializationAttempted = true;
     
     // Verificar que firebase esté disponible (cargado vía CDN)
     if (typeof firebase === 'undefined') {
-      console.error('Firebase no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
+      console.error('[Firebase] Firebase SDK no está disponible. Asegúrate de incluir los scripts de Firebase en tu HTML');
       return false;
     }
     
@@ -56,13 +113,31 @@ const FirebaseService = {
       
       // Inicializar Firestore
       db = firebase.firestore();
-      console.log('Firebase inicializado correctamente');
+      console.log('[Firebase] Firebase inicializado correctamente');
       firebaseInitialized = true;
+      
+      // Iniciar verificación asíncrona en segundo plano
+      this.verifyFirestoreConnection();
+      
       return true;
     } catch (error) {
-      console.error('Error al inicializar Firebase:', error);
+      console.error('[Firebase] Error al inicializar Firebase:', error);
       return false;
     }
+  },
+  
+  // Método para verificar la conexión a Firestore
+  verifyFirestoreConnection: function() {
+    if (!db) return false;
+    
+    db.collection('system').doc('status').get()
+      .then(() => {
+        console.log('[Firebase] Conexión a Firestore verificada correctamente');
+      })
+      .catch(error => {
+        console.error('[Firebase] Error al verificar conexión a Firestore:', error);
+        firebaseInitialized = false; // Marcar como no inicializado si hay error de conexión
+      });
   },
   
   // Obtener la instancia de Firestore
