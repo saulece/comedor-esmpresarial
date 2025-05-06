@@ -53,11 +53,28 @@ async function testFirebaseConnection() {
             updatedAt: new Date().toISOString()
         };
         
-        console.log('Intentando guardar menú de prueba:', testMenu);
+        console.log('[TEST] Intentando guardar menú de prueba:', JSON.stringify(testMenu));
+        
+        // Verificar que StorageUtil.Menus existe y tiene la función add
+        if (!StorageUtil || !StorageUtil.Menus || typeof StorageUtil.Menus.add !== 'function') {
+            console.error('[ERROR] StorageUtil.Menus.add no está disponible:', 
+                        StorageUtil ? 
+                        (StorageUtil.Menus ? 'La función add no existe' : 'Menus no existe') : 
+                        'StorageUtil no existe');
+            throw new Error('StorageUtil.Menus.add no está disponible');
+        }
         
         // Guardar menú de prueba
-        const saveSuccess = await StorageUtil.Menus.add(testMenu);
-        console.log('Guardado de menú de prueba:', saveSuccess ? 'Exitoso' : 'Fallido');
+        let saveSuccess = false;
+        try {
+            console.log('[DEBUG] Llamando a StorageUtil.Menus.add...');
+            saveSuccess = await StorageUtil.Menus.add(testMenu);
+            console.log('[TEST] Resultado de guardar menú de prueba:', saveSuccess);
+            console.log('[TEST] Guardado de menú de prueba:', saveSuccess ? 'Exitoso' : 'Fallido');
+        } catch (error) {
+            console.error('[ERROR] Error al guardar menú de prueba:', error);
+            throw error;
+        }
         
         if (saveSuccess) {
             // Intentar recuperar el menú guardado

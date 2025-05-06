@@ -217,47 +217,56 @@ const FirestoreUtil = {
      * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
      */
     addItem: async function(key, item) {
+        console.log(`[DEBUG] addItem llamado para ${key} con item:`, JSON.stringify(item));
+        
         if (!this.db) {
+            console.warn(`[DEBUG] this.db no está inicializado, intentando inicializar...`);
             if (!this.init()) {
-                console.error(`No se pudo inicializar Firestore al intentar agregar a ${key}`);
+                console.error(`[ERROR] No se pudo inicializar Firestore al intentar agregar a ${key}`);
                 return false;
             }
+            console.log(`[DEBUG] Inicialización exitosa de this.db`);
         }
         
         try {
             // Verificar que el elemento tenga un ID
             if (!item.id) {
-                console.error(`No se puede agregar un elemento sin ID a ${key}`);
+                console.error(`[ERROR] No se puede agregar un elemento sin ID a ${key}`);
                 return false;
             }
             
-            console.log(`Intentando agregar elemento a ${key} con ID ${item.id}`);
+            console.log(`[INFO] Intentando agregar elemento a ${key} con ID ${item.id}`);
             
             // Usar el ID como clave del documento
             const docRef = this.db.collection(key).doc(item.id);
+            console.log(`[DEBUG] Referencia al documento creada para ${key}/${item.id}`);
             
             // Verificar si ya existe un elemento con el mismo ID
             try {
+                console.log(`[DEBUG] Verificando si ya existe el documento ${key}/${item.id}`);
                 const doc = await docRef.get();
                 
                 if (doc.exists) {
-                    console.warn(`Ya existe un elemento con ID ${item.id} en ${key}, se intentará actualizar`);
+                    console.warn(`[WARN] Ya existe un elemento con ID ${item.id} en ${key}, se intentará actualizar`);
                     await docRef.update(item);
-                    console.log(`Elemento actualizado en ${key} con ID ${item.id}`);
+                    console.log(`[INFO] Elemento actualizado en ${key} con ID ${item.id}`);
                     return true;
+                } else {
+                    console.log(`[DEBUG] El documento ${key}/${item.id} no existe, se creará uno nuevo`);
                 }
             } catch (checkError) {
-                console.error(`Error al verificar existencia de documento en ${key}:`, checkError);
+                console.error(`[ERROR] Error al verificar existencia de documento en ${key}:`, checkError);
                 // Continuar con la creación aunque haya error en la verificación
             }
             
             // Agregar el elemento como un nuevo documento
+            console.log(`[DEBUG] Intentando crear documento ${key}/${item.id} con datos:`, JSON.stringify(item));
             await docRef.set(item);
-            console.log(`Elemento agregado exitosamente a ${key} con ID ${item.id}`);
+            console.log(`[SUCCESS] Elemento agregado exitosamente a ${key} con ID ${item.id}`);
             
             return true;
         } catch (error) {
-            console.error(`Error al agregar elemento a ${key}:`, error);
+            console.error(`[ERROR] Error al agregar elemento a ${key}:`, error);
             return false;
         }
     },
@@ -406,7 +415,15 @@ const FirestoreUtil = {
     // CRUD para Menús
     Menus: {
         add: async function(menu) {
-            return await FirestoreUtil.addItem(FirestoreUtil.KEYS.MENUS, menu);
+            console.log('[DEBUG] Menus.add llamado con menu:', JSON.stringify(menu));
+            try {
+                const result = await FirestoreUtil.addItem(FirestoreUtil.KEYS.MENUS, menu);
+                console.log('[DEBUG] Resultado de Menus.add:', result);
+                return result;
+            } catch (error) {
+                console.error('[ERROR] Error en Menus.add:', error);
+                return false;
+            }
         },
         get: async function(menuId) {
             return await FirestoreUtil.getItem(FirestoreUtil.KEYS.MENUS, menuId);

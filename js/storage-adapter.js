@@ -9,13 +9,15 @@ let useFirebase = true;
 
 // Función para inicializar la implementación de Firebase
 function initFirebaseStorage() {
-    console.log('Usando implementación de Firebase exclusivamente');
+    console.log('[INFO] Usando implementación de Firebase exclusivamente');
     
     // Asegurarse de que Firebase esté inicializado
     if (typeof FirebaseService !== 'undefined') {
-        return FirebaseService.initFirebase();
+        const result = FirebaseService.initFirebase();
+        console.log('[DEBUG] Resultado de inicialización de Firebase:', result);
+        return result;
     } else {
-        console.error('FirebaseService no está disponible. Revisa que firebase-config.js esté cargado.');
+        console.error('[ERROR] FirebaseService no está disponible. Revisa que firebase-config.js esté cargado.');
         return false;
     }
 }
@@ -27,20 +29,47 @@ const StorageAdapter = {
     
     // Método para inicializar el almacenamiento
     async initStorage() {
+        console.log('[INFO] Iniciando StorageAdapter.initStorage');
+        
+        // Verificar que FirebaseService esté disponible
+        if (typeof FirebaseService === 'undefined') {
+            console.error('[ERROR] FirebaseService no está disponible. Revisa que firebase-config.js esté cargado.');
+            return false;
+        }
+        
+        // Inicializar Firebase si no está inicializado
+        if (!FirebaseService.isInitialized()) {
+            console.log('[DEBUG] Firebase no está inicializado, intentando inicializar...');
+            const initResult = FirebaseService.initFirebase();
+            console.log('[DEBUG] Resultado de inicialización de Firebase:', initResult);
+            if (!initResult) {
+                console.error('[ERROR] No se pudo inicializar Firebase');
+                return false;
+            }
+        } else {
+            console.log('[DEBUG] Firebase ya está inicializado');
+        }
+        
+        // Verificar que FirestoreUtil esté disponible
         if (!this.firebase) {
             if (typeof FirestoreUtil !== 'undefined') {
                 this.firebase = window.FirestoreUtil;
-                console.log('Firebase inicializado correctamente en StorageAdapter');
+                console.log('[INFO] FirestoreUtil asignado correctamente a StorageAdapter');
             } else {
-                console.error('FirestoreUtil no está disponible. Revisa que firebase-storage.js esté cargado.');
+                console.error('[ERROR] FirestoreUtil no está disponible. Revisa que firebase-storage.js esté cargado.');
                 return false;
             }
+        } else {
+            console.log('[DEBUG] FirestoreUtil ya estaba asignado a StorageAdapter');
         }
         
         try {
-            return await this.firebase.initStorage();
+            console.log('[DEBUG] Llamando a this.firebase.initStorage()');
+            const result = await this.firebase.initStorage();
+            console.log('[DEBUG] Resultado de this.firebase.initStorage():', result);
+            return result;
         } catch (error) {
-            console.error('Error al inicializar el almacenamiento:', error);
+            console.error('[ERROR] Error al inicializar el almacenamiento:', error);
             return false;
         }
     },
