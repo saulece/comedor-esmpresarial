@@ -4,7 +4,7 @@
  */
 
 // Define tu código de acceso de administrador aquí. (CAMBIA ESTO)
-const ADMIN_MASTER_ACCESS_CODE = "ADMN7X8P"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
+const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
 
 // Variables globales
 let currentEditingMenuId = null;
