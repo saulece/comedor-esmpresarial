@@ -1,38 +1,29 @@
 <context>
 # Overview  
-El Sistema de Comedor Empresarial es una aplicación web que permite a un administrador publicar menús semanales y a los coordinadores de sucursal confirmar el número de empleados que asistirán cada día. Actualmente, la aplicación almacena los datos localmente (localStorage), lo que impide que los cambios realizados en un dispositivo sean visibles en otros. Esta actualización busca implementar Firebase como solución de almacenamiento en la nube, manteniendo la simplicidad y eficiencia de la aplicación original.
+Este sistema permite a un administrador publicar un menú semanal de comidas y a los coordinadores de sucursal confirmar el número de empleados que asistirán cada día.  
+El objetivo principal es evitar preparar comida de más, manteniendo el sistema lo más simple posible para desarrollo automatizado.
 
 # Core Features  
 
-## Almacenamiento en la nube con Firebase (Nueva funcionalidad)
-- **Qué hace**: Permite que los datos (menús, coordinadores, confirmaciones) se almacenen en Firebase Firestore en lugar de localStorage.
-- **Por qué es importante**: Habilita el acceso a la información desde cualquier dispositivo y la sincronización en tiempo real.
-- **Cómo funciona**: Implementa un nuevo módulo de almacenamiento que utiliza Firebase SDK para JavaScript.
-
-## Sincronización en tiempo real (Nueva funcionalidad)
-- **Qué hace**: Actualiza automáticamente la interfaz cuando los datos cambian en Firebase.
-- **Por qué es importante**: Permite que todos los usuarios vean los cambios inmediatamente sin necesidad de recargar la página.
-- **Cómo funciona**: Utiliza los listeners de Firestore para detectar cambios y actualizar la UI.
-
-## Publicación de menú semanal (Funcionalidad existente mejorada)
+## Publicación de menú semanal (Administrador)
 - **Qué hace**: Permite al administrador definir qué se servirá cada día de la semana.
 - **Por qué es importante**: Es la base para que los coordinadores puedan confirmar asistencia.
-- **Cómo funciona**: Un formulario donde el administrador introduce el platillo por día, ahora con guardado en la nube.
+- **Cómo funciona**: Un formulario donde el administrador introduce el platillo por día.
 
-## Creación de coordinadores (Funcionalidad existente mejorada)
+## Creación de coordinadores (Administrador)
 - **Qué hace**: Permite registrar usuarios tipo coordinador, asociados a una sucursal.
 - **Por qué es importante**: Solo los coordinadores pueden confirmar asistencias.
-- **Cómo funciona**: El administrador introduce nombre de sucursal y nombre del coordinador, ahora con guardado en la nube.
+- **Cómo funciona**: El administrador introduce nombre de sucursal y nombre del coordinador.
 
-## Confirmación de asistencia (Funcionalidad existente mejorada)
+## Confirmación de asistencia (Coordinadores)
 - **Qué hace**: Permite ingresar el número de empleados que asistirán por día.
 - **Por qué es importante**: Informa al administrador cuántas porciones preparar.
-- **Cómo funciona**: Cada coordinador ve el menú publicado y registra un número por cada día, ahora con guardado en la nube.
+- **Cómo funciona**: Cada coordinador ve el menú publicado y registra un número por cada día.
 
-## Autenticación simplificada (Nueva funcionalidad)
-- **Qué hace**: Proporciona un sistema de autenticación básico pero seguro utilizando Firebase Auth.
-- **Por qué es importante**: Mejora la seguridad manteniendo la simplicidad de uso.
-- **Cómo funciona**: Autenticación por código de acceso para coordinadores y credenciales para administradores.
+## Visualización de confirmaciones (Administrador)
+- **Qué hace**: Permite ver qué coordinadores ya han confirmado y cuántas personas asistirán por día y sucursal.
+- **Por qué es importante**: Permite planear con base en confirmaciones reales.
+- **Cómo funciona**: Una tabla que muestra días, coordinadores, confirmados y pendientes.
 
 # User Experience  
 
@@ -43,204 +34,99 @@ El Sistema de Comedor Empresarial es una aplicación web que permite a un admini
 - Crea coordinadores.
 - Consulta las confirmaciones por día y por sucursal.
 - Visualiza qué coordinadores ya confirmaron.
-- Ahora puede ver los cambios desde cualquier dispositivo.
 
 ### Coordinador
 - Ve el menú semanal.
 - Confirma número de asistentes por día para su sucursal.
-- Ahora puede ver los cambios y confirmar desde cualquier dispositivo.
 
 ## Flujo de Usuario
 
 ### Administrador
-1. Publica el menú semanal (ahora guardado en Firebase).
-2. Crea o actualiza coordinadores (ahora guardados en Firebase).
-3. Consulta confirmaciones por día y sucursal (ahora actualizadas en tiempo real).
+1. Publica el menú semanal.
+2. Crea o actualiza coordinadores.
+3. Consulta confirmaciones por día y sucursal.
 
 ### Coordinador
-1. Accede con su código de acceso.
-2. Ve el menú publicado (ahora actualizado en tiempo real).
-3. Ingresa cuántos asistirán por día (ahora guardado en Firebase).
+1. Accede sin login complejo.
+2. Ve el menú publicado.
+3. Ingresa cuántos asistirán por día.
 
 ## Consideraciones UI/UX
-- Mantener la interfaz simple y funcional del diseño original.
-- Agregar indicadores visuales de sincronización.
-- Optimizar para uso en dispositivos móviles.
-- Mantener tiempos de respuesta rápidos a pesar de la conexión a Firebase.
+- Interfaz sin adornos, solo inputs y tablas claras.
+- Compatible con navegador moderno en escritorio o tablet.
+- Sin autenticación avanzada (login opcional mínimo o clave simple).
+
 </context>
 <PRD>
 # Technical Architecture  
 
 ## Componentes del Sistema
-- **Frontend**: HTML, CSS y JavaScript vanilla (sin frameworks).
-- **Backend**: Firebase Firestore para almacenamiento en la nube.
-- **Autenticación**: Firebase Authentication para gestión de accesos.
-- **Sincronización**: Firebase Realtime Database o Firestore para actualizaciones en tiempo real.
+- **Frontend**: HTML, CSS y JavaScript plano.
+- **Persistencia**: IndexedDB o archivo JSON para almacenamiento local; soporte opcional para sincronización.
+- **Backend**: Opcional o simulado si se requiere persistencia entre usuarios.
 
-## Modelos de Datos en Firestore
+## Modelos de Datos
 
-### Colección: menus
+### Menú Semanal
 ```javascript
 {
-  id: String, // ID único del menú
-  name: String, // Nombre descriptivo del menú
-  weekStart: Timestamp, // Fecha de inicio de la semana
+  id: String,
+  weekStart: Date,
   days: [
-    { 
-      date: Timestamp, 
-      dish: String,
-      category: String
-    }
-  ],
-  active: Boolean, // Indica si es el menú activo
-  createdAt: Timestamp,
-  updatedAt: Timestamp
+    { date: Date, dish: String }
+  ]
 }
 ```
 
-### Colección: coordinators
+### Coordinador
 ```javascript
 {
-  id: String, // ID único del coordinador
-  name: String, // Nombre completo
-  email: String, // Correo electrónico
-  phone: String, // Teléfono (opcional)
-  department: String, // Departamento o sucursal
-  accessCode: String, // Código de acceso único
-  active: Boolean, // Estado activo/inactivo
-  createdAt: Timestamp,
-  updatedAt: Timestamp
+  id: String,
+  name: String,
+  branch: String
 }
 ```
 
-### Colección: attendanceConfirmations
+### Confirmación
 ```javascript
 {
-  id: String, // ID único de la confirmación
-  coordinatorId: String, // Referencia al coordinador
-  weekStartDate: Timestamp, // Fecha de inicio de la semana
-  attendanceCounts: {
-    // Mapeo de días a conteos de asistencia
-    "lunes": Number,
-    "martes": Number,
-    "miercoles": Number,
-    "jueves": Number,
-    "viernes": Number
-  },
-  createdAt: Timestamp,
-  updatedAt: Timestamp
+  coordinatorId: String,
+  date: Date,
+  peopleCount: Number,
+  timestamp: Date
 }
 ```
-
-## Arquitectura de Módulos
-
-### Módulo de Firebase (firebase.js - Nuevo)
-- Configuración e inicialización de Firebase
-- Gestión de conexión y estado de autenticación
-- Funciones de utilidad para interactuar con Firestore
-
-### Módulo de Almacenamiento (storage.js - Modificado)
-- Adaptación de la API actual para usar Firebase
-- Mantener la misma interfaz para compatibilidad con el código existente
-- Implementar caché local para funcionamiento offline
-
-### Módulo de Autenticación (auth.js - Nuevo)
-- Gestión de inicio de sesión para administradores y coordinadores
-- Verificación de códigos de acceso
-- Manejo de sesiones
-
-### Módulos Existentes (Modificados)
-- admin.js: Adaptado para usar el nuevo sistema de almacenamiento
-- coordinator.js: Adaptado para usar el nuevo sistema de almacenamiento
-- models.js: Adaptado para incluir campos necesarios para Firebase
 
 # Development Roadmap  
 
-## Fase 1: Configuración de Firebase y migración básica
-- Crear proyecto en Firebase Console
-- Configurar Firestore Database y reglas de seguridad
-- Implementar módulo firebase.js para inicialización
-- Adaptar storage.js para usar Firebase manteniendo la API actual
-- Pruebas de migración con datos existentes
+## Fase 1: MVP funcional
+- Pantalla para publicar menú semanal.
+- Registro manual de coordinadores.
+- Vista para coordinadores: confirmar número por día.
+- Vista para administrador: lista de confirmaciones y pendientes.
 
-## Fase 2: Implementación de autenticación
-- Configurar Firebase Authentication
-- Implementar módulo auth.js
-- Adaptar flujos de login para administradores y coordinadores
-- Integrar autenticación con el resto de la aplicación
-- Pruebas de seguridad y acceso
-
-## Fase 3: Sincronización en tiempo real
-- Implementar listeners para cambios en Firestore
-- Actualizar la UI cuando los datos cambian
-- Optimizar para reducir consumo de datos y lecturas/escrituras
-- Implementar manejo de errores y reconexión
-- Pruebas de sincronización en diferentes escenarios
-
-## Fase 4: Funcionalidad offline y optimización
-- Implementar caché local para funcionamiento sin conexión
-- Resolver conflictos de sincronización
-- Optimizar rendimiento y consumo de recursos
-- Pruebas en dispositivos móviles y conexiones lentas
-
-## Fase 5: Refinamiento y documentación
-- Pulir la interfaz de usuario
-- Agregar indicadores de estado de sincronización
-- Documentar la implementación
-- Crear guía de uso para administradores y coordinadores
+## Fase 2: Depuración y simplificación
+- Eliminar cualquier componente no usado.
+- Reducir código y dependencias al mínimo.
+- Asegurar portabilidad en dispositivos básicos.
 
 # Logical Dependency Chain
-1. Configuración inicial de Firebase y Firestore
-2. Adaptación del módulo de almacenamiento (storage.js)
-3. Implementación de autenticación básica
-4. Migración de funcionalidad de administrador (menús y coordinadores)
-5. Migración de funcionalidad de coordinador (confirmaciones)
-6. Implementación de sincronización en tiempo real
-7. Optimización para uso offline y móvil
-8. Refinamiento de la interfaz de usuario
+1. Publicación del menú semanal.
+2. Registro de coordinadores.
+3. Confirmación diaria de asistencia.
+4. Visualización administrativa de resultados.
+5. Limpieza y optimización del proyecto.
 
 # Risks and Mitigations  
 
-## Riesgo: Costos de Firebase en caso de uso intensivo
-- **Mitigación**: Implementar estrategias de optimización de lecturas/escrituras y monitoreo de uso.
-- **Mitigación**: Configurar límites de gasto en Firebase Console.
+## Riesgo: Complejidad en interfaz para coordinadores
+- **Mitigación**: Diseñar un formulario por día, sin navegación innecesaria.
 
-## Riesgo: Complejidad adicional por sincronización en tiempo real
-- **Mitigación**: Implementar una arquitectura de módulos clara y bien documentada.
-- **Mitigación**: Agregar manejo robusto de errores y estados de conexión.
-
-## Riesgo: Experiencia degradada en conexiones lentas
-- **Mitigación**: Implementar caché local y sincronización inteligente.
-- **Mitigación**: Mostrar indicadores claros del estado de sincronización.
-
-## Riesgo: Migración de datos existentes
-- **Mitigación**: Crear herramienta de migración desde localStorage a Firebase.
-- **Mitigación**: Permitir exportación/importación de datos durante la transición.
-
-## Riesgo: Seguridad de los datos
-- **Mitigación**: Configurar reglas de seguridad estrictas en Firestore.
-- **Mitigación**: Implementar validación tanto en cliente como en servidor.
+## Riesgo: Datos no persistentes
+- **Mitigación**: Agregar botón de exportación o usar almacenamiento básico persistente.
 
 # Appendix  
-
-## Requisitos técnicos
-- Firebase SDK para JavaScript (versión 9 o superior)
-- Navegadores modernos con soporte para ES6+
-- Conexión a internet para sincronización (con soporte offline para operaciones básicas)
-
-## Consideraciones de implementación
-- Mantener JavaScript vanilla sin frameworks externos
-- Código modular y bien documentado
-- Optimización para dispositivos móviles
-- Compatibilidad con la exportación a Excel existente
-- Mantener la simplicidad y usabilidad de la interfaz actual
-
-## Pasos para configurar Firebase
-1. Crear cuenta en Firebase (si no se tiene)
-2. Crear nuevo proyecto en Firebase Console
-3. Habilitar Firestore Database
-4. Configurar reglas de seguridad
-5. Habilitar Authentication con método de email/password
-6. Obtener credenciales de configuración para la aplicación web
-7. Integrar Firebase SDK en el proyecto
+- No usar frameworks pesados.
+- Uso de HTML y JS puro.
+- Login mínimo o acceso por código simple por sucursal (si se desea).
 </PRD>

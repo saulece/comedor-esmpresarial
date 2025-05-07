@@ -2,723 +2,596 @@
   "tasks": [
     {
       "id": 1,
-      "title": "Firebase Project Setup and Configuration",
-      "description": "Create and configure a Firebase project with Firestore Database and Authentication services for the Corporate Dining System.",
-      "status": "in-progress2",
+      "title": "Setup Project Structure and Basic HTML/CSS Framework",
+      "description": "Create the initial project structure with HTML, CSS, and JavaScript files for both admin and coordinator views.",
+      "status": "done",
       "dependencies": [],
       "priority": "high",
-      "details": "1. Create a new Firebase project in the Firebase Console\n2. Enable Firestore Database with appropriate region settings\n3. Configure security rules for Firestore collections (menus, coordinators, attendanceConfirmations)\n4. Enable Firebase Authentication with email/password method\n5. Generate and save web app credentials (apiKey, authDomain, projectId, etc.)\n6. Set up spending limits and monitoring in Firebase Console",
-      "testStrategy": "Verify project creation and service enablement in Firebase Console. Test connection to Firebase services using temporary test script with the generated credentials.",
+      "details": "Create the following files: index.html (landing page), admin.html, coordinator.html, styles.css (minimal styling), and js/ directory with separate files for data models, storage utilities, admin functionality, and coordinator functionality. Implement a simple navigation between pages and basic layout structure. No frameworks should be used - only vanilla HTML, CSS, and JavaScript.",
+      "testStrategy": "Manually verify that all pages load correctly, navigation works between pages, and the basic layout is responsive on desktop and tablet devices.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Create Firebase Project and Enable Core Services",
-          "description": "Set up a new Firebase project and enable the required services (Firestore and Authentication) with appropriate regional settings.",
-          "status": "pending",
+          "title": "Create basic file structure and HTML templates",
+          "description": "Set up the project directory structure and create the initial HTML files with basic document structure",
+          "status": "done",
           "dependencies": [],
-          "details": "1. Go to Firebase Console (console.firebase.google.com)\n2. Click 'Add project' and name it 'Corporate Dining System'\n3. Configure Google Analytics settings as needed\n4. Once project is created, enable Firestore Database from the left sidebar\n5. Select the appropriate region (choose one closest to your user base for lower latency)\n6. Start in production mode\n7. Enable Firebase Authentication from the left sidebar\n8. In Authentication, go to 'Sign-in method' tab and enable Email/Password authentication"
+          "details": "Create the project root directory and the following files: index.html (landing page), admin.html, coordinator.html. Each HTML file should include proper DOCTYPE, html, head, and body tags. Add appropriate title tags and meta tags for viewport settings. Create empty placeholder sections in each HTML file for header, main content, and footer. Create the js/ directory for JavaScript files and an empty styles.css file."
         },
         {
           "id": 2,
-          "title": "Configure Firestore Security Rules",
-          "description": "Set up appropriate security rules for the Firestore collections to ensure proper access control for the Corporate Dining System.",
-          "status": "pending",
+          "title": "Implement basic CSS styling and layout structure",
+          "description": "Create a minimal CSS framework for consistent styling across all pages",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "1. In Firebase Console, navigate to Firestore Database > Rules\n2. Implement rules for the following collections:\n   - menus: Allow read access to all authenticated users, write access only to admin users\n   - coordinators: Allow read access to all authenticated users, write access only to admin users\n   - attendanceConfirmations: Allow users to read/write only their own confirmations\n3. Example rule structure:\n```\nrules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /menus/{document=**} {\n      allow read: if request.auth != null;\n      allow write: if request.auth != null && request.auth.token.admin == true;\n    }\n    match /coordinators/{document=**} {\n      allow read: if request.auth != null;\n      allow write: if request.auth != null && request.auth.token.admin == true;\n    }\n    match /attendanceConfirmations/{userId}/{document=**} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n  }\n}\n```\n4. Publish the rules"
+          "details": "In styles.css, implement: 1) CSS reset to normalize browser defaults, 2) Basic typography settings (font-family, sizes, colors), 3) Layout containers with flexbox or grid for responsive design, 4) Simple header and footer styling, 5) Basic color scheme variables using CSS custom properties, 6) Responsive breakpoints for different screen sizes. Link the stylesheet to all HTML files. Test the basic layout on different screen sizes."
         },
         {
           "id": 3,
-          "title": "Register Web Application and Generate Credentials",
-          "description": "Register the web application with Firebase and generate the necessary credentials for integration with the front-end code.",
-          "status": "pending",
+          "title": "Create JavaScript file structure and data models",
+          "description": "Set up the JavaScript directory structure with initial files for data models and storage utilities",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "1. In Firebase Console, go to Project Overview\n2. Click on the web icon (</>) to add a web app\n3. Register app with nickname 'Corporate Dining Web App'\n4. Check the box for 'Also set up Firebase Hosting' if needed\n5. Click 'Register app'\n6. Copy the provided Firebase configuration object containing:\n   - apiKey\n   - authDomain\n   - projectId\n   - storageBucket\n   - messagingSenderId\n   - appId\n7. Store these credentials securely for use in the application\n8. Create a .env file in the project root with these values (prefix with REACT_APP_ or VITE_ depending on your framework)\n9. Add the .env file to .gitignore to prevent credentials from being committed to version control"
+          "details": "In the js/ directory, create the following files: 1) models.js - Define basic data structures/classes for users, events, and other entities, 2) storage.js - Implement utility functions for localStorage operations (save, retrieve, update, delete), 3) admin.js - Empty file with structure for admin functionality, 4) coordinator.js - Empty file with structure for coordinator functionality. Add appropriate comments documenting the purpose of each file. Link these JavaScript files to the corresponding HTML pages."
         },
         {
           "id": 4,
-          "title": "Set Up Monitoring and Budget Controls",
-          "description": "Configure Firebase monitoring and set up budget alerts to prevent unexpected costs during development and production.",
-          "status": "pending",
+          "title": "Implement navigation between pages",
+          "description": "Create a navigation system to allow users to move between the different pages",
+          "status": "done",
           "dependencies": [
-            1
+            1,
+            2,
+            3
           ],
-          "details": "1. In Firebase Console, go to Project Settings\n2. Navigate to the 'Usage and billing' tab\n3. Link a billing account if not already done\n4. Set up budget alerts:\n   - Click 'Create budget'\n   - Name the budget 'Corporate Dining System Budget'\n   - Set an appropriate monthly budget amount (e.g., $50 for development)\n   - Configure email alerts at 50%, 90%, and 100% of budget\n5. Review the pricing tiers for Firestore and Authentication\n6. Enable Google Cloud Monitoring:\n   - Navigate to the Google Cloud Console for your project\n   - Go to Monitoring > Dashboards\n   - Set up a custom dashboard for tracking Firebase service usage\n7. Document the expected costs and usage patterns for the team"
+          "details": "Add a navigation bar to each HTML page in the header section. Include links to all pages (index.html, admin.html, coordinator.html). Style the navigation bar in styles.css with responsive design (hamburger menu for mobile). Highlight the current page in the navigation. Add JavaScript in each page-specific JS file to handle navigation events. Test navigation flow between all pages. Ensure the navigation is accessible and works on all screen sizes."
         }
       ]
     },
     {
       "id": 2,
-      "title": "Implement Firebase Module (firebase.js)",
-      "description": "Create a core Firebase module that handles initialization, connection management, and provides utility functions for Firestore operations.",
-      "status": "pending",
+      "title": "Implement Data Models and IndexedDB Storage",
+      "description": "Create the data models for Menu, Coordinator, and Confirmation objects and implement IndexedDB storage functionality.",
+      "status": "done",
       "dependencies": [
         1
       ],
       "priority": "high",
-      "details": "1. Create firebase.js module with Firebase SDK v9+ imports\n2. Implement initialization function with app credentials\n3. Create Firestore database reference\n4. Add connection state monitoring functions\n5. Implement basic CRUD utility functions for Firestore collections\n6. Add error handling for Firebase operations\n7. Create functions to handle offline/online state changes",
-      "testStrategy": "Write unit tests for each utility function. Test initialization with both valid and invalid credentials. Verify connection state detection by simulating offline/online scenarios.",
+      "details": "Create a storage.js file that handles IndexedDB operations. Implement functions to create/open the database with three object stores: 'menus', 'coordinators', and 'confirmations'. Define the data models exactly as specified in the PRD. Implement CRUD operations for each model. Include a fallback to localStorage if IndexedDB is not available. Add export/import functionality for data backup.",
+      "testStrategy": "Write test cases to verify data can be saved to and retrieved from IndexedDB. Test the fallback mechanism by disabling IndexedDB in the browser. Verify data structure matches the specified models.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Set up Firebase initialization and configuration",
-          "description": "Create the firebase.js module with proper imports and implement the initialization function that configures Firebase with application credentials",
-          "status": "pending",
+          "title": "Define Data Models for Menu, Coordinator, and Confirmation",
+          "description": "Create JavaScript classes or object structures that define the data models according to the PRD specifications",
+          "status": "done",
           "dependencies": [],
-          "details": "Create a new file called firebase.js. Import required Firebase SDK v9+ modules (initializeApp, getFirestore, etc.). Create a configuration object with Firebase credentials (apiKey, authDomain, projectId, etc.). Implement an initialization function that calls initializeApp() with the config object and returns the Firebase app instance. Export this function so other modules can ensure Firebase is initialized before using it."
+          "details": "Create a models.js file that exports three data model classes/objects: Menu, Coordinator, and Confirmation. Each model should include all required properties and validation methods as specified in the PRD. For Menu, include properties like id, name, items, categories, etc. For Coordinator, include properties like id, name, contact information, etc. For Confirmation, include properties like id, menuId, coordinatorId, date, status, etc. Add appropriate constructor methods and validation functions to ensure data integrity."
         },
         {
           "id": 2,
-          "title": "Implement Firestore database connection and references",
-          "description": "Create and export Firestore database reference and implement functions to create references to specific collections",
-          "status": "pending",
+          "title": "Implement IndexedDB Database Creation and Schema Setup",
+          "description": "Create the IndexedDB database with appropriate object stores and indexes",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "After Firebase initialization, create a Firestore database reference using getFirestore(). Implement helper functions to get references to specific collections (e.g., getCollectionRef(collectionName)). Create utility functions for document references (e.g., getDocRef(collectionName, docId)). Export these functions to provide a clean API for other modules to access Firestore data."
+          "details": "In storage.js, implement a function to initialize the IndexedDB database. Create a function named 'initDatabase' that creates or opens a database named 'cateringApp' with version 1. Set up three object stores: 'menus', 'coordinators', and 'confirmations' with appropriate key paths (use 'id' as the keyPath). Add any necessary indexes for efficient querying (e.g., index on 'date' for confirmations). Handle database upgrade events properly. Export this function so it can be called during application initialization."
         },
         {
           "id": 3,
-          "title": "Implement basic CRUD utility functions",
-          "description": "Create reusable functions for common Firestore operations: create, read, update, and delete documents",
-          "status": "pending",
+          "title": "Implement CRUD Operations for Each Data Model",
+          "description": "Create functions to perform Create, Read, Update, and Delete operations for each data model using IndexedDB",
+          "status": "done",
           "dependencies": [
+            1,
             2
           ],
-          "details": "Implement and export the following functions: addDocument(collection, data) to add new documents, getDocument(collection, id) to fetch a single document, getDocuments(collection, queryConstraints) to fetch multiple documents with optional query parameters, updateDocument(collection, id, data) to update existing documents, and deleteDocument(collection, id) to remove documents. Each function should use the collection references from subtask 2 and handle promises appropriately."
+          "details": "In storage.js, implement and export the following functions for each data model (Menu, Coordinator, Confirmation): add[Model], get[Model], getAll[Models], update[Model], and delete[Model]. For example: addMenu, getMenu, getAllMenus, updateMenu, deleteMenu. Each function should return a Promise that resolves with the operation result. Ensure proper error handling with try/catch blocks and appropriate error messages. Include transaction management to ensure data integrity."
         },
         {
           "id": 4,
-          "title": "Add connection state monitoring and offline support",
-          "description": "Implement functions to monitor Firebase connection state and handle offline/online transitions",
-          "status": "pending",
+          "title": "Create localStorage Fallback Mechanism",
+          "description": "Implement a fallback storage system using localStorage when IndexedDB is not available",
+          "status": "done",
           "dependencies": [
-            1
+            1,
+            3
           ],
-          "details": "Import the necessary Firebase modules for connectivity monitoring. Create a function to check the current connection state. Implement event listeners for online/offline state changes. Create functions to enable offline persistence for Firestore using enablePersistence(). Add methods to handle queued writes when the application comes back online. Export connection state as an observable value that components can subscribe to."
+          "details": "Add a feature detection mechanism in storage.js to check if IndexedDB is supported by the browser. If not, implement alternative versions of all CRUD functions using localStorage. Create a wrapper for each storage function that attempts to use IndexedDB first, then falls back to localStorage if needed. For localStorage implementation, use JSON.stringify() and JSON.parse() to convert objects to/from strings. Be mindful of localStorage size limitations and implement appropriate error handling."
         },
         {
           "id": 5,
-          "title": "Implement comprehensive error handling",
-          "description": "Add robust error handling for all Firebase operations and create a consistent error reporting mechanism",
-          "status": "pending",
+          "title": "Implement Data Export and Import Functionality",
+          "description": "Create functions to export all data to a JSON file and import data from a JSON file",
+          "status": "done",
           "dependencies": [
             3,
             4
           ],
-          "details": "Create a FirebaseError class that extends Error with Firebase-specific properties. Wrap all Firebase operations in try/catch blocks. Implement specific error handlers for common Firebase errors (permission-denied, not-found, etc.). Create a centralized error logging function that formats errors consistently. Update all previously implemented functions to use this error handling approach. Add retry logic for transient errors like network failures."
+          "details": "Add exportData() and importData() functions to storage.js. The exportData function should retrieve all data from all object stores, combine it into a single JSON object, and either trigger a download or return the data as a string. The importData function should accept a JSON string or file, parse it, validate the structure against the data models, and then store the data in the appropriate object stores. Include version checking to handle potential schema changes. Add appropriate error handling and progress reporting for large datasets."
         }
       ]
     },
     {
       "id": 3,
-      "title": "Adapt Storage Module (storage.js)",
-      "description": "Modify the existing storage module to use Firebase Firestore while maintaining the same API for backward compatibility.",
-      "status": "in-progress",
+      "title": "Develop Admin Menu Publication Interface",
+      "description": "Create the interface for administrators to publish the weekly menu.",
+      "status": "done",
       "dependencies": [
         2
       ],
       "priority": "high",
-      "details": "1. Analyze existing localStorage implementation\n2. Refactor storage.js to use Firebase module for data operations\n3. Maintain the same function signatures and return values\n4. Implement local caching for offline functionality\n5. Add data migration utility to transfer existing localStorage data to Firebase\n6. Implement conflict resolution for synchronization\n7. Add error handling and retry mechanisms",
-      "testStrategy": "Create test cases comparing localStorage vs Firebase implementations. Verify data consistency between both storage methods. Test migration utility with sample data. Simulate network interruptions to verify offline functionality.",
+      "details": "In admin.html, create a form that allows the admin to select a week start date and enter dishes for each day of the week. The form should include date inputs and text fields for dishes. Implement JavaScript functionality to save the menu to IndexedDB. Display previously created menus with options to edit or delete them. Ensure the interface is clean and minimal as specified in the PRD.",
+      "testStrategy": "Test creating, editing, and deleting menus. Verify that the data is correctly stored in IndexedDB. Test edge cases like empty fields and invalid dates.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Analyze existing localStorage implementation and create Firebase adapter",
-          "description": "Analyze the current storage.js module to understand its API and create a Firebase adapter that will handle the Firestore operations.",
-          "status": "pending",
+          "title": "Create basic menu publication form structure",
+          "description": "Implement the HTML structure for the menu publication form in admin.html",
+          "status": "done",
           "dependencies": [],
-          "details": "1. Document all public methods and their signatures in the current storage.js\n2. Map localStorage operations to equivalent Firestore operations\n3. Create a FirebaseAdapter class that will handle all Firestore interactions\n4. Initialize Firebase connection in the adapter\n5. Implement basic CRUD operations in the adapter (create, read, update, delete)\n6. Add proper error handling with meaningful error messages"
+          "details": "Create a form in admin.html with the following elements: 1) A date input for selecting the week start date, 2) Seven sections (one for each day of the week) with appropriate labels, 3) Text input fields for entering multiple dishes for each day, 4) Add/remove buttons for dish fields, 5) Submit button to save the menu. Use semantic HTML and ensure the layout follows the clean, minimal design specified in the PRD. Include a container section where saved menus will be displayed."
         },
         {
           "id": 2,
-          "title": "Refactor storage.js to use Firebase adapter while maintaining API",
-          "description": "Modify the storage.js module to use the new Firebase adapter while keeping the same function signatures and return values for backward compatibility.",
-          "status": "pending",
+          "title": "Implement date handling and dynamic form generation",
+          "description": "Add JavaScript functionality to handle date selection and dynamically generate day labels",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "1. Import and initialize the Firebase adapter\n2. Refactor each existing method to use the Firebase adapter instead of localStorage\n3. Ensure all methods maintain the same signatures (parameters and return types)\n4. Add appropriate error handling and conversion between Firebase and existing data formats\n5. Write unit tests to verify API compatibility\n6. Document any edge cases or behavior differences"
+          "details": "Write JavaScript code that: 1) Listens for changes to the week start date input, 2) Automatically calculates and displays the correct date for each day of the week (e.g., 'Monday, Jan 1'), 3) Implements the add/remove functionality for dish input fields, allowing admins to add multiple dishes per day, 4) Validates that the selected date is a Monday to ensure weeks always start on the same day. Use event listeners and DOM manipulation to update the form dynamically."
         },
         {
           "id": 3,
-          "title": "Implement local caching for offline functionality",
-          "description": "Add a caching layer to ensure the storage module works offline by caching Firestore data locally.",
-          "status": "pending",
+          "title": "Create IndexedDB storage functionality",
+          "description": "Implement the JavaScript functions to save menu data to IndexedDB",
+          "status": "done",
           "dependencies": [
-            2
+            1
           ],
-          "details": "1. Implement a cache manager that stores Firestore data in localStorage\n2. Add cache invalidation strategies (time-based, manual, etc.)\n3. Modify read operations to first check cache before making Firestore requests\n4. Implement write operations to update both Firestore and local cache\n5. Add a mechanism to detect offline status and queue write operations\n6. Implement cache synchronization when connection is restored"
+          "details": "Create JavaScript functions to: 1) Initialize the IndexedDB database with an object store for menus if it doesn't exist, 2) Collect form data when the submit button is clicked, 3) Validate the form data to ensure all required fields are filled, 4) Create a structured menu object with the week start date as the key and daily dishes as values, 5) Save the menu object to IndexedDB, 6) Show a success message after saving. Handle any potential errors during database operations with appropriate error messages."
         },
         {
           "id": 4,
-          "title": "Create data migration utility",
-          "description": "Develop a utility to migrate existing localStorage data to Firebase Firestore.",
-          "status": "pending",
-          "dependencies": [
-            2
-          ],
-          "details": "1. Create a function to read all existing data from localStorage\n2. Add data transformation logic to convert localStorage format to Firestore format\n3. Implement batch writing to efficiently upload data to Firestore\n4. Add progress tracking and reporting for migration process\n5. Implement validation to ensure data integrity after migration\n6. Add rollback capability in case of migration failure"
-        },
-        {
-          "id": 5,
-          "title": "Implement conflict resolution for synchronization",
-          "description": "Add mechanisms to detect and resolve conflicts when the same data is modified in multiple places.",
-          "status": "pending",
+          "title": "Implement menu listing and retrieval",
+          "description": "Create functionality to display previously saved menus",
+          "status": "done",
           "dependencies": [
             3
           ],
-          "details": "1. Implement timestamp-based versioning for all data objects\n2. Add conflict detection by comparing local and remote timestamps\n3. Create merge strategies for different data types (last-write-wins, custom merging, etc.)\n4. Implement user notification system for manual conflict resolution when needed\n5. Add transaction support for atomic operations\n6. Create logging for conflict events for debugging purposes"
+          "details": "Develop JavaScript code to: 1) Retrieve all saved menus from IndexedDB when the admin page loads, 2) Display the menus in the designated container in chronological order, with the most recent week first, 3) For each menu, show the week start date and a collapsed view of the menu that can be expanded, 4) Include edit and delete buttons for each menu, 5) Implement pagination or scrolling if there are many menus. Use appropriate UI components to maintain the clean interface while providing all necessary information."
         },
         {
-          "id": 6,
-          "title": "Add error handling, retry mechanisms and finalize integration",
-          "description": "Enhance error handling throughout the storage module and implement retry mechanisms for failed operations.",
-          "status": "pending",
+          "id": 5,
+          "title": "Implement edit and delete functionality",
+          "description": "Add the ability to modify or remove existing menus",
+          "status": "done",
           "dependencies": [
             3,
-            4,
-            5
+            4
           ],
-          "details": "1. Implement exponential backoff for retrying failed network requests\n2. Add circuit breaker pattern to prevent excessive retries\n3. Create comprehensive error classification system\n4. Implement global error handler with appropriate logging\n5. Add integration tests covering offline scenarios, conflict resolution, and error handling\n6. Create documentation for the new storage module including migration guide for existing code"
+          "details": "Create JavaScript functions that: 1) When the edit button is clicked, populate the form with the selected menu's data for editing, 2) Update the existing menu in IndexedDB when changes are submitted, 3) Implement delete functionality with a confirmation dialog to prevent accidental deletions, 4) Remove the menu from IndexedDB when confirmed, 5) Update the menu listing immediately after edits or deletions without requiring a page refresh. Ensure proper error handling and user feedback throughout these operations."
         }
       ]
     },
     {
       "id": 4,
-      "title": "Implement Authentication Module (auth.js)",
-      "description": "Create an authentication module using Firebase Authentication for administrators and access code verification for coordinators.",
-      "status": "in-progress",
+      "title": "Implement Coordinator Registration System",
+      "description": "Create the interface for administrators to register branch coordinators.",
+      "status": "done",
       "dependencies": [
         2
       ],
       "priority": "high",
-      "details": "1. Create auth.js module with Firebase Authentication integration\n2. Implement admin login with email/password\n3. Implement coordinator login with access code verification\n4. Add session management and persistence\n5. Create user state observers\n6. Implement logout functionality\n7. Add security rules to protect routes based on user role\n8. Handle authentication errors with user-friendly messages",
-      "testStrategy": "Test login flows for both admin and coordinator roles. Verify session persistence across page reloads. Test access restrictions based on user roles. Verify error handling with invalid credentials.",
+      "details": "Add a section to admin.html for coordinator management. Create a form to add new coordinators with fields for name and branch. Display a list of existing coordinators with options to edit or delete them. Implement the necessary JavaScript to handle CRUD operations for coordinators in IndexedDB. Generate a simple access code for each coordinator that they can use to access their view.",
+      "testStrategy": "Test adding, editing, and deleting coordinators. Verify that coordinator data is correctly stored in IndexedDB. Test validation for required fields.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Set up Firebase Authentication and create auth.js module",
-          "description": "Initialize Firebase Authentication in the project and create the basic structure of the auth.js module",
-          "status": "pending",
+          "title": "Create coordinator management UI in admin.html",
+          "description": "Add a new section to the admin interface for managing branch coordinators with a form and list view",
+          "status": "done",
           "dependencies": [],
-          "details": "Create auth.js file with Firebase initialization. Import necessary Firebase Authentication modules. Set up the basic structure with exported functions for login, logout, and state management. Configure Firebase project settings and add SDK to the application."
+          "details": "Add a new section to admin.html with a heading 'Coordinator Management'. Create an HTML form with fields for coordinator name (text input) and branch (select dropdown). Add a submit button labeled 'Add Coordinator'. Below the form, create a table with columns for ID, Name, Branch, Access Code, and Actions (Edit/Delete buttons). Include appropriate CSS styling to match the existing admin interface. Add empty container divs with appropriate IDs that will later be populated with coordinator data."
         },
         {
           "id": 2,
-          "title": "Implement admin authentication with email/password",
-          "description": "Create functions for admin login, registration, and password reset using Firebase Authentication",
-          "status": "pending",
+          "title": "Implement IndexedDB schema for coordinators",
+          "description": "Create the database structure to store coordinator information in IndexedDB",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "Implement signInWithEmailAndPassword for admin login. Add createUserWithEmailAndPassword for admin registration if needed. Create sendPasswordResetEmail functionality. Add appropriate error handling with specific error codes and user-friendly messages for admin authentication flows."
+          "details": "Create a new object store named 'coordinators' in the existing IndexedDB database with keyPath 'id' and autoIncrement true. Define the schema to include properties: id (auto), name (string), branch (string), accessCode (string), and dateAdded (Date). Write functions to initialize this store during database setup. Implement utility functions for basic database operations: getAllCoordinators(), getCoordinatorById(id), and deleteCoordinatorById(id). Test the schema by manually adding and retrieving test records."
         },
         {
           "id": 3,
-          "title": "Implement coordinator authentication with access codes",
-          "description": "Create a custom authentication flow for coordinators using access codes",
-          "status": "pending",
+          "title": "Implement CRUD operations for coordinators",
+          "description": "Create JavaScript functions to handle adding, displaying, editing, and deleting coordinators",
+          "status": "done",
           "dependencies": [
-            1
+            2
           ],
-          "details": "Implement a function to verify access codes against a database of valid codes. Use Firebase custom authentication or anonymous auth with custom claims for coordinators. Store coordinator information with appropriate role designation. Include error handling for invalid access codes with user-friendly messages."
+          "details": "Write a function addCoordinator(name, branch) that generates a random 6-character alphanumeric access code, stores the new coordinator in IndexedDB, and refreshes the display. Create displayCoordinators() to fetch all coordinators from IndexedDB and render them in the table created in subtask 1. Implement editCoordinator(id) to populate the form with existing data and change the submit button to 'Update'. Add deleteCoordinator(id) to remove entries after confirmation. Include form validation to ensure name and branch are provided. Add event listeners to the form submit and edit/delete buttons to trigger the appropriate functions."
         },
         {
           "id": 4,
-          "title": "Add session management and user state observers",
-          "description": "Implement persistence for user sessions and create observers for authentication state changes",
-          "status": "pending",
+          "title": "Implement access code generation and management",
+          "description": "Create functionality to generate, display, and reset access codes for coordinators",
+          "status": "done",
           "dependencies": [
-            2,
             3
           ],
-          "details": "Configure Firebase persistence settings (local, session, or none). Implement onAuthStateChanged listener to track authentication state. Create a user context or state management store to maintain current user information. Add functions to check if a user is authenticated and determine their role (admin or coordinator)."
-        },
-        {
-          "id": 5,
-          "title": "Implement logout functionality and session cleanup",
-          "description": "Create secure logout functions and handle session termination properly",
-          "status": "pending",
-          "dependencies": [
-            4
-          ],
-          "details": "Implement signOut functionality from Firebase. Clear any local storage or cookies related to the session. Reset application state on logout. Add confirmation for logout if appropriate. Handle any errors that might occur during the logout process."
-        },
-        {
-          "id": 6,
-          "title": "Add route protection and security rules",
-          "description": "Implement route guards to protect routes based on authentication status and user roles",
-          "status": "pending",
-          "dependencies": [
-            4,
-            5
-          ],
-          "details": "Create higher-order components or route guards to check authentication status before rendering protected components. Implement role-based access control to differentiate between admin and coordinator permissions. Add redirect logic for unauthenticated users or unauthorized access attempts. Configure Firebase security rules to protect backend resources based on authentication and roles."
+          "details": "Enhance the addCoordinator function to use a secure random string generation method for access codes. Add a function to regenerate access codes (generateNewAccessCode(id)) and attach it to a 'Reset Code' button in the UI. Display access codes in a partially masked format (e.g., 'AB****') in the table with an option to reveal the full code on click. Add a copy-to-clipboard feature for access codes. Create a simple instruction panel explaining how coordinators can use their access codes to log in. Test the entire workflow from adding a coordinator to using the access code to access the coordinator view."
         }
       ]
     },
     {
       "id": 5,
-      "title": "Adapt Admin Menu Management Functionality",
-      "description": "Modify the existing admin menu management functionality to use Firebase for storage and implement real-time updates.",
-      "status": "pending",
+      "title": "Develop Coordinator Access Mechanism",
+      "description": "Implement a simple access mechanism for coordinators to access their view without complex authentication.",
+      "status": "done",
       "dependencies": [
-        3,
         4
       ],
       "priority": "medium",
-      "details": "1. Update admin.js to use the adapted storage module\n2. Implement menu creation/editing with Firestore\n3. Structure menu data according to the defined Firestore model\n4. Add timestamps for creation and updates\n5. Implement active menu toggling\n6. Set up Firestore listeners for real-time updates\n7. Add loading states and error handling\n8. Ensure proper validation before saving data",
-      "testStrategy": "Test menu creation, editing, and activation workflows. Verify data structure in Firestore matches the defined model. Test real-time updates by modifying data from another client. Verify validation prevents invalid data submission.",
+      "details": "Create a simple login form on the index.html page where coordinators can enter their access code. Store the coordinator ID in sessionStorage upon successful login. Implement a mechanism to verify the access code against the coordinator database. Redirect to the coordinator view upon successful verification. Keep authentication minimal as specified in the PRD.",
+      "testStrategy": "Test login with valid and invalid access codes. Verify that the coordinator ID is correctly stored in sessionStorage. Test session persistence across page refreshes.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Update storage module for Firebase integration",
-          "description": "Modify the existing storage module to use Firebase Firestore for menu data persistence instead of the current storage method.",
-          "status": "pending",
+          "title": "Create coordinator login form in index.html",
+          "description": "Design and implement a simple login form on the index.html page for coordinators to enter their access code",
+          "status": "done",
           "dependencies": [],
-          "details": "Create adapter functions in the storage module that map the existing CRUD operations to Firestore methods. Implement functions for: fetchMenus(), saveMenu(menuData), updateMenu(menuId, menuData), deleteMenu(menuId), and setActiveMenu(menuId). Ensure the module exports the same interface as before so integration with admin.js will be smoother in the next subtask."
+          "details": "Add a form to index.html with a text input field for the access code and a submit button. The form should be simple and clearly labeled for coordinators. Include appropriate HTML structure, basic styling to match the application design, and form validation to ensure the access code field is not empty. The form should submit to a JavaScript function that will handle the verification process."
         },
         {
           "id": 2,
-          "title": "Implement Firestore data model and validation",
-          "description": "Define the Firestore collection structure for menus and implement validation logic for menu data.",
-          "status": "pending",
+          "title": "Implement coordinator access code verification",
+          "description": "Create the functionality to verify the entered access code against the coordinator database",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "Create a 'menus' collection in Firestore. Define the menu document structure with fields: id, name, items (array), isActive (boolean), createdAt, and updatedAt timestamps. Implement validation functions that verify menu data before saving to Firestore, checking for required fields, proper structure of menu items, and data types. Add helper functions to format timestamps consistently using Firestore's server timestamp feature."
+          "details": "Develop a JavaScript function that takes the access code from the form submission and checks it against the coordinator database. This should use the existing database connection to query the coordinators table and find a matching access code. The function should return a success or failure result along with the coordinator ID if successful. Handle error cases appropriately and provide user feedback for invalid codes."
         },
         {
           "id": 3,
-          "title": "Update admin.js to use Firebase storage module",
-          "description": "Modify the admin.js file to use the new Firebase-based storage module and handle the asynchronous nature of Firestore operations.",
-          "status": "pending",
+          "title": "Implement session storage for coordinator authentication",
+          "description": "Store the authenticated coordinator's ID in sessionStorage upon successful verification",
+          "status": "done",
           "dependencies": [
-            1,
             2
           ],
-          "details": "Refactor admin.js to use the updated storage module. Convert synchronous code to use async/await or Promises. Update the menu creation, editing, and deletion functions to work with the Firebase adapter. Implement proper error handling for Firestore operations. Ensure all UI interactions properly reflect the asynchronous state (loading indicators, success/error messages)."
+          "details": "When a coordinator successfully logs in, store their ID in the browser's sessionStorage with an appropriate key (e.g., 'coordinatorId'). This will serve as a simple authentication mechanism that persists during the user's session. Also store a timestamp of when they logged in for potential session timeout functionality. Ensure proper error handling if sessionStorage is not available."
         },
         {
           "id": 4,
-          "title": "Implement real-time updates with Firestore listeners",
-          "description": "Add Firestore listeners to provide real-time updates when menu data changes.",
-          "status": "pending",
+          "title": "Create redirection and access control for coordinator views",
+          "description": "Implement redirection to coordinator view after successful login and prevent unauthorized access",
+          "status": "done",
           "dependencies": [
             3
           ],
-          "details": "Set up onSnapshot listeners in the admin interface to react to changes in the menus collection. Implement UI updates that respond to real-time data changes. Handle the initial data loading state and subsequent updates differently. Add cleanup functions to unsubscribe from listeners when components unmount or when listening is no longer needed. Implement optimistic UI updates for better user experience."
-        },
-        {
-          "id": 5,
-          "title": "Add active menu toggling and finalize UI states",
-          "description": "Implement the ability to toggle which menu is active and enhance the UI with appropriate loading and error states.",
-          "status": "pending",
-          "dependencies": [
-            3,
-            4
-          ],
-          "details": "Create a toggle function that sets a menu as active and deactivates all others. Update the UI to clearly indicate which menu is currently active. Implement loading indicators during Firestore operations. Add comprehensive error handling with user-friendly error messages. Test the entire flow from menu creation to activation with real-time updates. Ensure all edge cases are handled, such as attempting to delete an active menu or handling concurrent edits."
+          "details": "After successful verification and storing the coordinator ID in sessionStorage, redirect the user to the coordinator view page. Additionally, implement a simple check at the beginning of coordinator-specific pages to verify that a valid coordinatorId exists in sessionStorage. If not present, redirect back to the login page. This creates a basic access control mechanism without complex authentication. Include a logout function that clears the sessionStorage and returns to the login page."
         }
       ]
     },
     {
       "id": 6,
-      "title": "Adapt Coordinator Management Functionality",
-      "description": "Update the coordinator management functionality to use Firebase for storage and implement access code generation.",
-      "status": "pending",
+      "title": "Create Coordinator Attendance Confirmation Interface",
+      "description": "Develop the interface for coordinators to view the weekly menu and confirm attendance numbers.",
+      "status": "done",
       "dependencies": [
         3,
-        4
+        5
       ],
-      "priority": "medium",
-      "details": "1. Update coordinator management in admin.js\n2. Implement coordinator creation with Firestore\n3. Add secure access code generation functionality\n4. Structure coordinator data according to the defined Firestore model\n5. Add active/inactive status management\n6. Set up Firestore listeners for real-time updates\n7. Implement coordinator listing and filtering\n8. Add validation for coordinator data",
-      "testStrategy": "Test coordinator creation and management workflows. Verify access code generation is secure and unique. Test coordinator activation/deactivation. Verify real-time updates when coordinator data changes.",
+      "priority": "high",
+      "details": "In coordinator.html, display the current week's menu retrieved from IndexedDB. Create a form with number inputs for each day of the week where coordinators can enter the number of employees attending. Implement JavaScript to save the confirmation data to IndexedDB, including the coordinator ID, date, people count, and timestamp. Allow coordinators to update their confirmations if needed.",
+      "testStrategy": "Test submitting and updating attendance confirmations. Verify that confirmation data is correctly stored in IndexedDB with all required fields. Test validation for number inputs.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Create Coordinator Firestore Data Model",
-          "description": "Define and implement the Firestore data model for coordinators according to application requirements",
-          "status": "pending",
+          "title": "Create menu display component in coordinator.html",
+          "description": "Develop the UI component to display the current week's menu retrieved from IndexedDB",
+          "status": "done",
           "dependencies": [],
-          "details": "Create a coordinators collection in Firestore with appropriate fields including name, email, phone, status (active/inactive), access code, and creation timestamp. Document the schema in the codebase. Update any existing model definitions to align with the new Firestore structure. Ensure the model supports the required filtering and listing operations."
+          "details": "Create a section in coordinator.html that will display the weekly menu. Add HTML structure with appropriate containers for each day of the week. Implement JavaScript functions to query IndexedDB for the current week's menu data. Create a renderWeeklyMenu() function that populates the menu display with items for each day. Include styling to make the menu display clear and readable. Ensure the component handles cases where menu data might not be available."
         },
         {
           "id": 2,
-          "title": "Implement Secure Access Code Generation",
-          "description": "Create a utility function for generating secure, unique access codes for coordinators",
-          "status": "pending",
+          "title": "Implement attendance form with number inputs",
+          "description": "Create a form with number inputs for each day of the week to enter attendance counts",
+          "status": "done",
           "dependencies": [
             1
           ],
-          "details": "Develop a utility function that generates cryptographically secure, unique access codes for coordinators. The function should create codes that are difficult to guess but easy to share (e.g., 8-10 characters). Include validation to ensure uniqueness by checking against existing codes in Firestore. Add appropriate error handling and documentation. This function will be used during coordinator creation and code regeneration."
+          "details": "Below the menu display, create a form with number input fields for each weekday (Monday through Friday). Each input should have appropriate labels, min value of 0, and placeholder text. Add validation to ensure only positive integers are entered. Include a date display showing which week the form applies to. Style the form to align with the menu display created in the previous subtask. Add a submit button labeled 'Confirm Attendance'."
         },
         {
           "id": 3,
-          "title": "Update Coordinator Creation and Management Functions",
-          "description": "Refactor the coordinator creation and management functions to use Firestore",
-          "status": "pending",
-          "dependencies": [
-            1,
-            2
-          ],
-          "details": "Modify the existing coordinator management functions in admin.js to use Firestore instead of the current storage method. Implement functions for creating, updating, and managing coordinators including status changes (active/inactive). Integrate the access code generation functionality. Add proper validation for all coordinator data before saving to Firestore. Ensure all operations include appropriate error handling and success confirmations."
+          "title": "Create IndexedDB schema for attendance confirmations",
+          "description": "Design and implement the IndexedDB object store for storing attendance confirmation data",
+          "status": "done",
+          "dependencies": [],
+          "details": "Create or modify the database schema to include an 'attendanceConfirmations' object store. Define the structure with fields for: coordinatorId (key), date (Date object), weekday (string), attendanceCount (number), and timestamp (Date object). Implement the necessary IndexedDB functions to create and access this store. Include upgrade handling for the database to ensure the store is created properly. Add utility functions for adding, updating, and retrieving confirmation records."
         },
         {
           "id": 4,
-          "title": "Implement Real-time Coordinator Listing with Firestore Listeners",
-          "description": "Create functionality to display and filter coordinators with real-time updates",
-          "status": "pending",
+          "title": "Implement save functionality for attendance confirmations",
+          "description": "Create JavaScript functions to save the form data to IndexedDB",
+          "status": "done",
           "dependencies": [
+            2,
             3
           ],
-          "details": "Implement Firestore listeners to provide real-time updates to the coordinator listing UI. Create query functions that support filtering by status, name, or other relevant fields. Ensure the UI updates automatically when coordinator data changes in Firestore. Optimize the listeners to minimize unnecessary re-renders and database reads. Include pagination if the coordinator list might become large."
+          "details": "Implement an event listener for the form submission. On submit, collect all input values and the current coordinator ID (from session/local storage). Create a function saveAttendanceData() that formats the data and stores it in the IndexedDB 'attendanceConfirmations' store. Include error handling for failed database operations. Show appropriate success/error messages to the user after submission. Add a timestamp to each record when saving. Prevent default form submission behavior to handle everything via JavaScript."
         },
         {
           "id": 5,
-          "title": "Update Admin UI for Coordinator Management",
-          "description": "Adapt the admin interface to work with the new Firestore-based coordinator management",
-          "status": "pending",
+          "title": "Add update capability for existing confirmations",
+          "description": "Implement functionality to retrieve and update existing attendance confirmations",
+          "status": "done",
           "dependencies": [
-            3,
             4
           ],
-          "details": "Update the admin UI components to work with the new Firestore-based coordinator management functions. Modify forms for creating and editing coordinators, ensuring they validate input properly. Update the coordinator listing view to display real-time data from Firestore. Add UI elements for managing coordinator status (active/inactive) and regenerating access codes when needed. Test the complete flow from creation to management to ensure all functionality works as expected."
+          "details": "Create a function to check if the coordinator has already submitted attendance for the current week. If existing data is found, pre-populate the form with those values. Modify the save function to update existing records rather than creating duplicates. Add a visual indicator showing whether the form is in 'create' or 'update' mode. Include a timestamp update when records are modified. Add a 'Last updated on...' message that shows when the confirmation was last modified. Consider adding a 'Reset' button to clear form inputs if needed."
         }
       ]
     },
     {
       "id": 7,
-      "title": "Adapt Attendance Confirmation Functionality",
-      "description": "Update the attendance confirmation functionality for coordinators to use Firebase and implement real-time synchronization.",
-      "status": "pending",
+      "title": "Implement Admin Confirmation Visualization",
+      "description": "Create the interface for administrators to view attendance confirmations by day and branch.",
+      "status": "done",
       "dependencies": [
-        3,
-        4,
-        5
+        6
       ],
-      "priority": "medium",
-      "details": "1. Update coordinator.js to use the adapted storage module\n2. Implement attendance confirmation with Firestore\n3. Structure attendance data according to the defined Firestore model\n4. Set up Firestore listeners for real-time menu updates\n5. Add functionality to update existing confirmations\n6. Implement validation for attendance counts\n7. Add loading states and error handling\n8. Ensure proper date handling for week selection",
-      "testStrategy": "Test attendance confirmation workflow. Verify data structure in Firestore matches the defined model. Test updating existing confirmations. Verify real-time updates of menu changes. Test validation of attendance counts.",
+      "priority": "high",
+      "details": "Add a section to admin.html that displays a table of confirmations. Show days of the week as columns and branches as rows. For each cell, display the number of confirmed attendees or 'Pending' if no confirmation exists. Include totals by day and by branch. Implement filtering by week. Add visual indicators for pending confirmations to easily identify which coordinators have not yet confirmed.",
+      "testStrategy": "Test the display of confirmation data with various scenarios (all confirmed, some pending, none confirmed). Verify that totals are calculated correctly. Test filtering by different weeks.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Update coordinator.js to use Firebase storage module",
-          "description": "Refactor the coordinator.js file to use the Firebase storage module instead of the current storage implementation for attendance data management.",
+          "title": "Create confirmation table structure in admin.html",
+          "description": "Add the HTML structure for the confirmation visualization table to the admin interface",
           "status": "pending",
           "dependencies": [],
-          "details": "1. Import the Firebase storage module\n2. Replace existing storage method calls with Firebase equivalents\n3. Update any attendance data retrieval functions\n4. Ensure proper error handling for Firebase operations\n5. Test basic connectivity with Firebase"
+          "details": "Create a new section in admin.html with a table structure that has days of the week as columns and branches as rows. Include header rows for days, placeholder cells for data, and footer rows for totals. Add appropriate CSS classes for styling. Include a container for the week selection filter above the table."
         },
         {
           "id": 2,
-          "title": "Implement Firestore data structure for attendance",
-          "description": "Create the appropriate Firestore collection and document structure for storing attendance confirmation data according to the defined model.",
+          "title": "Implement week selection filter",
+          "description": "Create a date picker or dropdown that allows administrators to filter the confirmation data by week",
           "status": "pending",
           "dependencies": [
             1
           ],
-          "details": "1. Create an 'attendance' collection in Firestore\n2. Define document structure with fields for date, meal type, confirmed count, coordinator info\n3. Implement helper functions to convert between app data models and Firestore documents\n4. Add functions to create, read and update attendance documents\n5. Include proper timestamp handling for created/updated fields"
+          "details": "Add a date input or dropdown component that allows selecting a specific week. Implement JavaScript functionality to update the selected week when changed. Set the default value to the current week. Include previous/next week navigation buttons for easier browsing. Ensure the component is positioned above the confirmation table."
         },
         {
           "id": 3,
-          "title": "Implement attendance confirmation core functionality",
-          "description": "Build the core functionality for coordinators to confirm attendance numbers using the new Firebase backend.",
+          "title": "Create API endpoint for confirmation data",
+          "description": "Develop a backend API endpoint that returns confirmation data aggregated by day and branch",
           "status": "pending",
-          "dependencies": [
-            2
-          ],
-          "details": "1. Create functions to submit new attendance confirmations to Firestore\n2. Implement validation logic for attendance counts (e.g., minimum/maximum values)\n3. Add functionality to update existing confirmations\n4. Ensure proper date handling for week selection\n5. Implement basic error handling for failed operations"
+          "dependencies": [],
+          "details": "Create a new API endpoint (e.g., '/api/admin/confirmations') that accepts a week parameter. The endpoint should query the database for all confirmations within the specified week, aggregate the data by day and branch, and return a structured JSON response with counts of confirmed attendees for each day-branch combination. Include a 'pending' flag for combinations without confirmations."
         },
         {
           "id": 4,
-          "title": "Set up real-time synchronization with Firestore listeners",
-          "description": "Implement Firestore listeners to enable real-time updates when attendance data changes.",
+          "title": "Implement data fetching and table population",
+          "description": "Create JavaScript functionality to fetch confirmation data and populate the table",
           "status": "pending",
           "dependencies": [
+            1,
+            2,
             3
           ],
-          "details": "1. Set up Firestore onSnapshot listeners for the attendance collection\n2. Implement logic to update the UI when remote changes occur\n3. Handle listener attachment/detachment during component lifecycle\n4. Add conflict resolution for concurrent updates\n5. Test real-time updates with multiple clients"
+          "details": "Implement a JavaScript function that calls the API endpoint with the selected week parameter. Process the returned data to populate the table cells with confirmation counts or 'Pending' labels. Update the table whenever the week selection changes. Include error handling for failed API requests. Use appropriate loading indicators during data fetching."
         },
         {
           "id": 5,
-          "title": "Add loading states and comprehensive error handling",
-          "description": "Enhance the user experience by implementing loading indicators and comprehensive error handling throughout the attendance confirmation flow.",
+          "title": "Calculate and display totals",
+          "description": "Add functionality to calculate and display totals by day and by branch",
           "status": "pending",
           "dependencies": [
             4
           ],
-          "details": "1. Add loading indicators during Firebase operations\n2. Implement error states for network issues\n3. Add user-friendly error messages for validation failures\n4. Implement retry mechanisms for failed operations\n5. Add offline detection and appropriate messaging"
+          "details": "Extend the table population logic to calculate row totals (sum of confirmations for each branch across all days) and column totals (sum of confirmations for each day across all branches). Update the totals in the corresponding footer row and last column of the table. Ensure totals are recalculated whenever the table data changes."
         },
         {
           "id": 6,
-          "title": "Implement week selection with proper date handling",
-          "description": "Enhance the attendance confirmation interface with proper date handling for week selection and viewing historical data.",
+          "title": "Implement visual indicators for pending confirmations",
+          "description": "Add visual styling to highlight pending confirmations in the table",
           "status": "pending",
           "dependencies": [
-            5
+            4
           ],
-          "details": "1. Implement a week selector component\n2. Add date filtering for attendance records\n3. Ensure proper date formatting and timezone handling\n4. Implement navigation between weeks\n5. Add date-based queries to Firestore for efficient data loading\n6. Test edge cases like month/year boundaries"
+          "details": "Create CSS styles for cells with pending confirmations (e.g., yellow background, warning icon). Apply these styles to cells where the confirmation status is pending. Add a color legend below the table explaining the visual indicators. Consider adding tooltips to pending cells with information about the branch coordinator who needs to confirm. Ensure the styling is accessible and maintains sufficient contrast."
         }
       ]
     },
     {
       "id": 8,
-      "title": "Implement Real-time Synchronization for Admin Dashboard",
-      "description": "Enhance the admin dashboard to display real-time updates of attendance confirmations across all branches.",
-      "status": "pending",
+      "title": "Add Data Export and Import Functionality",
+      "description": "Implement functionality to export and import data for backup purposes.",
+      "status": "done",
       "dependencies": [
-        5,
-        6,
         7
       ],
       "priority": "medium",
-      "details": "1. Implement Firestore listeners for attendance confirmations\n2. Create dashboard view that updates in real-time\n3. Add filtering by date range and branch\n4. Implement summary statistics (total attendees per day, per branch)\n5. Add visual indicators for confirmation status by coordinator\n6. Optimize listeners to minimize Firestore reads\n7. Add export to Excel functionality for filtered data\n8. Implement proper cleanup of listeners when navigating away",
-      "testStrategy": "Test dashboard with multiple simultaneous users. Verify real-time updates appear without page refresh. Test filtering functionality. Verify Excel export contains correct data. Monitor Firestore usage to ensure optimization.",
+      "details": "Add buttons to the admin interface to export all data (menus, coordinators, confirmations) as a JSON file. Implement an import function that allows administrators to upload a previously exported JSON file to restore data. Include validation to ensure the imported data has the correct structure. This addresses the data persistence risk mentioned in the PRD.",
+      "testStrategy": "Test exporting data and then importing it back. Verify that all data is correctly restored. Test importing invalid data and ensure appropriate error handling.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Set up Firestore listeners for attendance data",
-          "description": "Implement the core Firestore listeners to track attendance confirmations across all branches",
+          "title": "Implement data export functionality",
+          "description": "Create the backend functionality to export all application data (menus, coordinators, confirmations) as a JSON file",
           "status": "pending",
           "dependencies": [],
-          "details": "Create a service that establishes Firestore listeners for the attendance collections. Implement proper data transformation to standardize the incoming data format. Include error handling for connection issues and implement retry logic. Ensure the listeners are configured to only fetch the necessary fields to minimize data transfer."
+          "details": "Create a service that queries all necessary data models and serializes them into a structured JSON format. Implement an API endpoint that triggers this export process and returns the JSON file for download. Ensure proper error handling and include metadata like export timestamp in the JSON structure. The exported JSON should have a consistent schema that can be validated during import."
         },
         {
           "id": 2,
-          "title": "Develop real-time dashboard UI components",
-          "description": "Create the UI components that will display and update with real-time attendance data",
+          "title": "Add export button to admin interface",
+          "description": "Integrate the export functionality into the admin UI with a dedicated export button",
           "status": "pending",
           "dependencies": [
             1
           ],
-          "details": "Design and implement reusable UI components for the dashboard that can efficiently render and update with real-time data. Include loading states, error states, and empty states. Create a component hierarchy that separates the data display from the filtering controls. Use optimized rendering techniques to handle frequent updates without performance degradation."
+          "details": "Add an 'Export Data' button to the admin interface. When clicked, it should call the export API endpoint and handle the file download process in the browser. Show appropriate loading states during export and success/error notifications. Consider adding a confirmation dialog before export to prevent accidental clicks."
         },
         {
           "id": 3,
-          "title": "Implement date range and branch filtering",
-          "description": "Add filtering capabilities to the dashboard to allow administrators to filter attendance data by date range and branch",
+          "title": "Implement data import validation and processing",
+          "description": "Create backend functionality to validate and process imported JSON data",
           "status": "pending",
           "dependencies": [
-            2
+            1
           ],
-          "details": "Create filter controls for date range selection (with calendar picker) and branch selection (multi-select dropdown). Implement the filtering logic to work with the real-time data stream. Ensure filters are applied efficiently without requiring new Firestore queries when possible. Add the ability to save and load filter presets for quick access to common views."
+          "details": "Develop a validation service that checks if the uploaded JSON file matches the expected schema structure. Implement validation for all required fields and data types. Create a processing service that can take validated JSON data and insert/update the corresponding database records. Include transaction support to ensure all-or-nothing imports that prevent partial data corruption. Add proper error handling with specific error messages for different validation failures."
         },
         {
           "id": 4,
-          "title": "Add real-time summary statistics",
-          "description": "Implement summary statistics calculations that update in real-time as attendance data changes",
+          "title": "Add import functionality to admin interface",
+          "description": "Create a file upload component in the admin UI for importing previously exported JSON data",
           "status": "pending",
           "dependencies": [
-            1,
-            2
+            2,
+            3
           ],
-          "details": "Create a statistics service that calculates key metrics like total attendees per day, per branch, confirmation rates, and trends. Implement efficient algorithms to update these statistics incrementally as new data arrives rather than recalculating everything. Design dashboard widgets to display these statistics with appropriate visualizations (charts, counters, etc.). Ensure statistics respect the current filter settings."
-        },
-        {
-          "id": 5,
-          "title": "Implement visual status indicators for coordinators",
-          "description": "Add visual indicators showing the confirmation status for each coordinator across branches",
-          "status": "pending",
-          "dependencies": [
-            2
-          ],
-          "details": "Design and implement a visual indicator system (using colors, icons, or badges) to show confirmation status by coordinator. Create a coordinator overview component that displays all coordinators and their current status. Include tooltips with detailed information and timestamps. Add the ability to sort and filter the coordinator view based on confirmation status."
-        },
-        {
-          "id": 6,
-          "title": "Optimize Firestore listeners for performance",
-          "description": "Refine the Firestore listeners to minimize read operations while maintaining real-time updates",
-          "status": "pending",
-          "dependencies": [
-            1,
-            4
-          ],
-          "details": "Implement query limiting and pagination strategies to reduce the initial data load. Add logic to aggregate updates on the client side when possible instead of re-fetching data. Implement debouncing for rapid updates to prevent excessive re-renders. Add caching mechanisms for historical data. Monitor and log Firestore usage to identify optimization opportunities. Consider implementing server-side aggregation functions if client-side processing becomes too intensive."
-        },
-        {
-          "id": 7,
-          "title": "Add data export and listener cleanup",
-          "description": "Implement Excel export functionality and proper cleanup of Firestore listeners",
-          "status": "pending",
-          "dependencies": [
-            3,
-            6
-          ],
-          "details": "Create an export service that can convert the filtered dashboard data to Excel format. Implement proper formatting of dates, numbers, and status indicators in the exported file. Add progress indicators for large exports. Ensure all Firestore listeners are properly detached when navigating away from the dashboard to prevent memory leaks and unnecessary background updates. Implement a centralized listener management system that tracks all active listeners and provides methods to detach them individually or as groups."
+          "details": "Add an 'Import Data' button and file upload component to the admin interface. Implement client-side file type validation (JSON only). When a file is selected, show a confirmation dialog warning about potential data overwrite. On confirmation, upload the file to the import API endpoint. Display appropriate progress indicators during upload and import. Show success message on completion or detailed error messages if validation fails. Consider adding an option to preview the data before final import."
         }
       ]
     },
     {
       "id": 9,
-      "title": "Implement Offline Functionality and Sync Indicators",
-      "description": "Add offline capabilities and visual indicators for synchronization status throughout the application.",
-      "status": "pending",
+      "title": "Optimize UI/UX and Ensure Cross-Device Compatibility",
+      "description": "Refine the user interface for simplicity and ensure compatibility across desktop and tablet devices.",
+      "status": "done",
       "dependencies": [
-        3,
-        7,
         8
       ],
-      "priority": "low",
-      "details": "1. Implement local caching for critical data\n2. Add offline detection and handling\n3. Create visual indicators for online/offline status\n4. Implement sync status indicators (synced, pending, error)\n5. Add conflict resolution for offline edits\n6. Implement background sync when connection is restored\n7. Add retry mechanisms for failed operations\n8. Create user notifications for sync events",
-      "testStrategy": "Test application behavior when network is disconnected. Verify data can be viewed and modified offline. Test synchronization when connection is restored. Verify visual indicators accurately reflect sync status.",
+      "priority": "medium",
+      "details": "Review and optimize the UI for both admin and coordinator views. Ensure the interface is clean, minimal, and focused on functionality as specified in the PRD. Add responsive design elements to ensure compatibility with both desktop and tablet devices. Remove any unnecessary UI elements or decorations. Test on various screen sizes and browsers to ensure compatibility.",
+      "testStrategy": "Test the application on different devices (desktop, tablet) and browsers. Verify that all functionality works correctly and the UI is usable on all tested platforms. Conduct a usability review to identify and address any pain points.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Implement Network Status Detection",
-          "description": "Create a service to detect and monitor network connectivity status",
+          "title": "Conduct UI/UX audit and create optimization plan",
+          "description": "Review current UI for both admin and coordinator views to identify optimization opportunities and create a detailed plan for improvements",
           "status": "pending",
           "dependencies": [],
-          "details": "Develop a NetworkService that uses browser's navigator.onLine and addEventListener for 'online'/'offline' events. Implement a reactive state (using BehaviorSubject or similar) that components can subscribe to. Include methods like isOnline(), getConnectionStatus(), and an observable stream for real-time status updates."
+          "details": "Perform a comprehensive audit of the existing UI/UX for both admin and coordinator views. Document all UI elements, their purpose, and necessity. Identify areas for simplification, redundant elements, and improvement opportunities. Create wireframes for the optimized UI that maintains functionality while reducing complexity. Document specific changes needed for each view and establish design guidelines for consistency."
         },
         {
           "id": 2,
-          "title": "Implement Local Storage Mechanism",
-          "description": "Create a robust local storage system for caching application data",
-          "status": "pending",
-          "dependencies": [],
-          "details": "Implement a StorageService that abstracts IndexedDB operations (consider using Dexie.js or similar library). Create data models and schemas for offline storage. Implement CRUD operations that handle both local storage and API interactions. Include versioning metadata for each stored entity to track sync status."
-        },
-        {
-          "id": 3,
-          "title": "Add UI Status Indicators",
-          "description": "Implement visual indicators for network and sync status",
+          "title": "Implement UI simplification for admin view",
+          "description": "Refine the admin interface by removing unnecessary elements and optimizing layout based on the audit findings",
           "status": "pending",
           "dependencies": [
             1
           ],
-          "details": "Create a status component for the app header showing online/offline state. Design and implement sync status icons (synced ✓, pending ⟳, error ⚠) for list items. Add appropriate color coding (green for synced, amber for pending, red for errors). Ensure indicators are accessible with proper aria attributes and tooltips explaining status."
+          "details": "Based on the audit plan, implement UI simplification for the admin view. Remove identified unnecessary UI elements and decorations. Reorganize information hierarchy to prioritize key functionality. Ensure all critical admin functions remain accessible and intuitive. Implement clean, minimal styling that focuses on functionality as specified in the PRD. Update CSS to improve readability and visual clarity."
+        },
+        {
+          "id": 3,
+          "title": "Implement UI simplification for coordinator view",
+          "description": "Refine the coordinator interface by removing unnecessary elements and optimizing layout based on the audit findings",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Based on the audit plan, implement UI simplification for the coordinator view. Remove identified unnecessary UI elements and decorations. Reorganize information hierarchy to prioritize key functionality for coordinators. Ensure all critical coordinator functions remain accessible and intuitive. Implement clean, minimal styling that focuses on functionality as specified in the PRD. Update CSS to improve readability and visual clarity."
         },
         {
           "id": 4,
-          "title": "Implement Offline Data Access",
-          "description": "Modify data services to serve cached data when offline",
+          "title": "Implement responsive design for cross-device compatibility",
+          "description": "Add responsive design elements to ensure the application works well on both desktop and tablet devices",
           "status": "pending",
           "dependencies": [
-            1,
-            2
+            2,
+            3
           ],
-          "details": "Update all data services to check network status before API calls. When offline, serve data from local storage. Implement request queuing for write operations when offline. Add timestamp tracking for cached data to identify stale information. Ensure UI properly reflects that data being displayed is from cache."
+          "details": "Implement responsive design principles throughout the application. Use CSS media queries to adapt layouts for different screen sizes. Ensure all interactive elements are appropriately sized for touch interfaces on tablets. Implement flexible grid layouts that adjust to different screen dimensions. Optimize image and asset loading for different devices. Ensure text remains readable across all supported screen sizes. Test and adjust navigation elements to work well on both desktop and tablet interfaces."
         },
         {
           "id": 5,
-          "title": "Implement Background Synchronization",
-          "description": "Create system to sync cached changes when connection is restored",
+          "title": "Conduct cross-browser and cross-device testing",
+          "description": "Test the optimized UI across various browsers and device sizes to ensure consistent functionality and appearance",
           "status": "pending",
           "dependencies": [
-            1,
-            2,
             4
           ],
-          "details": "Develop a SyncService that activates when online status changes to true. Implement a queue processing system that handles pending operations in the correct order. Add retry logic with exponential backoff for failed operations. Include hooks for sync lifecycle events (started, completed, failed). Consider using the Background Sync API where supported."
-        },
-        {
-          "id": 6,
-          "title": "Implement Conflict Resolution",
-          "description": "Add logic to handle conflicts between local and server data",
-          "status": "pending",
-          "dependencies": [
-            5
-          ],
-          "details": "Implement timestamp-based conflict detection comparing local and server modification times. Create conflict resolution strategies: server-wins (default), client-wins, and manual resolution where appropriate. For manual resolution, design a UI that shows differences and lets users choose which version to keep. Store conflict resolution preferences for repeat scenarios."
-        },
-        {
-          "id": 7,
-          "title": "Add User Notifications for Sync Events",
-          "description": "Implement a notification system for synchronization events",
-          "status": "pending",
-          "dependencies": [
-            3,
-            5,
-            6
-          ],
-          "details": "Create a NotificationService to display toast/snackbar messages for key sync events. Show notifications for: sync completed, sync failed, conflicts detected, and manual resolution required. Add a sync history view where users can see past sync activities and errors. Include actionable links in notifications (retry, resolve, view details) where appropriate."
+          "details": "Create a comprehensive test plan covering all major browsers (Chrome, Firefox, Safari, Edge) and device sizes (desktop and various tablet dimensions). Test all key user flows and functionality on each browser/device combination. Document and fix any inconsistencies or issues discovered. Verify that all UI elements render correctly and are usable across all supported platforms. Test performance metrics like load time and responsiveness on different devices. Create a compatibility report documenting test results and any remaining issues or limitations."
         }
       ]
     },
     {
       "id": 10,
-      "title": "UI Refinement and Mobile Optimization",
-      "description": "Refine the user interface with synchronization indicators and optimize the application for mobile devices.",
-      "status": "pending",
+      "title": "Code Cleanup and Documentation",
+      "description": "Clean up the codebase, remove unused components, and add documentation.",
+      "status": "done",
       "dependencies": [
-        5,
-        6,
-        7,
-        8,
         9
       ],
       "priority": "low",
-      "details": "1. Add loading spinners and progress indicators\n2. Implement toast notifications for sync events\n3. Refine responsive design for mobile devices\n4. Optimize touch interactions for mobile users\n5. Improve form layouts for smaller screens\n6. Add progressive loading for large data sets\n7. Implement performance optimizations\n8. Create comprehensive user documentation for both roles",
-      "testStrategy": "Test UI on various device sizes and browsers. Measure and verify performance metrics. Conduct usability testing with representative users from both roles. Verify documentation accuracy and completeness.",
+      "details": "Review the entire codebase to identify and remove any unused code, functions, or variables. Optimize JavaScript for performance. Add comments to explain complex logic. Create a simple README file with instructions for deployment and usage. This addresses the Phase 2 requirements in the PRD for depuration and simplification.",
+      "testStrategy": "Conduct a code review to ensure all code is necessary and optimized. Verify that the application still functions correctly after cleanup. Test the application with performance monitoring tools to identify any bottlenecks.",
       "subtasks": [
         {
           "id": 1,
-          "title": "Implement Loading Indicators and Sync Notifications",
-          "description": "Add visual feedback for synchronization processes with loading spinners and toast notifications",
+          "title": "Identify and Remove Unused Code",
+          "description": "Scan the codebase to identify and remove unused components, functions, variables, and imports.",
           "status": "pending",
           "dependencies": [],
-          "details": "Create reusable loading spinner components that can be displayed during data fetching operations. Implement a toast notification system that shows success/error messages for sync events. Add these indicators to all network operations and data synchronization points in the application."
+          "details": "Use static code analysis tools like ESLint with the 'no-unused-vars' rule to identify unused variables. Search for components that aren't imported anywhere. Check for dead code paths and commented-out code blocks. Create a list of all items to be removed, then systematically remove them while ensuring functionality remains intact. Run the application after each significant removal to verify nothing breaks. Focus on JavaScript files first, then CSS and HTML templates."
         },
         {
           "id": 2,
-          "title": "Optimize Responsive Layout for Mobile Devices",
-          "description": "Refine the application's responsive design to ensure proper display on mobile devices",
-          "status": "pending",
-          "dependencies": [],
-          "details": "Audit all pages and components for mobile compatibility. Implement responsive CSS using media queries to adjust layouts for different screen sizes. Ensure proper spacing, font sizing, and element positioning on small screens. Test on various mobile device sizes and fix any layout issues."
-        },
-        {
-          "id": 3,
-          "title": "Enhance Mobile Form Layouts and Touch Interactions",
-          "description": "Optimize form elements and touch interactions for mobile users",
-          "status": "pending",
-          "dependencies": [
-            2
-          ],
-          "details": "Increase touch target sizes for buttons and interactive elements (minimum 44x44px). Adjust form layouts for mobile with stacked fields and appropriate input types. Implement mobile-friendly form validation with clear error messages. Add touch-specific interactions like swipe gestures where appropriate."
-        },
-        {
-          "id": 4,
-          "title": "Implement Progressive Loading for Large Data Sets",
-          "description": "Add progressive loading capabilities to improve performance with large data sets",
+          "title": "Optimize JavaScript for Performance",
+          "description": "Review and optimize JavaScript code to improve application performance.",
           "status": "pending",
           "dependencies": [
             1
           ],
-          "details": "Implement infinite scrolling or pagination for lists and data tables. Add skeleton loaders to show while content is loading. Implement lazy loading for images and heavy components. Ensure loading states are properly indicated using the indicators created in subtask 1."
+          "details": "Profile the application to identify performance bottlenecks. Look for inefficient loops, redundant DOM manipulations, and memory leaks. Implement performance best practices such as debouncing event handlers, memoizing expensive calculations, and optimizing render cycles. Use appropriate data structures for operations. Consider implementing lazy loading for components that aren't immediately needed. Measure performance before and after optimizations using browser developer tools to quantify improvements."
         },
         {
-          "id": 5,
-          "title": "Apply Performance Optimizations",
-          "description": "Implement technical optimizations to improve application performance, especially on mobile devices",
+          "id": 3,
+          "title": "Add Code Comments and Documentation",
+          "description": "Add comprehensive comments to explain complex logic throughout the codebase.",
           "status": "pending",
           "dependencies": [
-            4
+            1,
+            2
           ],
-          "details": "Optimize bundle size through code splitting and lazy loading of routes. Implement memoization for expensive calculations. Add service worker for offline capabilities and caching. Optimize asset delivery with proper compression and caching headers. Measure and improve Core Web Vitals metrics."
+          "details": "Focus on documenting complex algorithms, business logic, and non-obvious code patterns. Use JSDoc style comments for functions, including parameter descriptions and return values. Add block comments before complex code sections explaining the purpose and approach. Document any workarounds or edge cases being handled. For React components, document props and component lifecycle considerations. Don't over-document obvious code. Ensure comments stay relevant to the code they describe and follow a consistent style throughout the codebase."
         },
         {
-          "id": 6,
-          "title": "Create User Documentation with Mobile Usage Guidelines",
-          "description": "Develop comprehensive documentation for both user roles with specific mobile usage instructions",
+          "id": 4,
+          "title": "Create README and Deployment Documentation",
+          "description": "Create a comprehensive README file with setup, usage, and deployment instructions.",
           "status": "pending",
           "dependencies": [
-            3,
-            5
+            3
           ],
-          "details": "Create user guides for both admin and regular user roles. Include specific sections on mobile usage patterns and features. Document all UI indicators and their meanings. Add screenshots for both desktop and mobile interfaces. Publish documentation in an accessible format and link it within the application."
+          "details": "Create a README.md in the project root with the following sections: 1) Project Overview - brief description of the application purpose, 2) Installation - step-by-step setup instructions including dependencies, 3) Usage - how to use the application with examples, 4) Deployment - detailed instructions for deploying to different environments, 5) Configuration - environment variables and configuration options, 6) Architecture - brief overview of the application structure, 7) Contributing - guidelines for contributors. Include screenshots where helpful. Ensure the documentation addresses both developer and end-user perspectives."
         }
       ]
     }
   ],
   "metadata": {
-    "projectName": "Corporate Dining System Firebase Migration",
+    "projectName": "PRD Implementation",
     "totalTasks": 10,
-    "sourceFile": "scripts/prd.txt",
-    "generatedAt": "2023-11-15"
+    "sourceFile": "scripts/PRD.txt",
+    "generatedAt": "2023-11-13"
   }
 }

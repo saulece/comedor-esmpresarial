@@ -1,56 +1,37 @@
 # Task ID: 4
-# Title: Implement Authentication Module (auth.js)
-# Status: in-progress
+# Title: Implement Coordinator Registration System
+# Status: done
 # Dependencies: 2
 # Priority: high
-# Description: Create an authentication module using Firebase Authentication for administrators and access code verification for coordinators.
+# Description: Create the interface for administrators to register branch coordinators.
 # Details:
-1. Create auth.js module with Firebase Authentication integration
-2. Implement admin login with email/password
-3. Implement coordinator login with access code verification
-4. Add session management and persistence
-5. Create user state observers
-6. Implement logout functionality
-7. Add security rules to protect routes based on user role
-8. Handle authentication errors with user-friendly messages
+Add a section to admin.html for coordinator management. Create a form to add new coordinators with fields for name and branch. Display a list of existing coordinators with options to edit or delete them. Implement the necessary JavaScript to handle CRUD operations for coordinators in IndexedDB. Generate a simple access code for each coordinator that they can use to access their view.
 
 # Test Strategy:
-Test login flows for both admin and coordinator roles. Verify session persistence across page reloads. Test access restrictions based on user roles. Verify error handling with invalid credentials.
+Test adding, editing, and deleting coordinators. Verify that coordinator data is correctly stored in IndexedDB. Test validation for required fields.
 
 # Subtasks:
-## 1. Set up Firebase Authentication and create auth.js module [pending]
+## 1. Create coordinator management UI in admin.html [done]
 ### Dependencies: None
-### Description: Initialize Firebase Authentication in the project and create the basic structure of the auth.js module
+### Description: Add a new section to the admin interface for managing branch coordinators with a form and list view
 ### Details:
-Create auth.js file with Firebase initialization. Import necessary Firebase Authentication modules. Set up the basic structure with exported functions for login, logout, and state management. Configure Firebase project settings and add SDK to the application.
+Add a new section to admin.html with a heading 'Coordinator Management'. Create an HTML form with fields for coordinator name (text input) and branch (select dropdown). Add a submit button labeled 'Add Coordinator'. Below the form, create a table with columns for ID, Name, Branch, Access Code, and Actions (Edit/Delete buttons). Include appropriate CSS styling to match the existing admin interface. Add empty container divs with appropriate IDs that will later be populated with coordinator data.
 
-## 2. Implement admin authentication with email/password [pending]
+## 2. Implement IndexedDB schema for coordinators [done]
 ### Dependencies: 4.1
-### Description: Create functions for admin login, registration, and password reset using Firebase Authentication
+### Description: Create the database structure to store coordinator information in IndexedDB
 ### Details:
-Implement signInWithEmailAndPassword for admin login. Add createUserWithEmailAndPassword for admin registration if needed. Create sendPasswordResetEmail functionality. Add appropriate error handling with specific error codes and user-friendly messages for admin authentication flows.
+Create a new object store named 'coordinators' in the existing IndexedDB database with keyPath 'id' and autoIncrement true. Define the schema to include properties: id (auto), name (string), branch (string), accessCode (string), and dateAdded (Date). Write functions to initialize this store during database setup. Implement utility functions for basic database operations: getAllCoordinators(), getCoordinatorById(id), and deleteCoordinatorById(id). Test the schema by manually adding and retrieving test records.
 
-## 3. Implement coordinator authentication with access codes [pending]
-### Dependencies: 4.1
-### Description: Create a custom authentication flow for coordinators using access codes
+## 3. Implement CRUD operations for coordinators [done]
+### Dependencies: 4.2
+### Description: Create JavaScript functions to handle adding, displaying, editing, and deleting coordinators
 ### Details:
-Implement a function to verify access codes against a database of valid codes. Use Firebase custom authentication or anonymous auth with custom claims for coordinators. Store coordinator information with appropriate role designation. Include error handling for invalid access codes with user-friendly messages.
+Write a function addCoordinator(name, branch) that generates a random 6-character alphanumeric access code, stores the new coordinator in IndexedDB, and refreshes the display. Create displayCoordinators() to fetch all coordinators from IndexedDB and render them in the table created in subtask 1. Implement editCoordinator(id) to populate the form with existing data and change the submit button to 'Update'. Add deleteCoordinator(id) to remove entries after confirmation. Include form validation to ensure name and branch are provided. Add event listeners to the form submit and edit/delete buttons to trigger the appropriate functions.
 
-## 4. Add session management and user state observers [pending]
-### Dependencies: 4.2, 4.3
-### Description: Implement persistence for user sessions and create observers for authentication state changes
+## 4. Implement access code generation and management [done]
+### Dependencies: 4.3
+### Description: Create functionality to generate, display, and reset access codes for coordinators
 ### Details:
-Configure Firebase persistence settings (local, session, or none). Implement onAuthStateChanged listener to track authentication state. Create a user context or state management store to maintain current user information. Add functions to check if a user is authenticated and determine their role (admin or coordinator).
-
-## 5. Implement logout functionality and session cleanup [pending]
-### Dependencies: 4.4
-### Description: Create secure logout functions and handle session termination properly
-### Details:
-Implement signOut functionality from Firebase. Clear any local storage or cookies related to the session. Reset application state on logout. Add confirmation for logout if appropriate. Handle any errors that might occur during the logout process.
-
-## 6. Add route protection and security rules [pending]
-### Dependencies: 4.4, 4.5
-### Description: Implement route guards to protect routes based on authentication status and user roles
-### Details:
-Create higher-order components or route guards to check authentication status before rendering protected components. Implement role-based access control to differentiate between admin and coordinator permissions. Add redirect logic for unauthenticated users or unauthorized access attempts. Configure Firebase security rules to protect backend resources based on authentication and roles.
+Enhance the addCoordinator function to use a secure random string generation method for access codes. Add a function to regenerate access codes (generateNewAccessCode(id)) and attach it to a 'Reset Code' button in the UI. Display access codes in a partially masked format (e.g., 'AB****') in the table with an option to reveal the full code on click. Add a copy-to-clipboard feature for access codes. Create a simple instruction panel explaining how coordinators can use their access codes to log in. Test the entire workflow from adding a coordinator to using the access code to access the coordinator view.
 

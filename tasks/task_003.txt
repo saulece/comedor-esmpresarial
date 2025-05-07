@@ -1,85 +1,43 @@
 # Task ID: 3
-# Title: Adapt Storage Module (storage.js)
-# Status: in-progress
+# Title: Develop Admin Menu Publication Interface
+# Status: done
 # Dependencies: 2
 # Priority: high
-# Description: Modify the existing storage module to use Firebase Firestore while maintaining the same API for backward compatibility.
+# Description: Create the interface for administrators to publish the weekly menu.
 # Details:
-1. Analyze existing localStorage implementation
-2. Refactor storage.js to use Firebase module for data operations
-3. Maintain the same function signatures and return values
-4. Implement local caching for offline functionality
-5. Add data migration utility to transfer existing localStorage data to Firebase
-6. Implement conflict resolution for synchronization
-7. Add error handling and retry mechanisms
+In admin.html, create a form that allows the admin to select a week start date and enter dishes for each day of the week. The form should include date inputs and text fields for dishes. Implement JavaScript functionality to save the menu to IndexedDB. Display previously created menus with options to edit or delete them. Ensure the interface is clean and minimal as specified in the PRD.
 
 # Test Strategy:
-Create test cases comparing localStorage vs Firebase implementations. Verify data consistency between both storage methods. Test migration utility with sample data. Simulate network interruptions to verify offline functionality.
+Test creating, editing, and deleting menus. Verify that the data is correctly stored in IndexedDB. Test edge cases like empty fields and invalid dates.
 
 # Subtasks:
-## 1. Analyze existing localStorage implementation and create Firebase adapter [pending]
+## 1. Create basic menu publication form structure [done]
 ### Dependencies: None
-### Description: Analyze the current storage.js module to understand its API and create a Firebase adapter that will handle the Firestore operations.
+### Description: Implement the HTML structure for the menu publication form in admin.html
 ### Details:
-1. Document all public methods and their signatures in the current storage.js
-2. Map localStorage operations to equivalent Firestore operations
-3. Create a FirebaseAdapter class that will handle all Firestore interactions
-4. Initialize Firebase connection in the adapter
-5. Implement basic CRUD operations in the adapter (create, read, update, delete)
-6. Add proper error handling with meaningful error messages
+Create a form in admin.html with the following elements: 1) A date input for selecting the week start date, 2) Seven sections (one for each day of the week) with appropriate labels, 3) Text input fields for entering multiple dishes for each day, 4) Add/remove buttons for dish fields, 5) Submit button to save the menu. Use semantic HTML and ensure the layout follows the clean, minimal design specified in the PRD. Include a container section where saved menus will be displayed.
 
-## 2. Refactor storage.js to use Firebase adapter while maintaining API [pending]
+## 2. Implement date handling and dynamic form generation [done]
 ### Dependencies: 3.1
-### Description: Modify the storage.js module to use the new Firebase adapter while keeping the same function signatures and return values for backward compatibility.
+### Description: Add JavaScript functionality to handle date selection and dynamically generate day labels
 ### Details:
-1. Import and initialize the Firebase adapter
-2. Refactor each existing method to use the Firebase adapter instead of localStorage
-3. Ensure all methods maintain the same signatures (parameters and return types)
-4. Add appropriate error handling and conversion between Firebase and existing data formats
-5. Write unit tests to verify API compatibility
-6. Document any edge cases or behavior differences
+Write JavaScript code that: 1) Listens for changes to the week start date input, 2) Automatically calculates and displays the correct date for each day of the week (e.g., 'Monday, Jan 1'), 3) Implements the add/remove functionality for dish input fields, allowing admins to add multiple dishes per day, 4) Validates that the selected date is a Monday to ensure weeks always start on the same day. Use event listeners and DOM manipulation to update the form dynamically.
 
-## 3. Implement local caching for offline functionality [pending]
-### Dependencies: 3.2
-### Description: Add a caching layer to ensure the storage module works offline by caching Firestore data locally.
+## 3. Create IndexedDB storage functionality [done]
+### Dependencies: 3.1
+### Description: Implement the JavaScript functions to save menu data to IndexedDB
 ### Details:
-1. Implement a cache manager that stores Firestore data in localStorage
-2. Add cache invalidation strategies (time-based, manual, etc.)
-3. Modify read operations to first check cache before making Firestore requests
-4. Implement write operations to update both Firestore and local cache
-5. Add a mechanism to detect offline status and queue write operations
-6. Implement cache synchronization when connection is restored
+Create JavaScript functions to: 1) Initialize the IndexedDB database with an object store for menus if it doesn't exist, 2) Collect form data when the submit button is clicked, 3) Validate the form data to ensure all required fields are filled, 4) Create a structured menu object with the week start date as the key and daily dishes as values, 5) Save the menu object to IndexedDB, 6) Show a success message after saving. Handle any potential errors during database operations with appropriate error messages.
 
-## 4. Create data migration utility [pending]
-### Dependencies: 3.2
-### Description: Develop a utility to migrate existing localStorage data to Firebase Firestore.
-### Details:
-1. Create a function to read all existing data from localStorage
-2. Add data transformation logic to convert localStorage format to Firestore format
-3. Implement batch writing to efficiently upload data to Firestore
-4. Add progress tracking and reporting for migration process
-5. Implement validation to ensure data integrity after migration
-6. Add rollback capability in case of migration failure
-
-## 5. Implement conflict resolution for synchronization [pending]
+## 4. Implement menu listing and retrieval [done]
 ### Dependencies: 3.3
-### Description: Add mechanisms to detect and resolve conflicts when the same data is modified in multiple places.
+### Description: Create functionality to display previously saved menus
 ### Details:
-1. Implement timestamp-based versioning for all data objects
-2. Add conflict detection by comparing local and remote timestamps
-3. Create merge strategies for different data types (last-write-wins, custom merging, etc.)
-4. Implement user notification system for manual conflict resolution when needed
-5. Add transaction support for atomic operations
-6. Create logging for conflict events for debugging purposes
+Develop JavaScript code to: 1) Retrieve all saved menus from IndexedDB when the admin page loads, 2) Display the menus in the designated container in chronological order, with the most recent week first, 3) For each menu, show the week start date and a collapsed view of the menu that can be expanded, 4) Include edit and delete buttons for each menu, 5) Implement pagination or scrolling if there are many menus. Use appropriate UI components to maintain the clean interface while providing all necessary information.
 
-## 6. Add error handling, retry mechanisms and finalize integration [pending]
-### Dependencies: 3.3, 3.4, 3.5
-### Description: Enhance error handling throughout the storage module and implement retry mechanisms for failed operations.
+## 5. Implement edit and delete functionality [done]
+### Dependencies: 3.3, 3.4
+### Description: Add the ability to modify or remove existing menus
 ### Details:
-1. Implement exponential backoff for retrying failed network requests
-2. Add circuit breaker pattern to prevent excessive retries
-3. Create comprehensive error classification system
-4. Implement global error handler with appropriate logging
-5. Add integration tests covering offline scenarios, conflict resolution, and error handling
-6. Create documentation for the new storage module including migration guide for existing code
+Create JavaScript functions that: 1) When the edit button is clicked, populate the form with the selected menu's data for editing, 2) Update the existing menu in IndexedDB when changes are submitted, 3) Implement delete functionality with a confirmation dialog to prevent accidental deletions, 4) Remove the menu from IndexedDB when confirmed, 5) Update the menu listing immediately after edits or deletions without requiring a page refresh. Ensure proper error handling and user feedback throughout these operations.
 

@@ -7,52 +7,6 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        .user-info {
-            display: flex;
-            align-items: center;
-            margin-left: auto;
-            padding: 0 15px;
-        }
-        
-        .user-info span {
-            margin-right: 10px;
-            color: #333;
-        }
-        
-        .firebase-status {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin-left: 10px;
-        }
-        
-        .status-online {
-            background-color: #E6F4EA;
-            color: #137333;
-        }
-        
-        .status-offline {
-            background-color: #FCE8E6;
-            color: #C5221F;
-        }
-        
-        .card.new-feature {
-            border-left: 4px solid #4285F4;
-        }
-        
-        .feature-badge {
-            display: inline-block;
-            background-color: #4285F4;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -63,16 +17,7 @@
                     <li><a href="index.html" class="active">Inicio</a></li>
                     <li><a href="admin.html">Administración</a></li>
                     <li><a href="coordinator.html">Coordinador</a></li>
-                    <li><a href="firebase-config.html">Configuración</a></li>
                 </ul>
-                <div id="user-container" class="user-info">
-                    <span id="user-email"></span>
-                    <a id="login-btn" href="login.html" class="btn btn-small">Iniciar Sesión</a>
-                    <button id="logout-btn" class="btn btn-small" style="display: none;">Cerrar Sesión</button>
-                    <div id="firebase-status" class="firebase-status status-offline">
-                        <i class="fas fa-cloud"></i> Offline
-                    </div>
-                </div>
             </nav>
         </div>
     </header>
@@ -106,18 +51,6 @@
                     <p>Acceso al panel de administración del sistema:</p>
                     <a href="admin.html" class="btn btn-primary">Panel de Administración</a>
                 </div>
-                
-                <div class="card new-feature">
-                    <h3>Autenticación con Firebase <span class="feature-badge">Nuevo</span></h3>
-                    <p>Inicie sesión con su cuenta para acceder a todas las funcionalidades:</p>
-                    <a href="login.html" class="btn btn-primary">Iniciar Sesión</a>
-                </div>
-                
-                <div class="card new-feature">
-                    <h3>Configuración de Firebase <span class="feature-badge">Nuevo</span></h3>
-                    <p>Configure la conexión con Firebase para habilitar la sincronización en tiempo real:</p>
-                    <a href="firebase-config.html" class="btn btn-primary">Configurar Firebase</a>
-                </div>
             </div>
         </section>
     </main>
@@ -128,62 +61,6 @@
         </div>
     </footer>
 
-    <!-- Importar Firebase -->
-    <script type="module">
-        // Importar las funciones necesarias de Firebase
-        import { auth, onAuthStateChanged } from './js/firebase-config.js';
-        import FirebaseAuth from './js/firebase-auth.js';
-        import { FirestoreUtil } from './js/firebase-storage.js';
-        
-        // Elementos del DOM
-        const userContainer = document.getElementById('user-container');
-        const userEmail = document.getElementById('user-email');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const firebaseStatus = document.getElementById('firebase-status');
-        
-        // Inicializar Firebase Auth
-        FirebaseAuth.init().then(user => {
-            updateAuthUI(user);
-        });
-        
-        // Actualizar la interfaz según el estado de autenticación
-        function updateAuthUI(user) {
-            if (user) {
-                userEmail.textContent = user.email;
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'inline-block';
-                
-                // Actualizar estado de conexión
-                firebaseStatus.className = 'firebase-status status-online';
-                firebaseStatus.innerHTML = '<i class="fas fa-cloud"></i> Online';
-            } else {
-                userEmail.textContent = '';
-                loginBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-                
-                // Actualizar estado de conexión
-                firebaseStatus.className = 'firebase-status status-offline';
-                firebaseStatus.innerHTML = '<i class="fas fa-cloud"></i> Offline';
-            }
-        }
-        
-        // Cerrar sesión
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await FirebaseAuth.logout();
-                updateAuthUI(null);
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
-        });
-        
-        // Verificar estado de autenticación
-        onAuthStateChanged(auth, (user) => {
-            updateAuthUI(user);
-        });
-    </script>
-    
     <script src="js/models.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/index.js"></script>
