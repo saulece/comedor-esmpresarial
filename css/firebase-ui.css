@@ -1,0 +1,164 @@
+/**
+ * firebase-ui.css
+ * Estilos para los elementos de UI relacionados con Firebase
+ */
+
+/* Indicador de carga */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #3498db;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Indicador de sincronización */
+.sync-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #2ecc71;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.sync-indicator.fade-out {
+    opacity: 0;
+}
+
+.sync-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+/* Botón con indicador de carga */
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+button .spinner {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+    margin-right: 8px;
+}
+
+/* Estado offline */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #e74c3c;
+    color: white;
+    text-align: center;
+    padding: 5px;
+    font-size: 14px;
+    z-index: 1001;
+}
+
+/* Indicador de cambios pendientes */
+.pending-changes {
+    background-color: #f39c12;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* Estilos para el modal de configuración de Firebase */
+.firebase-config-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    max-width: 500px;
+    margin: 40px auto;
+}
+
+.firebase-config-modal h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.firebase-config-form .form-group {
+    margin-bottom: 15px;
+}
+
+.firebase-config-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.firebase-config-form input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.firebase-config-form .button-group {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.firebase-config-form button {
+    margin-left: 10px;
+}
+
+/* Estilos para modo ultra-compacto en móviles */
+@media (max-width: 768px) {
+    .sync-indicator {
+        bottom: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    
+    .sync-icon {
+        width: 12px;
+        height: 12px;
+        margin-right: 5px;
+    }
+    
+    .offline-indicator {
+        padding: 3px;
+        font-size: 12px;
+    }
+}

@@ -379,18 +379,66 @@ function setupTabNavigation() {
 }
 
 /**
- * Carga el menú actual
+ * Carga el menú actual con sincronización en tiempo real
  */
 function loadCurrentMenu() {
     const currentMenuContainer = document.getElementById('current-menu');
     
     if (!currentMenuContainer) return;
     
+    // Mostrar indicador de carga
+    currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú...</p>';
+    
+    // Verificar si Firebase está disponible
+    if (typeof FirebaseMenuModel !== 'undefined') {
+        try {
+            // Usar Firebase con sincronización en tiempo real
+            FirebaseMenuModel.listenToActiveMenu(menu => {
+                if (!menu) {
+                    currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
+                    return;
+                }
+                
+                // Mostrar el menú
+                displayMenu(menu, currentMenuContainer);
+                
+                // Mostrar indicador de sincronización
+                const syncIndicator = document.createElement('div');
+                syncIndicator.className = 'sync-indicator';
+                syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado';
+                currentMenuContainer.appendChild(syncIndicator);
+                
+                // Hacer que el indicador desaparezca después de 3 segundos
+                setTimeout(() => {
+                    syncIndicator.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (syncIndicator.parentNode) {
+                            syncIndicator.parentNode.removeChild(syncIndicator);
+                        }
+                    }, 500);
+                }, 3000);
+            });
+        } catch (error) {
+            console.error('Error al cargar menú con Firebase:', error);
+            // Usar localStorage como fallback
+            loadMenuFromLocalStorage(currentMenuContainer);
+        }
+    } else {
+        // Firebase no está disponible, usar localStorage
+        loadMenuFromLocalStorage(currentMenuContainer);
+    }
+}
+
+/**
+ * Carga el menú desde localStorage (fallback)
+ * @param {HTMLElement} container - Contenedor donde mostrar el menú
+ */
+function loadMenuFromLocalStorage(container) {
     // Obtener todos los menús
     const menus = StorageUtil.Menus.getAll();
     
     if (menus.length === 0) {
-        currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú disponible para esta semana.</p>';
+        container.innerHTML = '<p class="empty-state">No hay menú disponible para esta semana.</p>';
         return;
     }
     
@@ -406,12 +454,12 @@ function loadCurrentMenu() {
     const endDate = new Date(latestMenu.endDate);
     
     if (today < startDate || today > endDate) {
-        currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
+        container.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
         return;
     }
     
     // Mostrar el menú
-    displayMenu(latestMenu, currentMenuContainer);
+    displayMenu(latestMenu, container);
 }
 
 /**

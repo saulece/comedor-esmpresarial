@@ -457,7 +457,7 @@ function setupAddDishButtons() {
 /**
  * Guarda el menú actual en el almacenamiento
  */
-function saveMenu() {
+async function saveMenu() {
     // Recopilar datos del formulario
     const menuName = document.getElementById('menu-name').value;
     const weekStartDate = document.getElementById('week-start-date').value;
@@ -537,30 +537,61 @@ function saveMenu() {
     // Agregar días al menú
     menuData.days = days;
     
-    // Guardar menú en almacenamiento
-    let success;
-    if (currentEditingMenuId) {
-        // Actualizar menú existente
-        success = StorageUtil.Menus.update(currentEditingMenuId, menuData);
-        if (success) {
-            showNotification('Menú actualizado correctamente.');
-        } else {
-            showNotification('Error al actualizar el menú.', 'error');
+    try {
+        // Mostrar indicador de carga
+        const saveButton = document.querySelector('#save-menu-btn');
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
         }
-    } else {
-        // Crear nuevo menú
-        success = StorageUtil.Menus.add(menuData);
-        if (success) {
-            showNotification('Menú guardado correctamente.');
+        
+        let success = false;
+        
+        // Verificar si Firebase está disponible
+        if (typeof FirebaseMenuModel !== 'undefined') {
+            // Usar Firebase para guardar el menú
+            if (currentEditingMenuId) {
+                // Actualizar menú existente
+                success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
+            } else {
+                // Crear nuevo menú
+                success = await FirebaseMenuModel.add(menuData);
+            }
         } else {
-            showNotification('Error al guardar el menú.', 'error');
+            // Usar localStorage como fallback
+            if (currentEditingMenuId) {
+                // Actualizar menú existente
+                success = StorageUtil.Menus.update(currentEditingMenuId, menuData);
+            } else {
+                // Crear nuevo menú
+                success = StorageUtil.Menus.add(menuData);
+            }
         }
-    }
-    
-    // Recargar menús guardados y resetear formulario
-    if (success) {
-        loadSavedMenus();
-        resetForm();
+        
+        // Restaurar botón
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'Guardar Menú';
+        }
+        
+        // Mostrar notificación
+        if (success) {
+            showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.');
+            loadSavedMenus();
+            resetForm();
+        } else {
+            showNotification(currentEditingMenuId ? 'Error al actualizar el menú.' : 'Error al guardar el menú.', 'error');
+        }
+    } catch (error) {
+        console.error('Error al guardar menú:', error);
+        showNotification('Error al procesar el menú. Por favor, intente de nuevo.', 'error');
+        
+        // Restaurar botón
+        const saveButton = document.querySelector('#save-menu-btn');
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'Guardar Menú';
+        }
     }
 }
 

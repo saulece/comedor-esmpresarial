@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Coordinador - Comedor Empresarial</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/firebase-ui.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -124,10 +125,34 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-menu-model.js"></script>
+    <script src="js/firebase-coordinator-model.js"></script>
+    <script src="js/firebase-attendance-model.js"></script>
+    <script src="js/firebase-realtime.js"></script>
+    <script src="js/firebase-offline.js"></script>
+    <script src="js/storage-adapter.js"></script>
+    
+    <!-- Application Scripts -->
     <script src="js/models.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/coordinator.js"></script>
     <script src="js/debug.js"></script>
+    
+    <script>
+        // Inicializar funcionalidad offline cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar funcionalidad offline si Firebase está disponible
+            if (typeof FirebaseOffline !== 'undefined') {
+                FirebaseOffline.init();
+            }
+        });
+    </script>
 </body>
 </html>
