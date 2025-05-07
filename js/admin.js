@@ -67,51 +67,60 @@ function checkAdminSession() {
 function setupAdminLoginForm() {
     const adminLoginForm = document.getElementById('admin-login-form');
     const adminLoginError = document.getElementById('admin-login-error');
-    const adminAccessCodeInput = document.getElementById('admin-access-code');
+    // NO obtener el input aquí fuera
 
     console.log("Configurando formulario de login admin. Código esperado:", ADMIN_MASTER_ACCESS_CODE);
 
-    if (adminLoginForm && adminAccessCodeInput) {
+    if (adminLoginForm) { // Solo necesitamos el formulario aquí
         // Remover listener anterior para evitar duplicados si esta función se llama más de una vez
-        const newLoginForm = adminLoginForm.cloneNode(true);
-        adminLoginForm.parentNode.replaceChild(newLoginForm, adminLoginForm);
+        // En lugar de clonar, simplemente removemos el listener si ya existe (aunque con la lógica actual no debería)
+        // O más simple: asegurarnos que solo se añade una vez via checkAdminSession
+        
+        // Limpiar listener anterior por si acaso (opcional pero seguro)
+        const newForm = adminLoginForm.cloneNode(true);
+        adminLoginForm.parentNode.replaceChild(newForm, adminLoginForm);
 
-        newLoginForm.addEventListener('submit', function(event) {
+
+        newForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            console.log("Admin login form submitted."); // Log para confirmar submit
-            const enteredCode = adminAccessCodeInput.value;
-            
-            // Logs detallados con comillas para ver espacios y caracteres invisibles
+            console.log("Admin login form submitted."); 
+
+            // **** OBTENER EL INPUT Y SU VALOR AQUÍ DENTRO ****
+            const currentInput = document.getElementById('admin-access-code'); 
+            if (!currentInput) {
+                console.error("Input #admin-access-code no encontrado DENTRO del listener!");
+                return; // Salir si no se encuentra el input
+            }
+            const enteredCode = currentInput.value; 
+            // *************************************************
+
+            // Logs detallados
             console.log("Código ingresado:", `"${enteredCode}"`);
             console.log("Código esperado:", `"${ADMIN_MASTER_ACCESS_CODE}"`);
             console.log("Longitud código ingresado:", enteredCode.length);
             console.log("Longitud código esperado:", ADMIN_MASTER_ACCESS_CODE.length);
             console.log("¿Son iguales?", enteredCode === ADMIN_MASTER_ACCESS_CODE);
             
-            // Comparación detallada
+            // Comparación 
             if (enteredCode === ADMIN_MASTER_ACCESS_CODE) {
                 console.log("Comparación: ¡Éxito!");
                 sessionStorage.setItem('adminLoggedIn', 'true');
                 if (adminLoginError) adminLoginError.style.display = 'none';
                 AppUtils.showNotification('Acceso de administrador concedido.', 'success');
-                
-                // Llamar a checkAdminSession para actualizar la UI correctamente
-                checkAdminSession();
+                checkAdminSession(); // Actualizar UI
             } else {
                 console.log("Comparación: ¡Fallo!");
-                // Mostrar error si el código es incorrecto
                 if (adminLoginError) {
                     adminLoginError.textContent = "Código de acceso incorrecto. Inténtalo de nuevo.";
                     adminLoginError.style.display = 'block';
                 }
-                
-                adminAccessCodeInput.value = ''; 
+                currentInput.value = ''; // Limpiar el input actual
                 AppUtils.showNotification('Código de acceso de administrador incorrecto.', 'error');
             }
         });
         console.log("Listener para admin-login-form configurado.");
     } else {
-        console.error("No se pudo configurar el formulario de login de admin, elementos no encontrados (#admin-login-form o #admin-access-code).");
+        console.error("Formulario #admin-login-form no encontrado.");
     }
 }
 
