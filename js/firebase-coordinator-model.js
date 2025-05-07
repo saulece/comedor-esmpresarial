@@ -74,7 +74,7 @@ const FirebaseCoordinatorModel = {
             const snapshot = await firebase.firestore()
                 .collection('coordinators')
                 .where('accessCode', '==', accessCode)
-                .where('active', '==', true)
+                .where('active', '==', true) // Asegúrate de que esta condición esté
                 .limit(1)
                 .get();
             
