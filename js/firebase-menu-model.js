@@ -10,7 +10,7 @@ const FirebaseMenuModel = {
      */
     getAll: async function() {
         try {
-            const snapshot = await firebase.firestore().collection('menus').get();
+            const snapshot = await firebase.firestore().collection('menus').orderBy('startDate', 'desc').get();
             return snapshot.docs.map(doc => ({
                 ...doc.data(),
                 id: doc.id
@@ -43,29 +43,32 @@ const FirebaseMenuModel = {
     },
 
     /**
-     * Obtiene el menú activo (más reciente)
+     * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado)
      * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null si no existe
      */
     getActive: async function() {
         try {
-            const today = new Date();
+            const todayStr = new Date().toISOString().split('T')[0];
             const snapshot = await firebase.firestore()
                 .collection('menus')
-                .where('startDate', '<=', today.toISOString().split('T')[0])
-                .where('endDate', '>=', today.toISOString().split('T')[0])
+                // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
+                .where('endDate', '>=', todayStr)
+                // 2. Ordenar por fecha de inicio descendente para priorizar los más recientes
                 .orderBy('startDate', 'desc')
-                .limit(1)
                 .get();
 
             if (snapshot.empty) {
                 return null;
             }
 
-            const doc = snapshot.docs[0];
-            return {
-                ...doc.data(),
-                id: doc.id
-            };
+            // 3. En el cliente, encontrar el primer menú de esta lista que YA HA COMENZADO
+            for (const doc of snapshot.docs) {
+                const menu = { ...doc.data(), id: doc.id };
+                if (menu.startDate <= todayStr) {
+                    return menu; // Este es el menú activo más reciente
+                }
+            }
+            return null; // Ningún menú que no ha terminado ya ha comenzado
         } catch (error) {
             console.error('Error al obtener menú activo de Firestore:', error);
             return null;
@@ -79,7 +82,6 @@ const FirebaseMenuModel = {
      */
     add: async function(menu) {
         try {
-            // Asegurar que el menú tenga timestamps
             const menuWithTimestamps = {
                 ...menu,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -89,7 +91,8 @@ const FirebaseMenuModel = {
             const docRef = await firebase.firestore().collection('menus').add(menuWithTimestamps);
             console.log(`Menú agregado con ID: ${docRef.id}`);
             return true;
-        } catch (error) {
+        } catch (error)
+        {
             console.error('Error al agregar menú a Firestore:', error);
             return false;
         }
@@ -103,11 +106,13 @@ const FirebaseMenuModel = {
      */
     update: async function(menuId, menuData) {
         try {
-            // Asegurar que el menú tenga timestamp de actualización
             const menuWithTimestamp = {
                 ...menuData,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            // Eliminar el id del objeto de datos si se pasó accidentalmente, ya que es el ID del documento
+            delete menuWithTimestamp.id;
+
 
             await firebase.firestore().collection('menus').doc(menuId).update(menuWithTimestamp);
             console.log(`Menú ${menuId} actualizado correctamente`);
@@ -136,29 +141,28 @@ const FirebaseMenuModel = {
 
     /**
      * Escucha cambios en tiempo real en el menú activo
-     * @param {Function} callback - Función a llamar cuando hay cambios
+     * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
      * @returns {Function} - Función para cancelar la suscripción
      */
     listenToActiveMenu: function(callback) {
-        const today = new Date();
+        const todayStr = new Date().toISOString().split('T')[0];
         const unsubscribe = firebase.firestore()
             .collection('menus')
-            .where('startDate', '<=', today.toISOString().split('T')[0])
-            .where('endDate', '>=', today.toISOString().split('T')[0])
+            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
+            .where('endDate', '>=', todayStr)
+            // 2. Ordenar por fecha de inicio descendente para priorizar los más recientes
             .orderBy('startDate', 'desc')
-            .limit(1)
             .onSnapshot(snapshot => {
-                if (snapshot.empty) {
-                    callback(null);
-                    return;
+                let activeMenu = null;
+                // 3. En el cliente, encontrar el primer menú de esta lista que YA HA COMENZADO
+                for (const doc of snapshot.docs) {
+                    const menu = { ...doc.data(), id: doc.id };
+                    if (menu.startDate <= todayStr) {
+                        activeMenu = menu; // Este es el menú activo más reciente
+                        break; 
+                    }
                 }
-
-                const doc = snapshot.docs[0];
-                const menu = {
-                    ...doc.data(),
-                    id: doc.id
-                };
-                callback(menu);
+                callback(activeMenu, null); // Llamar con el menú encontrado o null
             }, error => {
                 console.error('Error al escuchar cambios en menú activo:', error);
                 callback(null, error);
@@ -169,7 +173,7 @@ const FirebaseMenuModel = {
 
     /**
      * Escucha cambios en tiempo real en todos los menús
-     * @param {Function} callback - Función a llamar cuando hay cambios
+     * @param {Function} callback - Función a llamar cuando hay cambios (menus, error)
      * @returns {Function} - Función para cancelar la suscripción
      */
     listenToAllMenus: function(callback) {
@@ -181,9 +185,9 @@ const FirebaseMenuModel = {
                     ...doc.data(),
                     id: doc.id
                 }));
-                callback(menus);
+                callback(menus, null);
             }, error => {
-                console.error('Error al escuchar cambios en menús:', error);
+                console.error('Error al escuchar cambios en todos los menús:', error);
                 callback([], error);
             });
 
