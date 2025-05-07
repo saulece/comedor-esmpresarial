@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comedor Empresarial - Gestión de Menús</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Estilos adicionales específicos para esta página */
+        .menu-day {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .menu-day h4 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        .dish-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .dish-item input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        
+        .dish-item button {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+        }
+        
+        .add-dish-btn {
+            background: none;
+            border: 1px dashed #007bff;
+            color: #007bff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .menu-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .menu-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .menu-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .menu-card-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .menu-card-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .menu-card-actions .edit-btn {
+            color: #007bff;
+        }
+        
+        .menu-card-actions .delete-btn {
+            color: #dc3545;
+        }
+        
+        .menu-card-actions .active-btn {
+            color: #28a745;
+        }
+        
+        .menu-card.active {
+            border-color: #28a745;
+            box-shadow: 0 0 0 1px #28a745;
+        }
+        
+        .active-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .day-dishes {
+            margin-left: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-utensils"></i> Comedor Empresarial</h1>
+            <nav id="main-nav">
+                <a href="index.html"><i class="fas fa-home"></i> Inicio</a>
+                <a href="simple-menu.html" class="active"><i class="fas fa-utensils"></i> Gestión de Menús</a>
+                <a href="coordinator.html"><i class="fas fa-users"></i> Coordinación</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="admin-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-utensils"></i> Publicación de Menú Semanal</h2>
+                </div>
+                
+                <div class="card">
+                    <h3>Crear Nuevo Menú</h3>
+                    <form id="menu-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="menu-name">Nombre del Menú:</label>
+                                <input type="text" id="menu-name" name="menu-name" required placeholder="Ej: Menú Semana 18">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="week-start-date">Fecha de inicio (Lunes):</label>
+                                <input type="date" id="week-start-date" name="week-start-date" required>
+                            </div>
+                        </div>
+                        
+                        <div id="days-container">
+                            <!-- Los días de la semana se generarán dinámicamente con JavaScript -->
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="save-menu-btn" class="primary-btn"><i class="fas fa-save"></i> Guardar Menú</button>
+                            <button type="button" id="reset-form-btn" class="secondary-btn"><i class="fas fa-undo"></i> Limpiar Formulario</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h3>Menús Guardados</h3>
+                    <div id="saved-menus-container">
+                        <!-- Los menús guardados se mostrarán aquí dinámicamente -->
+                        <p class="empty-state" id="no-menus-message">No hay menús guardados aún.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2023 Comedor Empresarial. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module">
+        import SimpleMenuManager from './js/simple-firebase-menu.js';
+        
+        // Días de la semana
+        const DAYS = [
+            { id: 'monday', name: 'Lunes' },
+            { id: 'tuesday', name: 'Martes' },
+            { id: 'wednesday', name: 'Miércoles' },
+            { id: 'thursday', name: 'Jueves' },
+            { id: 'friday', name: 'Viernes' }
+        ];
+        
+        // Elementos del DOM
+        const menuForm = document.getElementById('menu-form');
+        const menuNameInput = document.getElementById('menu-name');
+        const weekStartDateInput = document.getElementById('week-start-date');
+        const daysContainer = document.getElementById('days-container');
+        const resetFormBtn = document.getElementById('reset-form-btn');
+        const savedMenusContainer = document.getElementById('saved-menus-container');
+        const noMenusMessage = document.getElementById('no-menus-message');
+        
+        // Estado de la aplicación
+        let currentMenuId = null;
+        let isEditMode = false;
+        
+        // Inicializar la página
+        function initPage() {
+            // Generar formulario para los días
+            generateDaysForm();
+            
+            // Configurar eventos
+            menuForm.addEventListener('submit', handleMenuSubmit);
+            resetFormBtn.addEventListener('click', resetForm);
+            
+            // Establecer fecha por defecto (lunes de la semana actual)
+            setDefaultDate();
+            
+            // Cargar menús guardados
+            loadSavedMenus();
+        }
+        
+        // Generar formulario para los días de la semana
+        function generateDaysForm() {
+            daysContainer.innerHTML = '';
+            
+            DAYS.forEach(day => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'menu-day';
+                dayDiv.innerHTML = `
+                    <h4>${day.name}</h4>
+                    <div id="${day.id}-dishes" class="day-dishes">
+                        <!-- Los platillos se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" class="add-dish-btn" data-day="${day.id}">
+                        <i class="fas fa-plus"></i> Agregar Platillo
+                    </button>
+                `;
+                
+                daysContainer.appendChild(dayDiv);
+                
+                // Agregar un platillo inicial
+                addDishInput(day.id);
+                
+                // Configurar evento para agregar platillos
+                const addDishBtn = dayDiv.querySelector('.add-dish-btn');
+                addDishBtn.addEventListener('click', () => addDishInput(day.id));
+            });
+        }
+        
+        // Agregar input para un platillo
+        function addDishInput(dayId, value = '') {
+            const dayDishes = document.getElementById(`${dayId}-dishes`);
+            const dishIndex = dayDishes.children.length;
+            
+            const dishItem = document.createElement('div');
+            dishItem.className = 'dish-item';
+            dishItem.innerHTML = `
+                <input type="text" name="${dayId}-dish-${dishIndex}" 
+                       placeholder="Nombre del platillo" value="${value}" required>
+                <button type="button" class="remove-dish-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            dayDishes.appendChild(dishItem);
+            
+            // Configurar evento para eliminar platillo
+            const removeBtn = dishItem.querySelector('.remove-dish-btn');
+            removeBtn.addEventListener('click', () => {
+                dishItem.remove();
+            });
+            
+            // Enfocar el nuevo input
+            const input = dishItem.querySelector('input');
+            input.focus();
+        }
+        
+        // Manejar envío del formulario
+        async function handleMenuSubmit(event) {
+            event.preventDefault();
+            
+            try {
+                // Recopilar datos del formulario
+                const menuData = {
+                    name: menuNameInput.value.trim(),
+                    startDate: weekStartDateInput.value,
+                    dishes: {}
+                };
+                
+                // Generar ID único si es un nuevo menú
+                if (!isEditMode) {
+                    menuData.id = 'menu_' + Date.now();
+                } else {
+                    menuData.id = currentMenuId;
+                }
+                
+                // Recopilar platillos por día
+                DAYS.forEach(day => {
+                    const dayDishes = document.getElementById(`${day.id}-dishes`);
+                    const dishInputs = dayDishes.querySelectorAll('input');
+                    
+                    menuData.dishes[day.id] = Array.from(dishInputs)
+                        .map(input => input.value.trim())
+                        .filter(value => value !== '');
+                });
+                
+                // Guardar menú en Firebase
+                if (isEditMode) {
+                    await SimpleMenuManager.updateMenu(currentMenuId, menuData);
+                    alert('Menú actualizado correctamente');
+                } else {
+                    await SimpleMenuManager.createMenu(menuData);
+                    alert('Menú creado correctamente');
+                }
+                
+                // Resetear formulario
+                resetForm();
+                
+                // Recargar menús guardados
+                loadSavedMenus();
+            } catch (error) {
+                console.error('Error al guardar menú:', error);
+                alert('Error al guardar el menú. Por favor, intenta de nuevo.');
+            }
+        }
+        
+        // Cargar menús guardados
+        function loadSavedMenus() {
+            // Usar la función de escucha en tiempo real
+            SimpleMenuManager.listenToMenus(menus => {
+                if (menus.length === 0) {
+                    noMenusMessage.style.display = 'block';
+                    savedMenusContainer.innerHTML = '';
+                    savedMenusContainer.appendChild(noMenusMessage);
+                    return;
+                }
+                
+                noMenusMessage.style.display = 'none';
+                
+                // Limpiar contenedor
+                savedMenusContainer.innerHTML = '';
+                
+                // Mostrar menús
+                menus.forEach(menu => {
+                    const menuCard = createMenuCard(menu);
+                    savedMenusContainer.appendChild(menuCard);
+                });
+            });
+        }
+        
+        // Crear tarjeta para un menú guardado
+        function createMenuCard(menu) {
+            const menuCard = document.createElement('div');
+            menuCard.className = `menu-card ${menu.active ? 'active' : ''}`;
+            menuCard.dataset.id = menu.id;
+            
+            let menuHeader = `
+                <div class="menu-card-header">
+                    <h3>${menu.name} ${menu.active ? '<span class="active-badge">Activo</span>' : ''}</h3>
+                    <div class="menu-card-actions">
+                        <button type="button" class="edit-btn" title="Editar menú">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="delete-btn" title="Eliminar menú">
+                            <i class="fas fa-trash"></i>
+                        </button>
+            `;
+            
+            if (!menu.active) {
+                menuHeader += `
+                        <button type="button" class="active-btn" title="Establecer como activo">
+                            <i class="fas fa-check-circle"></i>
+                        </button>
+                `;
+            }
+            
+            menuHeader += `
+                    </div>
+                </div>
+            `;
+            
+            let menuContent = `
+                <p>Fecha de inicio: ${formatDate(menu.startDate)}</p>
+                <div class="menu-days">
+            `;
+            
+            // Mostrar platillos por día
+            DAYS.forEach(day => {
+                const dishes = menu.dishes[day.id] || [];
+                
+                if (dishes.length > 0) {
+                    menuContent += `
+                        <div class="menu-day-summary">
+                            <h4>${day.name}</h4>
+                            <ul>
+                                ${dishes.map(dish => `<li>${dish}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+            });
+            
+            menuContent += `
+                </div>
+            `;
+            
+            menuCard.innerHTML = menuHeader + menuContent;
+            
+            // Configurar eventos
+            const editBtn = menuCard.querySelector('.edit-btn');
+            const deleteBtn = menuCard.querySelector('.delete-btn');
+            const activeBtn = menuCard.querySelector('.active-btn');
+            
+            editBtn.addEventListener('click', () => editMenu(menu));
+            deleteBtn.addEventListener('click', () => deleteMenu(menu.id));
+            
+            if (activeBtn) {
+                activeBtn.addEventListener('click', () => setActiveMenu(menu.id));
+            }
+            
+            return menuCard;
+        }
+        
+        // Editar un menú
+        function editMenu(menu) {
+            // Establecer modo de edición
+            isEditMode = true;
+            currentMenuId = menu.id;
+            
+            // Llenar formulario con datos del menú
+            menuNameInput.value = menu.name;
+            weekStartDateInput.value = menu.startDate;
+            
+            // Generar formulario para los días
+            generateDaysForm();
+            
+            // Llenar platillos
+            DAYS.forEach(day => {
+                const dishes = menu.dishes[day.id] || [];
+                const dayDishes = document.getElementById(`${day.id}-dishes`);
+                
+                // Limpiar platillos existentes
+                dayDishes.innerHTML = '';
+                
+                // Agregar platillos del menú
+                dishes.forEach(dish => {
+                    addDishInput(day.id, dish);
+                });
+                
+                // Si no hay platillos, agregar uno vacío
+                if (dishes.length === 0) {
+                    addDishInput(day.id);
+                }
+            });
+            
+            // Cambiar texto del botón
+            const saveBtn = document.getElementById('save-menu-btn');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Menú';
+            
+            // Desplazar a la parte superior del formulario
+            menuForm.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Eliminar un menú
+        async function deleteMenu(menuId) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este menú?')) {
+                return;
+            }
+            
+            try {
+                await SimpleMenuManager.deleteMenu(menuId);
+                alert('Menú eliminado correctamente');
+            } catch (error) {
+                console.error('Error al eliminar menú:', error);
+                alert('Error al eliminar el menú. Por favor, intenta de nuevo.');
+            }
+        }
+        
+        // Establecer un menú como activo
+        async function setActiveMenu(menuId) {
+            try {
+                await SimpleMenuManager.setActiveMenu(menuId);
+                alert('Menú establecido como activo correctamente');
+            } catch (error) {
+                console.error('Error al establecer menú activo:', error);
+                alert('Error al establecer el menú como activo. Por favor, intenta de nuevo.');
+            }
+        }
+        
+        // Resetear formulario
+        function resetForm() {
+            menuForm.reset();
+            isEditMode = false;
+            currentMenuId = null;
+            
+            // Regenerar formulario para los días
+            generateDaysForm();
+            
+            // Establecer fecha por defecto
+            setDefaultDate();
+            
+            // Restaurar texto del botón
+            const saveBtn = document.getElementById('save-menu-btn');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Menú';
+        }
+        
+        // Establecer fecha por defecto (lunes de la semana actual)
+        function setDefaultDate() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = domingo, 1 = lunes, ...
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Ajustar para obtener el lunes
+            
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diff);
+            
+            const formattedDate = monday.toISOString().split('T')[0];
+            weekStartDateInput.value = formattedDate;
+        }
+        
+        // Formatear fecha para mostrar
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        
+        // Inicializar la página cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
