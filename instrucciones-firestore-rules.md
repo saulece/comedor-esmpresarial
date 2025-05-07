@@ -1,3 +1,16 @@
+# Instrucciones para implementar las reglas de seguridad de Firestore
+
+Para que la aplicación simplificada funcione correctamente y puedas guardar menús sin necesidad de autenticación, debes actualizar las reglas de seguridad de Firestore en la consola de Firebase. Sigue estos pasos:
+
+1. Accede a la [consola de Firebase](https://console.firebase.google.com/) y selecciona tu proyecto "comedor-empresarial".
+
+2. En el menú lateral izquierdo, haz clic en "Firestore Database".
+
+3. Haz clic en la pestaña "Reglas" en la parte superior.
+
+4. Reemplaza las reglas existentes con el siguiente código:
+
+```
 rules_version = '2';
 
 service cloud.firestore {
@@ -38,3 +51,14 @@ service cloud.firestore {
     }
   }
 }
+```
+
+5. Haz clic en el botón "Publicar" para guardar los cambios.
+
+Una vez que hayas actualizado las reglas, la aplicación simplificada podrá guardar menús sin necesidad de autenticación. Esto permitirá que los menús sean visibles desde cualquier dispositivo.
+
+## Nota importante sobre seguridad
+
+Esta configuración permite que cualquier persona pueda leer y escribir en la colección de menús sin necesidad de autenticación. Esto es útil para una implementación rápida y sencilla, pero ten en cuenta que no es recomendable para un entorno de producción con datos sensibles.
+
+Si en el futuro necesitas mayor seguridad, deberías implementar la autenticación de usuarios y ajustar las reglas de seguridad en consecuencia.

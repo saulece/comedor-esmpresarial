@@ -19,7 +19,8 @@ import {
     query, 
     where, 
     orderBy,
-    onSnapshot
+    onSnapshot,
+    limit
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuración de Firebase
@@ -61,6 +62,19 @@ const SimpleMenuManager = {
             // Agregar metadatos
             menu.createdAt = new Date().toISOString();
             menu.updatedAt = new Date().toISOString();
+            
+            // Asegurar que los campos requeridos existan
+            if (!menu.dishes) {
+                menu.dishes = {};
+            }
+            
+            // Asegurar que todos los días tengan un array
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            days.forEach(day => {
+                if (!menu.dishes[day]) {
+                    menu.dishes[day] = [];
+                }
+            });
             
             // Guardar en Firestore
             await setDoc(doc(db, this.COLLECTION, menu.id), menu);

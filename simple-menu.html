@@ -297,6 +297,8 @@
             event.preventDefault();
             
             try {
+                console.log('Enviando formulario...');
+                
                 // Recopilar datos del formulario
                 const menuData = {
                     name: menuNameInput.value.trim(),
@@ -321,23 +323,28 @@
                         .filter(value => value !== '');
                 });
                 
+                console.log('Datos del menú a guardar:', menuData);
+                
                 // Guardar menú en Firebase
                 if (isEditMode) {
+                    console.log('Actualizando menú existente...');
                     await SimpleMenuManager.updateMenu(currentMenuId, menuData);
                     alert('Menú actualizado correctamente');
                 } else {
-                    await SimpleMenuManager.createMenu(menuData);
+                    console.log('Creando nuevo menú...');
+                    const menuId = await SimpleMenuManager.createMenu(menuData);
+                    console.log('Menú creado con ID:', menuId);
                     alert('Menú creado correctamente');
                 }
                 
                 // Resetear formulario
                 resetForm();
                 
-                // Recargar menús guardados
-                loadSavedMenus();
+                // No es necesario recargar menús guardados, ya que estamos usando listeners
+                // loadSavedMenus();
             } catch (error) {
                 console.error('Error al guardar menú:', error);
-                alert('Error al guardar el menú. Por favor, intenta de nuevo.');
+                alert('Error al guardar el menú. Por favor, intenta de nuevo: ' + error.message);
             }
         }
         
