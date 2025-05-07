@@ -69,6 +69,8 @@ function setupAdminLoginForm() {
     const adminLoginError = document.getElementById('admin-login-error');
     const adminAccessCodeInput = document.getElementById('admin-access-code');
 
+    console.log("Configurando formulario de login admin. Código esperado:", ADMIN_MASTER_ACCESS_CODE);
+
     if (adminLoginForm && adminAccessCodeInput) {
         // Remover listener anterior para evitar duplicados si esta función se llama más de una vez
         const newLoginForm = adminLoginForm.cloneNode(true);
@@ -78,22 +80,31 @@ function setupAdminLoginForm() {
             event.preventDefault();
             console.log("Admin login form submitted."); // Log para confirmar submit
             const enteredCode = adminAccessCodeInput.value;
-
+            
+            // Logs detallados con comillas para ver espacios y caracteres invisibles
+            console.log("Código ingresado:", `"${enteredCode}"`);
+            console.log("Código esperado:", `"${ADMIN_MASTER_ACCESS_CODE}"`);
+            console.log("Longitud código ingresado:", enteredCode.length);
+            console.log("Longitud código esperado:", ADMIN_MASTER_ACCESS_CODE.length);
+            console.log("¿Son iguales?", enteredCode === ADMIN_MASTER_ACCESS_CODE);
+            
+            // Comparación detallada
             if (enteredCode === ADMIN_MASTER_ACCESS_CODE) {
-                console.log("Admin access code CORRECTO.");
+                console.log("Comparación: ¡Éxito!");
                 sessionStorage.setItem('adminLoggedIn', 'true');
                 if (adminLoginError) adminLoginError.style.display = 'none';
                 AppUtils.showNotification('Acceso de administrador concedido.', 'success');
                 
-                // Llamar a checkAdminSession DE NUEVO para que actualice la UI correctamente
-                checkAdminSession(); 
-
+                // Llamar a checkAdminSession para actualizar la UI correctamente
+                checkAdminSession();
             } else {
-                console.log("Admin access code INCORRECTO.");
+                console.log("Comparación: ¡Fallo!");
+                // Mostrar error si el código es incorrecto
                 if (adminLoginError) {
-                    adminLoginError.textContent = 'Código de acceso incorrecto.';
+                    adminLoginError.textContent = "Código de acceso incorrecto. Inténtalo de nuevo.";
                     adminLoginError.style.display = 'block';
                 }
+                
                 adminAccessCodeInput.value = ''; 
                 AppUtils.showNotification('Código de acceso de administrador incorrecto.', 'error');
             }
