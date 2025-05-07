@@ -10,6 +10,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="login-modal" style="display: none;"> <!-- Inicialmente oculto, se mostrará con JS -->
+        <div class="login-modal-content">
+            <h2><i class="fas fa-user-shield"></i> Acceso de Administrador</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-access-code">Código de Acceso de Administrador:</label>
+                    <input type="password" id="admin-access-code" placeholder="Ingrese el código" required>
+                </div>
+                <div id="admin-login-error" class="error-message" style="display: none;"></div>
+                <button type="submit" class="primary-btn">
+                    <i class="fas fa-sign-in-alt"></i> Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+
     <header>
         <div class="container">
             <h1><i class="fas fa-utensils"></i> Comedor Empresarial</h1>
@@ -17,11 +34,12 @@
                 <a href="index.html"><i class="fas fa-home"></i> Inicio</a>
                 <a href="admin.html" class="active"><i class="fas fa-cog"></i> Administración</a>
                 <a href="coordinator.html"><i class="fas fa-users"></i> Coordinación</a>
+                <button id="admin-logout-btn" class="secondary-btn" style="margin-left: 20px; display: none;"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión Admin</button>
             </nav>
         </div>
     </header>
 
-    <main>
+    <main id="admin-main-content" style="display: none;"> <!-- Contenido principal oculto hasta login -->
         <div class="container">
             <section class="dashboard">
                 <h2><i class="fas fa-tachometer-alt"></i> Panel de Administración</h2>
@@ -50,7 +68,7 @@
             </section>
 
             <!-- Sección de Gestión de Menús -->
-            <section id="menu-management-section" class="admin-section">
+            <section id="menu-management-section" class="admin-section" style="display: none;"> <!-- Oculta por defecto -->
                 <div class="section-header">
                     <h2><i class="fas fa-utensils"></i> Publicación de Menú Semanal</h2>
                     <button id="back-to-dashboard-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
@@ -98,7 +116,6 @@
                     <button id="back-to-dashboard-from-users-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
                 </div>
                 
-                <!-- Formulario de coordinadores -->
                 <div class="card">
                     <h3>Agregar Coordinador</h3>
                     <form id="coordinator-form">
@@ -129,13 +146,10 @@
                                     <option value="Fuentes">Fuentes</option>
                                     <option value="Centenario">Centenario</option>
                                     <option value="Ishinoka">Ishinoka</option>
-                                    <!-- Puedes agregar una opción "Otro" si aún la necesitas -->
-                                    <!-- <option value="Otro">Otro</option> -->
                                 </select>
                             </div>
                         </div>
                         
-                        <!-- Contenedor de código de acceso (inicialmente oculto) -->
                         <div id="access-code-container" class="form-group" style="display: none;">
                             <label for="coordinator-access-code">Código de acceso</label>
                             <div class="access-code-display">
@@ -157,7 +171,6 @@
                     </form>
                 </div>
                 
-                <!-- Lista de coordinadores -->
                 <div class="card">
                     <h3>Coordinadores Registrados</h3>
                     <div class="table-container">
@@ -171,9 +184,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody id="coordinators-list">
-                                <!-- Los coordinadores se mostrarán aquí dinámicamente -->
-                            </tbody>
+                            <tbody id="coordinators-list"></tbody>
                         </table>
                         <p id="no-coordinators-message" class="empty-state">No hay coordinadores registrados aún.</p>
                     </div>
@@ -201,7 +212,6 @@
                 
                 <div class="card">
                     <h3>Confirmaciones de Asistencia</h3>
-                    
                     <div class="week-selector">
                         <button id="prev-week-btn" class="icon-btn" title="Semana anterior">
                             <i class="fas fa-chevron-left"></i>
@@ -217,17 +227,13 @@
                             <thead>
                                 <tr id="days-header">
                                     <th>Departamento</th>
-                                    <!-- Los días se generarán dinámicamente -->
                                     <th>Total</th>
                                 </tr>
                             </thead>
-                            <tbody id="confirmations-body">
-                                <!-- Los datos se generarán dinámicamente -->
-                            </tbody>
+                            <tbody id="confirmations-body"></tbody>
                             <tfoot>
                                 <tr id="totals-footer">
                                     <th>Total por día</th>
-                                    <!-- Los totales se generarán dinámicamente -->
                                 </tr>
                             </tfoot>
                         </table>
@@ -247,14 +253,14 @@
                 
                 <div class="card">
                     <h3>Respaldo de Datos</h3>
-                    <p>Exporte los datos del sistema para respaldo o impórtelos para restaurar una copia de seguridad anterior.</p>
+                    <p>Exporte los datos del sistema para respaldo o impórtelos para restaurar una copia de seguridad anterior. (Funcionalidad no disponible para Firebase por este medio).</p>
                     
                     <div class="data-actions">
                         <div class="action-group">
                             <h4>Exportar Datos</h4>
                             <p>Descargue todos los datos del sistema como un archivo JSON.</p>
-                            <button id="export-data-btn" class="primary-btn">
-                                <i class="fas fa-download"></i> Exportar Datos
+                            <button id="export-data-btn" class="primary-btn" disabled>
+                                <i class="fas fa-download"></i> Exportar Datos (No Firebase)
                             </button>
                         </div>
                         
@@ -263,8 +269,8 @@
                             <p>Restaure datos desde un archivo JSON previamente exportado.</p>
                             <div class="import-controls">
                                 <input type="file" id="import-file-input" accept=".json" style="display: none;">
-                                <button id="import-data-btn" class="secondary-btn">
-                                    <i class="fas fa-upload"></i> Seleccionar Archivo
+                                <button id="import-data-btn" class="secondary-btn" disabled>
+                                    <i class="fas fa-upload"></i> Seleccionar Archivo (No Firebase)
                                 </button>
                                 <span id="selected-file-name" class="file-name"></span>
                             </div>
@@ -290,7 +296,7 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <p>&copy; 2025 Comedor Empresarial</p>
+                <p>© 2024 Comedor Empresarial</p>
                 <div class="footer-links">
                     <a href="index.html">Inicio</a>
                     <a href="admin.html">Administración</a>
@@ -303,37 +309,38 @@
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- No se usa firebase-auth.js aquí para el login simple de admin -->
     
-    <!-- Firebase Configuration -->
+    <!-- Firebase Configuration & Models -->
     <script src="js/firebase-config.js"></script>
     <script src="js/firebase-menu-model.js"></script>
     <script src="js/firebase-coordinator-model.js"></script>
     <script src="js/firebase-attendance-model.js"></script>
+    <!-- firebase-realtime.js y firebase-offline.js si los estás usando -->
     <script src="js/firebase-realtime.js"></script>
     <script src="js/firebase-offline.js"></script>
-    <script src="js/storage-adapter.js"></script>
     
     <!-- Application Scripts -->
-    <script src="js/models.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/utils.js"></script>
+    <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
+    <script src="js/models.js"></script> <!-- Modelos de datos (pueden ser menos relevantes si todo es Firebase) -->
+    <!-- storage.js y storage-adapter.js pueden ser menos relevantes ahora -->
+    <!-- <script src="js/storage.js"></script> -->
+    <!-- <script src="js/storage-adapter.js"></script> -->
+    
     <script src="js/admin.js"></script>
     <script src="js/debug.js"></script>
     
     <script>
-        // Inicializar funcionalidad offline cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', async function() {
-            // Inicializar funcionalidad offline si Firebase está disponible
-            if (typeof FirebaseOffline !== 'undefined') {
+            if (typeof FirebaseOffline !== 'undefined' && typeof FirebaseOffline.init === 'function') {
                 try {
                     await FirebaseOffline.init();
-                    console.log('Funcionalidad offline inicializada correctamente');
+                    console.log('Funcionalidad offline inicializada correctamente en admin.html');
                 } catch (error) {
-                    console.error('Error al inicializar funcionalidad offline:', error);
+                    console.error('Error al inicializar funcionalidad offline en admin.html:', error);
                 }
             } else {
-                console.warn('Módulo FirebaseOffline no disponible');
+                console.warn('Módulo FirebaseOffline no disponible en admin.html');
             }
         });
     </script>
