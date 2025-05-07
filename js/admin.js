@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     DataBackupManagement.init();
     
     // Cargar menús guardados
-    loadSavedMenus();
+    loadSavedMenus().catch(error => console.error('Error loading menus:', error));
 });
 
 /**
@@ -111,47 +111,7 @@ function initAdminInterface() {
     showDashboard();
 }
 
-/**
- * Muestra una notificación temporal
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de notificación ('success' o 'error')
- */
-function showNotification(message, type = 'success') {
-    try {
-        // Eliminar notificaciones existentes
-        const existingNotifications = document.querySelectorAll('.notification');
-        existingNotifications.forEach(notification => {
-            if (notification && notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        });
-        
-        // Crear nueva notificación
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        
-        // Agregar al DOM
-        document.body.appendChild(notification);
-        
-        // Mostrar con animación
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        // Ocultar después de 3 segundos
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification && notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    } catch (error) {
-        console.error('Error al mostrar notificación:', error);
-    }
-}
+// La función showNotification se ha movido a utils.js
 
 /**
  * Gestión de usuarios (placeholder para implementación futura)
@@ -196,7 +156,7 @@ function initMenuForm() {
     
     // Establecer la fecha actual como valor predeterminado
     const today = new Date();
-    const formattedDate = formatDateForInput(today);
+    const formattedDate = AppUtils.formatDateForInput(today);
     weekStartDateInput.value = formattedDate;
     
     // Generar días de la semana iniciales
@@ -222,17 +182,7 @@ function initMenuForm() {
     });
 }
 
-/**
- * Formatea una fecha para usarla en un input de tipo date
- * @param {Date} date - Fecha a formatear
- * @returns {string} - Fecha formateada (YYYY-MM-DD)
- */
-function formatDateForInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+// La función formatDateForInput se ha movido a utils.js
 
 /**
  * Genera las secciones para los días de la semana
@@ -290,19 +240,11 @@ function generateWeekDays(startDateStr) {
  */
 function updateDayDate(daySection, date) {
     const dayDate = daySection.querySelector('.day-date');
-    dayDate.textContent = formatDate(date);
-    daySection.setAttribute('data-date', formatDateForInput(date));
+    dayDate.textContent = AppUtils.formatDate(date);
+    daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
 }
 
-/**
- * Formatea una fecha para mostrarla al usuario
- * @param {Date} date - Fecha a formatear
- * @returns {string} - Fecha formateada (DD/MM/YYYY)
- */
-function formatDate(date) {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('es-ES', options);
-}
+// La función formatDate se ha movido a utils.js
 
 /**
  * Crea una sección para un día de la semana
@@ -315,7 +257,7 @@ function createDaySection(dayIndex, dayName, date) {
     const daySection = document.createElement('div');
     daySection.className = 'day-section';
     daySection.setAttribute('data-day', dayIndex);
-    daySection.setAttribute('data-date', formatDateForInput(date));
+    daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
     
     const dayLabel = document.createElement('h4');
     dayLabel.className = 'day-label';
@@ -323,7 +265,7 @@ function createDaySection(dayIndex, dayName, date) {
     
     const dayDate = document.createElement('div');
     dayDate.className = 'day-date';
-    dayDate.textContent = formatDate(date);
+    dayDate.textContent = AppUtils.formatDate(date);
     
     daySection.appendChild(dayLabel);
     daySection.appendChild(dayDate);
@@ -464,7 +406,7 @@ async function saveMenu() {
     
     // Validar datos básicos
     if (!menuName || !weekStartDate) {
-        showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
+        AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
         return;
     }
     
@@ -530,7 +472,7 @@ async function saveMenu() {
     
     // Validar que haya al menos un día con platillos
     if (days.length === 0) {
-        showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
+        AppUtils.showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
         return;
     }
     
@@ -547,25 +489,15 @@ async function saveMenu() {
         
         let success = false;
         
-        // Verificar si Firebase está disponible
-        if (typeof FirebaseMenuModel !== 'undefined') {
-            // Usar Firebase para guardar el menú
-            if (currentEditingMenuId) {
-                // Actualizar menú existente
-                success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
-            } else {
-                // Crear nuevo menú
-                success = await FirebaseMenuModel.add(menuData);
-            }
+        // Usar Firebase para guardar el menú
+        if (currentEditingMenuId) {
+            // Actualizar menú existente
+            console.log('Actualizando menú existente en Firebase:', currentEditingMenuId);
+            success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         } else {
-            // Usar localStorage como fallback
-            if (currentEditingMenuId) {
-                // Actualizar menú existente
-                success = StorageUtil.Menus.update(currentEditingMenuId, menuData);
-            } else {
-                // Crear nuevo menú
-                success = StorageUtil.Menus.add(menuData);
-            }
+            // Crear nuevo menú
+            console.log('Creando nuevo menú en Firebase');
+            success = await FirebaseMenuModel.add(menuData);
         }
         
         // Restaurar botón
@@ -577,14 +509,16 @@ async function saveMenu() {
         // Mostrar notificación
         if (success) {
             showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.');
-            loadSavedMenus();
+            loadSavedMenus().catch(error => {
+                console.error('Error al cargar menús después de guardar:', error);
+            });
             resetForm();
         } else {
             showNotification(currentEditingMenuId ? 'Error al actualizar el menú.' : 'Error al guardar el menú.', 'error');
         }
     } catch (error) {
         console.error('Error al guardar menú:', error);
-        showNotification('Error al procesar el menú. Por favor, intente de nuevo.', 'error');
+        AppUtils.showNotification('Error al procesar el menú. Por favor, intente de nuevo.', 'error');
         
         // Restaurar botón
         const saveButton = document.querySelector('#save-menu-btn');
@@ -609,10 +543,11 @@ function calculateEndDate(startDateStr) {
 
 /**
  * Carga los menús guardados y los muestra en la interfaz
+ * @returns {Promise<void>}
  */
-function loadSavedMenus() {
+async function loadSavedMenus() {
     const savedMenusContainer = document.getElementById('saved-menus-container');
-    const menus = StorageUtil.Menus.getAll();
+    const menus = await FirebaseMenuModel.getAll();
     
     // Limpiar contenedor
     savedMenusContainer.innerHTML = '';
@@ -683,9 +618,9 @@ function createMenuItemElement(menu) {
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-menu-btn';
     deleteBtn.textContent = 'Eliminar';
-    deleteBtn.addEventListener('click', function(event) {
+    deleteBtn.addEventListener('click', async function(event) {
         event.stopPropagation();
-        deleteMenu(menu.id);
+        await deleteMenu(menu.id);
     });
     
     menuActions.appendChild(editBtn);
@@ -787,7 +722,7 @@ function editMenu(menuId) {
     // Obtener menú del almacenamiento
     const menu = StorageUtil.Menus.get(menuId);
     if (!menu) {
-        showNotification('No se encontró el menú.', 'error');
+        AppUtils.showNotification('No se encontró el menú.', 'error');
         return;
     }
     
@@ -851,32 +786,42 @@ function editMenu(menuId) {
     // Desplazarse al formulario
     document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
     
-    showNotification('Menú cargado para edición.');
+    AppUtils.showNotification('Menú cargado para edición.');
 }
 
 /**
  * Elimina un menú
  * @param {string} menuId - ID del menú a eliminar
+ * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
  */
-function deleteMenu(menuId) {
+async function deleteMenu(menuId) {
     // Confirmar eliminación
     if (!confirm('¿Está seguro de que desea eliminar este menú? Esta acción no se puede deshacer.')) {
-        return;
+        return false;
     }
     
-    // Eliminar menú del almacenamiento
-    const success = StorageUtil.Menus.delete(menuId);
-    
-    if (success) {
-        showNotification('Menú eliminado correctamente.');
-        loadSavedMenus();
+    try {
+        // Eliminar menú del almacenamiento usando Firebase
+        console.log('Eliminando menú de Firebase:', menuId);
+        const success = await FirebaseMenuModel.delete(menuId);
         
-        // Si estamos editando este menú, resetear el formulario
-        if (currentEditingMenuId === menuId) {
-            resetForm();
+        if (success) {
+            AppUtils.showNotification('Menú eliminado correctamente.');
+            await loadSavedMenus().catch(error => console.error('Error loading menus after delete:', error));
+            
+            // Si estamos editando este menú, resetear el formulario
+            if (currentEditingMenuId === menuId) {
+                resetForm();
+            }
+            return true;
+        } else {
+            AppUtils.showNotification('Error al eliminar el menú.', 'error');
+            return false;
         }
-    } else {
-        showNotification('Error al eliminar el menú.', 'error');
+    } catch (error) {
+        console.error('Error al eliminar menú:', error);
+        AppUtils.showNotification('Error al eliminar el menú.', 'error');
+        return false;
     }
 }
 
@@ -892,10 +837,10 @@ function resetForm() {
     
     // Establecer fecha actual
     const today = new Date();
-    document.getElementById('week-start-date').value = formatDateForInput(today);
+    document.getElementById('week-start-date').value = AppUtils.formatDateForInput(today);
     
     // Regenerar días de la semana
-    generateWeekDays(formatDateForInput(today));
+    generateWeekDays(AppUtils.formatDateForInput(today));
     
     // Limpiar todos los campos de platillos
     const dishInputs = document.querySelectorAll('.dish-input');
@@ -922,9 +867,9 @@ const CoordinatorManagement = {
         const resetFormBtn = document.getElementById('reset-coordinator-form-btn');
         
         // Manejar envío del formulario
-        coordinatorForm.addEventListener('submit', function(event) {
+        coordinatorForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            CoordinatorManagement.saveCoordinator();
+            await CoordinatorManagement.saveCoordinator();
         });
         
         // Configurar botón para limpiar formulario
@@ -945,7 +890,7 @@ const CoordinatorManagement = {
         });
         
         // Cargar coordinadores existentes
-        this.loadCoordinators();
+        this.loadCoordinators().catch(error => console.error('Error loading coordinators:', error));
     },
     
     /**
@@ -963,8 +908,9 @@ const CoordinatorManagement = {
     
     /**
      * Guarda un coordinador en el almacenamiento
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se guardó correctamente
      */
-    saveCoordinator: function() {
+    saveCoordinator: async function() {
         // Recopilar datos del formulario
         const name = document.getElementById('coordinator-name').value.trim();
         const email = document.getElementById('coordinator-email').value.trim();
@@ -973,14 +919,14 @@ const CoordinatorManagement = {
         
         // Validar datos básicos
         if (!name || !email || !department) {
-            showNotification('Por favor, complete todos los campos requeridos.', 'error');
+            AppUtils.showNotification('Por favor, complete todos los campos requeridos.', 'error');
             return;
         }
         
         // Validar formato de correo electrónico
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            showNotification('Por favor, ingrese un correo electrónico válido.', 'error');
+            AppUtils.showNotification('Por favor, ingrese un correo electrónico válido.', 'error');
             return;
         }
         
@@ -1010,43 +956,54 @@ const CoordinatorManagement = {
             updatedAt: new Date().toISOString()
         };
         
-        // Guardar coordinador en almacenamiento
-        let success;
-        if (this.currentEditingCoordinatorId) {
-            // Actualizar coordinador existente
-            success = StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinatorData);
-            if (success) {
-                showNotification('Coordinador actualizado correctamente.');
+        // Guardar coordinador en Firebase
+        let success = false;
+        try {
+            if (this.currentEditingCoordinatorId) {
+                // Actualizar coordinador existente
+                console.log('Actualizando coordinador en Firebase:', this.currentEditingCoordinatorId);
+                success = await FirebaseCoordinatorModel.update(this.currentEditingCoordinatorId, coordinatorData);
+                if (success) {
+                    AppUtils.showNotification('Coordinador actualizado correctamente.');
+                } else {
+                    AppUtils.showNotification('Error al actualizar el coordinador.', 'error');
+                }
             } else {
-                showNotification('Error al actualizar el coordinador.', 'error');
+                // Crear nuevo coordinador
+                console.log('Creando nuevo coordinador en Firebase');
+                success = await FirebaseCoordinatorModel.add(coordinatorData);
+                if (success) {
+                    AppUtils.showNotification('Coordinador guardado correctamente.');
+                } else {
+                    AppUtils.showNotification('Error al guardar el coordinador.', 'error');
+                }
             }
-        } else {
-            // Crear nuevo coordinador
-            success = StorageUtil.Coordinators.add(coordinatorData);
-            if (success) {
-                showNotification('Coordinador guardado correctamente.');
-            } else {
-                showNotification('Error al guardar el coordinador.', 'error');
-            }
+        } catch (error) {
+            console.error('Error al guardar coordinador en Firebase:', error);
+            AppUtils.showNotification('Error al procesar el coordinador. Por favor, intente de nuevo.', 'error');
+            return false;
         }
         
         // Recargar coordinadores y resetear formulario
         if (success) {
-            this.loadCoordinators();
+            await this.loadCoordinators().catch(error => console.error('Error loading coordinators after save:', error));
             this.resetForm();
         }
+        
+        return success;
     },
     
     /**
      * Carga los coordinadores guardados y los muestra en la interfaz
+     * @returns {Promise<void>}
      */
-    loadCoordinators: function() {
+    loadCoordinators: async function() {
         const coordinatorsList = document.getElementById('coordinators-list');
         const noCoordinatorsMessage = document.getElementById('no-coordinators-message');
         const coordinatorsTable = document.getElementById('coordinators-table');
         
-        // Obtener coordinadores del almacenamiento
-        const coordinators = StorageUtil.Coordinators.getAll();
+        // Obtener coordinadores del almacenamiento usando Firebase
+        const coordinators = await FirebaseCoordinatorModel.getAll();
         
         // Limpiar lista
         coordinatorsList.innerHTML = '';
@@ -1123,8 +1080,8 @@ const CoordinatorManagement = {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'action-btn delete-btn';
             deleteBtn.textContent = 'Eliminar';
-            deleteBtn.addEventListener('click', function() {
-                CoordinatorManagement.deleteCoordinator(coordinator.id);
+            deleteBtn.addEventListener('click', async function() {
+                await CoordinatorManagement.deleteCoordinator(coordinator.id);
             });
             
             actionsDiv.appendChild(editBtn);
@@ -1154,7 +1111,7 @@ const CoordinatorManagement = {
         // Obtener coordinador del almacenamiento
         const coordinator = StorageUtil.Coordinators.get(coordinatorId);
         if (!coordinator) {
-            showNotification('No se encontró el coordinador.', 'error');
+            AppUtils.showNotification('No se encontró el coordinador.', 'error');
             return;
         }
         
@@ -1184,26 +1141,36 @@ const CoordinatorManagement = {
     /**
      * Elimina un coordinador
      * @param {string} coordinatorId - ID del coordinador a eliminar
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
      */
-    deleteCoordinator: function(coordinatorId) {
+    deleteCoordinator: async function(coordinatorId) {
         // Confirmar eliminación
         if (!confirm('¿Está seguro de que desea eliminar este coordinador? Esta acción no se puede deshacer.')) {
             return;
         }
         
-        // Eliminar coordinador del almacenamiento
-        const success = StorageUtil.Coordinators.delete(coordinatorId);
-        
-        if (success) {
-            showNotification('Coordinador eliminado correctamente.');
-            this.loadCoordinators();
+        try {
+            // Eliminar coordinador de Firebase
+            console.log('Eliminando coordinador de Firebase:', coordinatorId);
+            const success = await FirebaseCoordinatorModel.delete(coordinatorId);
             
-            // Si estamos editando este coordinador, resetear el formulario
-            if (this.currentEditingCoordinatorId === coordinatorId) {
-                this.resetForm();
+            if (success) {
+                AppUtils.showNotification('Coordinador eliminado correctamente.');
+                await this.loadCoordinators().catch(error => console.error('Error loading coordinators after delete:', error));
+                
+                // Si estamos editando este coordinador, resetear el formulario
+                if (this.currentEditingCoordinatorId === coordinatorId) {
+                    this.resetForm();
+                }
+                return true;
+            } else {
+                AppUtils.showNotification('Error al eliminar el coordinador.', 'error');
+                return false;
             }
-        } else {
-            showNotification('Error al eliminar el coordinador.', 'error');
+        } catch (error) {
+            console.error('Error al eliminar coordinador de Firebase:', error);
+            AppUtils.showNotification('Error al eliminar el coordinador.', 'error');
+            return false;
         }
     },
     
@@ -1223,7 +1190,7 @@ const CoordinatorManagement = {
         // Deseleccionar
         accessCodeInput.blur();
         
-        showNotification('Código de acceso copiado al portapapeles.');
+        AppUtils.showNotification('Código de acceso copiado al portapapeles.');
     },
     
     /**
@@ -1241,7 +1208,7 @@ const CoordinatorManagement = {
                 coordinator.accessCode = newCode;
                 StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinator);
                 this.loadCoordinators();
-                showNotification('Código de acceso regenerado correctamente.');
+                AppUtils.showNotification('Código de acceso regenerado correctamente.');
             }
         }
     },
@@ -1294,7 +1261,7 @@ const ConfirmationReportManagement = {
         this.setupEventListeners();
         
         // Cargar datos iniciales
-        this.loadConfirmationData();
+        this.loadConfirmationData().catch(error => console.error('Error loading report data:', error));
     },
     
     /**
@@ -1302,25 +1269,25 @@ const ConfirmationReportManagement = {
      */
     setupEventListeners: function() {
         // Evento para cambio de semana en el selector
-        this.weekSelector.addEventListener('change', () => {
+        this.weekSelector.addEventListener('change', async () => {
             const selectedDate = new Date(this.weekSelector.value);
             this.setCurrentWeek(this.getMonday(selectedDate));
-            this.loadConfirmationData();
+            await this.loadConfirmationData().catch(error => console.error('Error loading report data after week change:', error));
         });
         
         // Eventos para botones de navegación de semana
-        this.prevWeekBtn.addEventListener('click', () => {
+        this.prevWeekBtn.addEventListener('click', async () => {
             const prevWeek = new Date(this.currentWeekStartDate);
             prevWeek.setDate(prevWeek.getDate() - 7);
             this.setCurrentWeek(prevWeek);
-            this.loadConfirmationData();
+            await this.loadConfirmationData().catch(error => console.error('Error loading report data for previous week:', error));
         });
         
-        this.nextWeekBtn.addEventListener('click', () => {
+        this.nextWeekBtn.addEventListener('click', async () => {
             const nextWeek = new Date(this.currentWeekStartDate);
             nextWeek.setDate(nextWeek.getDate() + 7);
             this.setCurrentWeek(nextWeek);
-            this.loadConfirmationData();
+            await this.loadConfirmationData().catch(error => console.error('Error loading report data for next week:', error));
         });
     },
     
@@ -1330,7 +1297,7 @@ const ConfirmationReportManagement = {
      */
     setCurrentWeek: function(monday) {
         this.currentWeekStartDate = monday;
-        this.weekSelector.value = this.formatDateForInput(monday);
+        this.weekSelector.value = AppUtils.formatDateForInput(monday);
         this.updateDaysHeader();
     },
     
@@ -1395,28 +1362,38 @@ const ConfirmationReportManagement = {
     
     /**
      * Carga los datos de confirmación para la semana actual
+     * @returns {Promise<void>}
      */
-    loadConfirmationData: function() {
-        // Obtener todos los coordinadores
-        const coordinators = StorageUtil.Coordinators.getAll();
-        
-        // Obtener todas las confirmaciones de asistencia
-        const allConfirmations = StorageUtil.AttendanceConfirmations.getAll();
-        
-        // Filtrar confirmaciones para la semana actual
-        const weekStartStr = this.formatDateForInput(this.currentWeekStartDate);
-        const confirmationsForWeek = allConfirmations.filter(conf => {
-            // Convertir la fecha de inicio de la semana a string para comparar
-            const confWeekStart = new Date(conf.weekStartDate);
-            const confWeekStartStr = this.formatDateForInput(confWeekStart);
-            return confWeekStartStr === weekStartStr;
-        });
-        
-        // Organizar datos por departamento y día
-        const departmentData = this.organizeDepartmentData(coordinators, confirmationsForWeek);
-        
-        // Actualizar la tabla con los datos
-        this.updateConfirmationsTable(departmentData);
+    loadConfirmationData: async function() {
+        try {
+            console.log('Cargando datos de confirmación desde Firebase para la semana:', AppUtils.formatDateForInput(this.currentWeekStartDate));
+            
+            // Obtener todos los coordinadores desde Firebase
+            const coordinators = await FirebaseCoordinatorModel.getAll();
+            
+            // Obtener todas las confirmaciones de asistencia desde Firebase
+            const allConfirmations = await FirebaseAttendanceModel.getAll();
+            
+            // Filtrar confirmaciones para la semana actual
+            const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
+            const confirmationsForWeek = allConfirmations.filter(conf => {
+                // Convertir la fecha de inicio de la semana a string para comparar
+                const confWeekStart = new Date(conf.weekStartDate);
+                const confWeekStartStr = AppUtils.formatDateForInput(confWeekStart);
+                return confWeekStartStr === weekStartStr;
+            });
+            
+            // Organizar datos por departamento y día
+            const departmentData = this.organizeDepartmentData(coordinators, confirmationsForWeek);
+            
+            // Actualizar la tabla con los datos
+            this.updateConfirmationsTable(departmentData);
+        } catch (error) {
+            console.error('Error al cargar datos de confirmación desde Firebase:', error);
+            // Mostrar mensaje de error en la interfaz
+            this.confirmationsBody.innerHTML = `<tr><td colspan="9" class="error-message">Error al cargar datos. Por favor, intente de nuevo.</td></tr>`;
+            throw error; // Re-lanzar el error para que pueda ser capturado por el llamador
+        }
     },
     
     /**
@@ -1643,9 +1620,9 @@ const DataBackupManagement = {
                 const success = StorageUtil.downloadData();
                 
                 if (success) {
-                    showNotification('Datos exportados correctamente', 'success');
+                    AppUtils.showNotification('Datos exportados correctamente', 'success');
                 } else {
-                    showNotification('Error al exportar datos', 'error');
+                    AppUtils.showNotification('Error al exportar datos', 'error');
                 }
                 
                 // Restaurar botón
@@ -1654,7 +1631,7 @@ const DataBackupManagement = {
             }, 500);
         } catch (error) {
             console.error('Error al exportar datos:', error);
-            showNotification('Error al exportar datos: ' + error.message, 'error');
+            AppUtils.showNotification('Error al exportar datos: ' + error.message, 'error');
             
             // Restaurar botón
             this.exportBtn.disabled = false;
@@ -1669,7 +1646,7 @@ const DataBackupManagement = {
     handleFileSelection: function(file) {
         // Validar que sea un archivo JSON
         if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-            showNotification('El archivo debe ser de tipo JSON', 'error');
+            AppUtils.showNotification('El archivo debe ser de tipo JSON', 'error');
             this.cancelImport();
             return;
         }
@@ -1689,7 +1666,7 @@ const DataBackupManagement = {
      */
     importData: function() {
         if (!this.selectedFile) {
-            showNotification('No se ha seleccionado ningún archivo', 'error');
+            AppUtils.showNotification('No se ha seleccionado ningún archivo', 'error');
             return;
         }
         
@@ -1703,25 +1680,25 @@ const DataBackupManagement = {
             StorageUtil.importFromFile(this.selectedFile)
                 .then(success => {
                     if (success) {
-                        showNotification('Datos importados correctamente', 'success');
+                        AppUtils.showNotification('Datos importados correctamente', 'success');
                         
                         // Recargar la página para reflejar los cambios
                         setTimeout(() => {
                             window.location.reload();
                         }, 1500);
                     } else {
-                        showNotification('Error al importar datos', 'error');
+                        AppUtils.showNotification('Error al importar datos', 'error');
                         this.resetImportUI();
                     }
                 })
                 .catch(error => {
                     console.error('Error al importar datos:', error);
-                    showNotification('Error al importar datos: ' + error.message, 'error');
+                    AppUtils.showNotification('Error al importar datos: ' + error.message, 'error');
                     this.resetImportUI();
                 });
         } catch (error) {
             console.error('Error al importar datos:', error);
-            showNotification('Error al importar datos: ' + error.message, 'error');
+            AppUtils.showNotification('Error al importar datos: ' + error.message, 'error');
             this.resetImportUI();
         }
     },

@@ -31,6 +31,22 @@ const StorageAdapter = {
                 return StorageUtil.initStorage();
             }
             
+            // Intentar habilitar la persistencia de Firebase primero
+            try {
+                await firebase.firestore().enablePersistence({
+                    synchronizeTabs: true
+                });
+                console.log('Persistencia de Firebase habilitada correctamente');
+            } catch (persistenceError) {
+                // Si hay un error de múltiples pestañas, es normal y podemos continuar
+                if (persistenceError.code === 'failed-precondition') {
+                    console.warn('La persistencia de Firebase ya está habilitada en otra pestaña');
+                } else {
+                    // Para otros errores, registrar pero continuar
+                    console.error('Error al habilitar persistencia de Firebase:', persistenceError);
+                }
+            }
+            
             // Verificar si las colecciones existen y crearlas si no
             const db = firebase.firestore();
             const collections = ['menus', 'coordinators', 'attendanceConfirmations', 'appState'];

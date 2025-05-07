@@ -23,7 +23,7 @@ function initCoordinatorLogin() {
     checkExistingSession();
     
     // Manejar envío del formulario
-    loginForm.addEventListener('submit', function(event) {
+    loginForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         
         // Ocultar mensaje de error previo
@@ -43,8 +43,33 @@ function initCoordinatorLogin() {
             return;
         }
         
-        // Verificar código de acceso
-        verifyAccessCode(accessCode);
+        try {
+            // Mostrar indicador de carga
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner"></span> Verificando...';
+            }
+            
+            // Verificar código de acceso
+            await verifyAccessCode(accessCode);
+            
+            // Restaurar botón si hay error (si hay éxito, se redirige)
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Ingresar';
+            }
+        } catch (error) {
+            console.error('Error al verificar código de acceso:', error);
+            showLoginError('Error al verificar código. Por favor, intente nuevamente.');
+            
+            // Restaurar botón
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Ingresar';
+            }
+        }
     });
 }
 
@@ -59,22 +84,28 @@ function validateAccessCode(code) {
 }
 
 /**
- * Verifica el código de acceso contra la base de datos
+ * Verifica el código de acceso contra la base de datos en Firebase
  * @param {string} accessCode - Código de acceso a verificar
+ * @returns {Promise<void>} - Promesa que se resuelve cuando se completa la verificación
  */
-function verifyAccessCode(accessCode) {
-    // Obtener todos los coordinadores
-    const coordinators = StorageUtil.Coordinators.getAll();
+async function verifyAccessCode(accessCode) {
+    console.log('Verificando código de acceso en Firebase:', accessCode);
     
-    // Buscar coordinador con el código de acceso proporcionado
-    const coordinator = coordinators.find(c => c.accessCode === accessCode);
-    
-    if (coordinator) {
-        // Código válido, iniciar sesión
-        loginCoordinator(coordinator);
-    } else {
-        // Código inválido, mostrar error
-        showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+    try {
+        // Verificar código de acceso usando Firebase
+        const coordinator = await FirebaseCoordinatorModel.verifyAccessCode(accessCode);
+        
+        if (coordinator) {
+            // Código válido, iniciar sesión
+            loginCoordinator(coordinator);
+        } else {
+            // Código inválido, mostrar error
+            showLoginError('Código de acceso inválido. Por favor, verifique e intente nuevamente.');
+        }
+    } catch (error) {
+        console.error('Error al verificar código de acceso en Firebase:', error);
+        showLoginError('Error al verificar código. Por favor, intente nuevamente.');
+        throw error; // Re-lanzar el error para que pueda ser capturado por el llamador
     }
 }
 

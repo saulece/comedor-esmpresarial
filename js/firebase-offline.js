@@ -19,18 +19,26 @@ const FirebaseOffline = {
     
     /**
      * Inicializa el módulo de funcionalidad offline
+     * @returns {Promise<void>} - Promesa que se resuelve cuando se completa la inicialización
      */
-    init: function() {
-        // Configurar Firebase para persistencia offline
-        this._setupFirebasePersistence();
+    init: async function() {
+        console.log('Iniciando módulo de funcionalidad offline...');
         
-        // Configurar listeners para detectar cambios en la conexión
-        this._setupConnectionListeners();
+        try {
+            // Configurar Firebase para persistencia offline (esperar a que se complete)
+            await this._setupFirebasePersistence();
+            
+            // Configurar listeners para detectar cambios en la conexión
+            this._setupConnectionListeners();
+            
+            // Mostrar indicador de estado inicial
+            this._updateOfflineIndicator();
+            
+            console.log('Módulo de funcionalidad offline inicializado correctamente');
+        } catch (error) {
+            console.error('Error al inicializar módulo offline:', error);
+        }
         
-        // Mostrar indicador de estado inicial
-        this._updateOfflineIndicator();
-        
-        console.log('Módulo de funcionalidad offline inicializado');
         return this;
     },
     
@@ -115,8 +123,55 @@ const FirebaseOffline = {
         if (!this._isOnline) {
             const indicator = document.createElement('div');
             indicator.className = 'offline-indicator';
-            indicator.textContent = 'Sin conexión - Los cambios se sincronizarán cuando vuelvas a estar en línea';
+            
+            // Crear contenido con icono y texto informativo
+            indicator.innerHTML = `
+                <i class="fas fa-wifi" style="margin-right: 8px;"></i>
+                <span>Sin conexión - Los cambios se sincronizarán cuando vuelvas a estar en línea</span>
+                <button class="close-btn" style="margin-left: 16px; background: transparent; border: none; color: white; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Agregar al DOM
             document.body.prepend(indicator);
+            
+            // Configurar botón de cierre
+            const closeBtn = indicator.querySelector('.close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    indicator.style.display = 'none';
+                });
+            }
+            
+            // Mostrar notificación adicional
+            this._showOfflineNotification();
+        } else {
+            // Si estamos online y había un indicador antes (transición offline->online)
+            if (existingIndicator) {
+                // Mostrar notificación de reconexión
+                this._showOnlineNotification();
+            }
+        }
+    },
+    
+    /**
+     * Muestra una notificación cuando se pierde la conexión
+     * @private
+     */
+    _showOfflineNotification: function() {
+        if (typeof AppUtils !== 'undefined' && AppUtils.showNotification) {
+            AppUtils.showNotification('Trabajando sin conexión. Los cambios se guardarán localmente.', 'warning');
+        }
+    },
+    
+    /**
+     * Muestra una notificación cuando se recupera la conexión
+     * @private
+     */
+    _showOnlineNotification: function() {
+        if (typeof AppUtils !== 'undefined' && AppUtils.showNotification) {
+            AppUtils.showNotification('Conexión restablecida. Sincronizando cambios...', 'success');
         }
     },
     

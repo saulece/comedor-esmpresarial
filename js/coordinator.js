@@ -4,16 +4,12 @@
  */
 
 // Inicialización cuando el DOM está listo
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('Módulo de coordinación inicializado');
     
-    // Inicializar el sistema de almacenamiento si es necesario
-    if (typeof StorageUtil !== 'undefined') {
-        // Inicializar datos de ejemplo si no hay menús
-        initSampleDataIfNeeded();
-        
+    try {
         // Verificar si hay una sesión activa
-        const hasSession = checkSession();
+        const hasSession = await checkSession();
         
         if (hasSession) {
             // Ya hay una sesión activa, inicializar la interfaz
@@ -22,90 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // No hay sesión, mostrar modal de login
             showLoginModal();
         }
-    } else {
-        console.error('StorageUtil no está definido. Asegúrate de cargar storage.js antes de coordinator.js');
-        document.body.innerHTML = '<div class="error-message">Error al cargar el sistema de almacenamiento. Por favor, recarga la página.</div>';
+    } catch (error) {
+        console.error('Error al verificar sesión:', error);
+        document.body.innerHTML = '<div class="error-message">Error al verificar sesión. Por favor, recarga la página.</div>';
     }
 });
 
 /**
- * Inicializa datos de ejemplo si no existen datos en el sistema
- */
-function initSampleDataIfNeeded() {
-    // Verificar si ya hay menús
-    const menus = StorageUtil.Menus.getAll();
-    
-    if (menus.length === 0) {
-        console.log('No hay menús, inicializando datos de ejemplo...');
-        
-        // Crear un menú de ejemplo
-        const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - today.getDay() + 1); // Lunes de esta semana
-        
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 4); // Viernes de esta semana
-        
-        const sampleMenu = {
-            id: 'menu_' + Date.now(),
-            name: 'Menú Semanal',
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: endDate.toISOString().split('T')[0],
-            days: [
-                {
-                    id: 'lunes',
-                    name: 'Lunes',
-                    dishes: [
-                        {
-                            id: 'dish_1',
-                            name: 'Enchiladas Suizas',
-                            description: 'Enchiladas con salsa verde, crema y queso',
-                            price: 85.00
-                        },
-                        {
-                            id: 'dish_2',
-                            name: 'Sopa de Tortilla',
-                            description: 'Con aguacate, queso y chicharrón',
-                            price: 45.00
-                        }
-                    ]
-                },
-                {
-                    id: 'martes',
-                    name: 'Martes',
-                    dishes: [
-                        {
-                            id: 'dish_3',
-                            name: 'Chiles Rellenos',
-                            description: 'Rellenos de queso con salsa de tomate',
-                            price: 90.00
-                        },
-                        {
-                            id: 'dish_4',
-                            name: 'Arroz a la Mexicana',
-                            description: 'Con verduras y especias',
-                            price: 35.00
-                        }
-                    ]
-                },
-                {
-                    id: 'miercoles',
-                    name: 'Miércoles',
-                    dishes: [
-                        {
-                            id: 'dish_5',
-                            name: 'Mole Poblano',
-                            description: 'Con pollo y arroz',
-                            price: 95.00
-                        },
-                        {
-                            id: 'dish_6',
-                            name: 'Frijoles Charros',
-                            description: 'Con tocino y chorizo',
-                            price: 40.00
-                        }
-                    ]
-                },
                 {
                     id: 'jueves',
                     name: 'Jueves',
@@ -170,27 +89,40 @@ function initSampleDataIfNeeded() {
 
 /**
  * Verifica si hay una sesión activa
- * @returns {boolean} - true si hay una sesión activa, false si no
+ * @returns {Promise<boolean>} - Promesa que resuelve a true si hay una sesión activa, false si no
  */
-function checkSession() {
+async function checkSession() {
     const coordinatorId = sessionStorage.getItem('coordinatorId');
     
     if (!coordinatorId) {
         return false;
     }
     
-    // Verificar que el coordinador exista en la base de datos
-    const coordinator = StorageUtil.Coordinators.get(coordinatorId);
-    
-    if (!coordinator) {
-        // El coordinador no existe, limpiar sesión
+    try {
+        console.log('Verificando sesión con Firebase para coordinador ID:', coordinatorId);
+        
+        // Verificar que el coordinador exista en Firebase
+        const coordinator = await FirebaseCoordinatorModel.get(coordinatorId);
+        
+        if (!coordinator) {
+            console.log('Coordinador no encontrado en Firebase, limpiando sesión');
+            // El coordinador no existe, limpiar sesión
+            sessionStorage.removeItem('coordinatorId');
+            sessionStorage.removeItem('coordinatorName');
+            sessionStorage.removeItem('loginTime');
+            return false;
+        }
+        
+        console.log('Sesión válida para coordinador:', coordinator.name);
+        return true;
+    } catch (error) {
+        console.error('Error al verificar sesión en Firebase:', error);
+        // En caso de error, limpiar sesión por seguridad
         sessionStorage.removeItem('coordinatorId');
         sessionStorage.removeItem('coordinatorName');
         sessionStorage.removeItem('loginTime');
         return false;
     }
-    
-    return true;
 }
 
 /**
@@ -205,13 +137,31 @@ function showLoginModal() {
         
         // Configurar formulario de login
         if (loginForm) {
-            loginForm.addEventListener('submit', function(event) {
+            loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 
                 const accessCode = document.getElementById('access-code').value.trim();
                 
                 if (accessCode) {
-                    loginCoordinator(accessCode);
+                    // Mostrar indicador de carga
+                    const submitButton = loginForm.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<span class="spinner"></span> Verificando...';
+                    }
+                    
+                    try {
+                        await loginCoordinator(accessCode);
+                    } catch (error) {
+                        console.error('Error al iniciar sesión:', error);
+                        showNotification('Error al iniciar sesión. Por favor, intente nuevamente.', 'error');
+                    } finally {
+                        // Restaurar botón
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = 'Ingresar';
+                        }
+                    }
                 }
             });
         }
@@ -221,32 +171,44 @@ function showLoginModal() {
 /**
  * Inicia sesión con un código de acceso
  * @param {string} accessCode - Código de acceso del coordinador
+ * @returns {Promise<boolean>} - Promesa que resuelve a true si el inicio de sesión fue exitoso
  */
-function loginCoordinator(accessCode) {
-    // Buscar el coordinador por código de acceso
-    const coordinators = StorageUtil.Coordinators.getAll();
-    const coordinator = coordinators.find(c => c.accessCode === accessCode);
-    
-    if (coordinator) {
-        // Guardar información de sesión
-        sessionStorage.setItem('coordinatorId', coordinator.id);
-        sessionStorage.setItem('coordinatorName', coordinator.name);
-        sessionStorage.setItem('loginTime', new Date().toISOString());
+async function loginCoordinator(accessCode) {
+    try {
+        console.log('Verificando código de acceso en Firebase:', accessCode);
         
-        // Ocultar modal de login
-        const loginModal = document.getElementById('login-modal');
-        if (loginModal) {
-            loginModal.classList.remove('active');
+        // Verificar código de acceso usando Firebase
+        const coordinator = await FirebaseCoordinatorModel.verifyAccessCode(accessCode);
+        
+        if (coordinator) {
+            console.log('Código de acceso válido para coordinador:', coordinator.name);
+            
+            // Guardar información de sesión
+            sessionStorage.setItem('coordinatorId', coordinator.id);
+            sessionStorage.setItem('coordinatorName', coordinator.name);
+            sessionStorage.setItem('loginTime', new Date().toISOString());
+            
+            // Ocultar modal de login
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.remove('active');
+            }
+            
+            // Inicializar interfaz
+            initCoordinatorInterface();
+            
+            // Mostrar notificación de bienvenida
+            AppUtils.showNotification(`Bienvenido, ${coordinator.name}`, 'success');
+            return true;
+        } else {
+            // Mostrar error
+            AppUtils.showNotification('Código de acceso inválido', 'error');
+            return false;
         }
-        
-        // Inicializar interfaz
-        initCoordinatorInterface();
-        
-        // Mostrar notificación de bienvenida
-        showNotification(`Bienvenido, ${coordinator.name}`, 'success');
-    } else {
-        // Mostrar error
-        showNotification('Código de acceso inválido', 'error');
+    } catch (error) {
+        console.error('Error al verificar código de acceso en Firebase:', error);
+        AppUtils.showNotification('Error al verificar código. Por favor, intente nuevamente.', 'error');
+        throw error; // Re-lanzar el error para que pueda ser capturado por el llamador
     }
 }
 
@@ -263,50 +225,10 @@ function logoutCoordinator() {
     showLoginModal();
     
     // Mostrar notificación
-    showNotification('Sesión cerrada correctamente', 'success');
+    AppUtils.showNotification('Sesión cerrada correctamente', 'success');
 }
 
-/**
- * Muestra una notificación temporal
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de notificación ('success' o 'error')
- */
-function showNotification(message, type = 'success') {
-    try {
-        // Eliminar notificaciones existentes
-        const existingNotifications = document.querySelectorAll('.notification');
-        existingNotifications.forEach(notification => {
-            if (notification && notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        });
-        
-        // Crear nueva notificación
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        
-        // Agregar al DOM
-        document.body.appendChild(notification);
-        
-        // Mostrar con animación
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        // Ocultar después de 3 segundos
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification && notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    } catch (error) {
-        console.error('Error al mostrar notificación:', error);
-    }
-}
+// La función showNotification se ha movido a utils.js
 
 /**
  * Inicializa la interfaz de coordinación
@@ -393,7 +315,13 @@ function loadCurrentMenu() {
     if (typeof FirebaseMenuModel !== 'undefined') {
         try {
             // Usar Firebase con sincronización en tiempo real
-            FirebaseMenuModel.listenToActiveMenu(menu => {
+            const unsubscribe = FirebaseMenuModel.listenToActiveMenu((menu, error) => {
+                if (error) {
+                    console.error('Error en la escucha del menú activo:', error);
+                    currentMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú. Por favor, recarga la página.</p>';
+                    return;
+                }
+                
                 if (!menu) {
                     currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
                     return;
@@ -405,7 +333,7 @@ function loadCurrentMenu() {
                 // Mostrar indicador de sincronización
                 const syncIndicator = document.createElement('div');
                 syncIndicator.className = 'sync-indicator';
-                syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado';
+                syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado en tiempo real';
                 currentMenuContainer.appendChild(syncIndicator);
                 
                 // Hacer que el indicador desaparezca después de 3 segundos
@@ -418,21 +346,39 @@ function loadCurrentMenu() {
                     }, 500);
                 }, 3000);
             });
+            
+            // Guardar la función de cancelación para limpiarla cuando sea necesario
+            currentMenuContainer.dataset.unsubscribe = unsubscribe;
+            
+            // Agregar un evento para limpiar la suscripción cuando se cambie de pestaña
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(button => {
+                if (button.getAttribute('data-tab') !== 'current-menu-tab') {
+                    button.addEventListener('click', function() {
+                        if (typeof currentMenuContainer.dataset.unsubscribe === 'function') {
+                            currentMenuContainer.dataset.unsubscribe();
+                            delete currentMenuContainer.dataset.unsubscribe;
+                        }
+                    });
+                }
+            });
         } catch (error) {
-            console.error('Error al cargar menú con Firebase:', error);
-            // Usar localStorage como fallback
-            loadMenuFromLocalStorage(currentMenuContainer);
+            console.error('Error al inicializar escucha de menú con Firebase:', error);
+            currentMenuContainer.innerHTML = '<p class="error-state">Error al conectar con Firebase. Por favor, recarga la página.</p>';
         }
     } else {
-        // Firebase no está disponible, usar localStorage
-        loadMenuFromLocalStorage(currentMenuContainer);
+        // Firebase no está disponible, mostrar mensaje de error
+        console.error('Firebase no está disponible. Asegúrate de incluir los archivos necesarios.');
+        currentMenuContainer.innerHTML = '<p class="error-state">Error: Firebase no está disponible. Por favor, contacta al administrador.</p>';
     }
 }
 
 /**
  * Carga el menú desde localStorage (fallback)
  * @param {HTMLElement} container - Contenedor donde mostrar el menú
+ * @deprecated Esta función ya no se utiliza ya que ahora se usa Firebase para cargar el menú
  */
+/* 
 function loadMenuFromLocalStorage(container) {
     // Obtener todos los menús
     const menus = StorageUtil.Menus.getAll();
@@ -461,6 +407,7 @@ function loadMenuFromLocalStorage(container) {
     // Mostrar el menú
     displayMenu(latestMenu, container);
 }
+*/
 
 /**
  * Muestra un menú en el contenedor especificado
@@ -477,7 +424,7 @@ function displayMenu(menu, container) {
     // Crear contenido HTML para el menú
     let html = `
         <div class="menu-header">
-            <h4>Menú del ${formatDate(menu.startDate)} al ${formatDate(menu.endDate)}</h4>
+            <h4>Menú del ${AppUtils.formatDate(menu.startDate)} al ${AppUtils.formatDate(menu.endDate)}</h4>
         </div>
         <div class="menu-days">
     `;
@@ -521,16 +468,7 @@ function displayMenu(menu, container) {
     container.innerHTML = html;
 }
 
-/**
- * Formatea una fecha en formato legible
- * @param {string} dateString - Fecha en formato ISO
- * @returns {string} - Fecha formateada (ej: "15 de abril de 2025")
- */
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    return date.toLocaleDateString('es-ES', options);
-}
+// La función formatDate se ha movido a utils.js
 
 /**
  * Gestión de asistencia para coordinadores
@@ -555,9 +493,28 @@ const AttendanceManager = {
         const attendanceForm = document.getElementById('attendance-form');
         const resetBtn = document.getElementById('reset-attendance-btn');
         
-        attendanceForm.addEventListener('submit', (event) => {
+        attendanceForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            this.saveAttendance();
+            
+            // Deshabilitar botón para evitar múltiples envíos
+            const submitButton = document.getElementById('save-attendance-btn');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner"></span> Guardando...';
+            }
+            
+            try {
+                await this.saveAttendance();
+            } catch (error) {
+                console.error('Error al guardar confirmación:', error);
+                alert('Error al guardar la confirmación de asistencia. Por favor, intente nuevamente.');
+            } finally {
+                // Restaurar botón
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = this.currentConfirmation ? 'Actualizar Confirmación' : 'Confirmar Asistencia';
+                }
+            }
         });
         
         resetBtn.addEventListener('click', () => this.resetForm());
@@ -581,28 +538,85 @@ const AttendanceManager = {
      * Establece la semana actual y carga los datos correspondientes
      * @param {Date} startDate - Fecha de inicio de la semana
      */
-    setCurrentWeek: function(startDate) {
+    setCurrentWeek: async function(startDate) {
         // Guardar fecha de inicio de la semana
         this.currentWeekStartDate = startDate;
         
         // Actualizar visualización de la semana seleccionada
         this.updateWeekDisplay();
         
-        // Cargar menú para la semana seleccionada
-        this.loadMenuForWeek();
+        // Cargar menú para la semana seleccionada (ahora es asíncrono)
+        try {
+            await this.loadMenuForWeek();
+        } catch (error) {
+            console.error('Error al cargar menú para la semana seleccionada:', error);
+            // Mostrar mensaje de error en la UI
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.textContent = 'Error al cargar el menú. Por favor, intente nuevamente.';
+            
+            const container = document.getElementById('confirmation-menu-display');
+            if (container) {
+                // Insertar al principio del contenedor
+                container.innerHTML = '';
+                container.appendChild(errorMsg);
+                
+                // Eliminar después de 5 segundos
+                setTimeout(() => {
+                    if (errorMsg.parentNode) {
+                        errorMsg.parentNode.removeChild(errorMsg);
+                    }
+                }, 5000);
+            }
+        }
         
         // Cargar confirmación existente si hay
-        this.loadExistingConfirmation();
+        try {
+            await this.loadExistingConfirmation();
+        } catch (error) {
+            console.error('Error al cargar confirmación existente:', error);
+            // Mostrar mensaje de error en la UI
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.textContent = 'Error al cargar datos de confirmación. Por favor, intente nuevamente.';
+            
+            const container = document.getElementById('attendance-container');
+            if (container) {
+                // Insertar al principio del contenedor
+                container.insertBefore(errorMsg, container.firstChild);
+                
+                // Eliminar después de 5 segundos
+                setTimeout(() => {
+                    if (errorMsg.parentNode) {
+                        errorMsg.parentNode.removeChild(errorMsg);
+                    }
+                }, 5000);
+            }
+        }
     },
     
     /**
      * Cambia la semana actual
      * @param {number} offset - Número de semanas a avanzar/retroceder
      */
-    changeWeek: function(offset) {
+    changeWeek: async function(offset) {
         const newDate = new Date(this.currentWeekStartDate);
         newDate.setDate(newDate.getDate() + (offset * 7));
-        this.setCurrentWeek(newDate);
+        
+        // Mostrar indicador de carga
+        const weekDisplay = document.getElementById('selected-week-display');
+        if (weekDisplay) {
+            weekDisplay.innerHTML += ' <span class="spinner small"></span>';
+        }
+        
+        try {
+            await this.setCurrentWeek(newDate);
+        } catch (error) {
+            console.error('Error al cambiar de semana:', error);
+        } finally {
+            // Actualizar visualización sin spinner
+            this.updateWeekDisplay();
+        }
     },
     
     /**
@@ -618,8 +632,8 @@ const AttendanceManager = {
         endDate.setDate(endDate.getDate() + 4); // +4 días desde el lunes = viernes
         
         // Formatear fechas
-        const startStr = this.formatDate(this.currentWeekStartDate);
-        const endStr = this.formatDate(endDate);
+        const startStr = AppUtils.formatDate(this.currentWeekStartDate);
+        const endStr = AppUtils.formatDate(endDate);
         
         weekDisplay.textContent = `Semana del ${startStr} al ${endStr}`;
     },
@@ -629,57 +643,89 @@ const AttendanceManager = {
      * @param {Date} date - Fecha a formatear
      * @returns {string} - Fecha formateada (ej: "15 de abril")
      */
+    // La función formatDate se ha movido a utils.js
     formatDate: function(date) {
         const options = { day: 'numeric', month: 'long' };
         return date.toLocaleDateString('es-ES', options);
     },
     
     /**
-     * Carga el menú para la semana seleccionada
+     * Carga el menú para la semana seleccionada usando Firebase
+     * @returns {Promise<void>}
      */
-    loadMenuForWeek: function() {
+    loadMenuForWeek: async function() {
         const menuContainer = document.getElementById('confirmation-menu-display');
         
         if (!menuContainer) return;
         
         // Mostrar mensaje de carga
-        menuContainer.innerHTML = '<p class="empty-state">Cargando menú semanal...</p>';
+        menuContainer.innerHTML = '<p class="empty-state"><span class="spinner"></span> Cargando menú semanal...</p>';
         
-        // Obtener todos los menús
-        const menus = StorageUtil.Menus.getAll();
-        
-        if (menus.length === 0) {
-            menuContainer.innerHTML = '<p class="empty-state">No hay menús disponibles.</p>';
+        try {
+            // Obtener la fecha de inicio y fin de la semana seleccionada en formato ISO
+            const weekStartDate = this.currentWeekStartDate.toISOString().split('T')[0];
+            
+            // Calcular la fecha de fin de la semana (viernes)
+            const weekEndDate = new Date(this.currentWeekStartDate);
+            weekEndDate.setDate(weekEndDate.getDate() + 4); // +4 días desde el lunes = viernes
+            const weekEndDateStr = weekEndDate.toISOString().split('T')[0];
+            
+            console.log(`Buscando menú para la semana del ${weekStartDate} al ${weekEndDateStr}`);
+            
+            // Consultar Firestore para obtener el menú que incluya la fecha de inicio de la semana
+            const snapshot = await firebase.firestore()
+                .collection('menus')
+                .where('startDate', '<=', weekEndDateStr) // Menú comienza antes o en el último día de la semana
+                .where('endDate', '>=', weekStartDate)   // Menú termina después o en el primer día de la semana
+                .orderBy('startDate', 'desc')
+                .limit(1)
+                .get();
+            
+            if (snapshot.empty) {
+                console.log('No se encontró menú para la semana seleccionada');
+                menuContainer.innerHTML = '<p class="empty-state">No hay menú disponible para esta semana.</p>';
+                this.currentMenu = null;
+                this.generateAttendanceInputs(null);
+                return;
+            }
+            
+            // Obtener el primer documento (debería ser el único si limit(1))
+            const doc = snapshot.docs[0];
+            this.currentMenu = {
+                ...doc.data(),
+                id: doc.id
+            };
+            
+            console.log('Menú encontrado para la semana seleccionada:', this.currentMenu);
+            
+            // Mostrar el menú
+            this.displayMenu(this.currentMenu, menuContainer);
+            
+            // Generar inputs para la asistencia
+            this.generateAttendanceInputs(this.currentMenu);
+            
+            // Mostrar indicador de sincronización
+            const syncIndicator = document.createElement('div');
+            syncIndicator.className = 'sync-indicator';
+            syncIndicator.innerHTML = '<span class="sync-icon"></span> Datos cargados desde Firebase';
+            menuContainer.appendChild(syncIndicator);
+            
+            // Hacer que el indicador desaparezca después de 3 segundos
+            setTimeout(() => {
+                syncIndicator.classList.add('fade-out');
+                setTimeout(() => {
+                    if (syncIndicator.parentNode) {
+                        syncIndicator.parentNode.removeChild(syncIndicator);
+                    }
+                }, 500);
+            }, 3000);
+            
+        } catch (error) {
+            console.error('Error al cargar menú desde Firebase:', error);
+            menuContainer.innerHTML = `<p class="error-state">Error al cargar el menú: ${error.message}</p>`;
             this.currentMenu = null;
             this.generateAttendanceInputs(null);
-            return;
         }
-        
-        // Buscar menú para la semana seleccionada
-        const targetStartDate = this.currentWeekStartDate.toISOString().split('T')[0];
-        
-        // Encontrar el menú cuyo rango de fechas incluya la semana actual
-        this.currentMenu = menus.find(menu => {
-            const menuStartDate = new Date(menu.startDate);
-            const menuEndDate = new Date(menu.endDate);
-            
-            return (
-                menuStartDate <= this.currentWeekStartDate && 
-                menuEndDate >= this.currentWeekStartDate
-            );
-        });
-        
-        if (!this.currentMenu) {
-            menuContainer.innerHTML = '<p class="empty-state">No hay menú disponible para esta semana.</p>';
-            this.generateAttendanceInputs(null);
-            return;
-        }
-        
-        // Mostrar el menú
-        this.displayMenu(this.currentMenu, menuContainer);
-        
-        // Generar inputs para la asistencia
-        this.generateAttendanceInputs(this.currentMenu);
     },
     
     /**
@@ -697,7 +743,7 @@ const AttendanceManager = {
         // Crear contenido HTML para el menú
         let html = `
             <div class="menu-header">
-                <h4>Menú del ${formatDate(menu.startDate)} al ${formatDate(menu.endDate)}</h4>
+                <h4>Menú del ${AppUtils.formatDate(menu.startDate)} al ${AppUtils.formatDate(menu.endDate)}</h4>
             </div>
             <div class="menu-days">
         `;
@@ -739,7 +785,7 @@ const AttendanceManager = {
                 
                 const dateDiv = document.createElement('div');
                 dateDiv.className = 'attendance-day-date';
-                dateDiv.textContent = date ? this.formatDate(date) : '';
+                dateDiv.textContent = date ? AppUtils.formatDate(date) : '';
                 
                 const inputGroup = document.createElement('div');
                 inputGroup.className = 'form-group';
@@ -824,7 +870,7 @@ const AttendanceManager = {
                 
                 const dateDiv = document.createElement('div');
                 dateDiv.className = 'attendance-day-date';
-                dateDiv.textContent = date ? this.formatDate(date) : '';
+                dateDiv.textContent = date ? AppUtils.formatDate(date) : '';
                 
                 const inputGroup = document.createElement('div');
                 inputGroup.className = 'form-group';
@@ -857,24 +903,49 @@ const AttendanceManager = {
     
     /**
      * Carga una confirmación existente si hay para la semana actual
+     * @returns {Promise<void>} - Promesa que se resuelve cuando se completa la carga
      */
-    loadExistingConfirmation: function() {
+    loadExistingConfirmation: async function() {
         // Obtener ID del coordinador de la sesión
         const coordinatorId = sessionStorage.getItem('coordinatorId');
         if (!coordinatorId) return;
         
-        // Buscar confirmación existente
-        const weekStartStr = this.currentWeekStartDate.toISOString().split('T')[0];
-        this.currentConfirmation = StorageUtil.AttendanceConfirmations.getByCoordinatorAndWeek(
-            coordinatorId,
-            weekStartStr
-        );
+        // Mostrar indicador de carga
+        const saveButton = document.getElementById('save-attendance-btn');
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner"></span> Cargando...';
+        }
         
-        if (!this.currentConfirmation) {
-            // No hay confirmación existente
-            document.getElementById('last-update-info').style.display = 'none';
-            document.getElementById('save-attendance-btn').textContent = 'Confirmar Asistencia';
-            return;
+        try {
+            // Buscar confirmación existente en Firebase
+            const weekStartStr = this.currentWeekStartDate.toISOString().split('T')[0];
+            console.log('Buscando confirmación para coordinador', coordinatorId, 'y semana', weekStartStr);
+            
+            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(
+                coordinatorId,
+                weekStartStr
+            );
+            
+            if (!this.currentConfirmation) {
+                console.log('No se encontró confirmación existente');
+                // No hay confirmación existente
+                document.getElementById('last-update-info').style.display = 'none';
+                if (saveButton) {
+                    saveButton.textContent = 'Confirmar Asistencia';
+                    saveButton.disabled = false;
+                }
+                return;
+            }
+            
+            console.log('Confirmación encontrada:', this.currentConfirmation);
+        } catch (error) {
+            console.error('Error al cargar confirmación desde Firebase:', error);
+            if (saveButton) {
+                saveButton.textContent = 'Confirmar Asistencia';
+                saveButton.disabled = false;
+            }
+            throw error;
         }
         
         // Mostrar datos de la confirmación existente
@@ -904,13 +975,14 @@ const AttendanceManager = {
     
     /**
      * Guarda la confirmación de asistencia
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se guardó correctamente
      */
-    saveAttendance: function() {
+    saveAttendance: async function() {
         // Obtener ID del coordinador de la sesión
         const coordinatorId = sessionStorage.getItem('coordinatorId');
         if (!coordinatorId) {
             alert('Debe iniciar sesión para confirmar asistencia.');
-            return;
+            return false;
         }
         
         // Recopilar datos del formulario
@@ -929,30 +1001,48 @@ const AttendanceManager = {
         
         // Crear o actualizar confirmación
         let confirmation;
+        let success = false;
         
-        if (this.currentConfirmation) {
-            // Actualizar confirmación existente
-            confirmation = this.currentConfirmation;
-            confirmation.attendanceCounts = attendanceCounts;
-            confirmation.updatedAt = new Date();
-        } else {
-            // Crear nueva confirmación
-            confirmation = new AttendanceConfirmation(
-                null,
-                coordinatorId,
-                this.currentWeekStartDate.toISOString().split('T')[0],
-                attendanceCounts
-            );
-        }
-        
-        // Guardar en almacenamiento
-        const success = StorageUtil.AttendanceConfirmations.add(confirmation);
-        
-        if (success) {
-            alert('Confirmación de asistencia guardada correctamente.');
-            this.loadExistingConfirmation();
-        } else {
-            alert('Error al guardar la confirmación de asistencia.');
+        try {
+            if (this.currentConfirmation) {
+                // Actualizar confirmación existente
+                console.log('Actualizando confirmación existente:', this.currentConfirmation.id);
+                confirmation = this.currentConfirmation;
+                confirmation.attendanceCounts = attendanceCounts;
+                confirmation.updatedAt = new Date();
+                
+                // Guardar en Firebase
+                success = await FirebaseAttendanceModel.update(confirmation.id, confirmation);
+            } else {
+                // Crear nueva confirmación
+                console.log('Creando nueva confirmación para la semana:', this.currentWeekStartDate.toISOString().split('T')[0]);
+                confirmation = new AttendanceConfirmation(
+                    null,
+                    coordinatorId,
+                    this.currentWeekStartDate.toISOString().split('T')[0],
+                    attendanceCounts
+                );
+                
+                // Guardar en Firebase
+                success = await FirebaseAttendanceModel.add(confirmation);
+            }
+            
+            if (success) {
+                console.log('Confirmación guardada correctamente en Firebase');
+                alert('Confirmación de asistencia guardada correctamente.');
+                
+                // Recargar la confirmación para actualizar la UI
+                await this.loadExistingConfirmation();
+                return true;
+            } else {
+                console.error('Error al guardar la confirmación en Firebase');
+                alert('Error al guardar la confirmación de asistencia.');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error al guardar confirmación en Firebase:', error);
+            alert('Error al guardar la confirmación de asistencia: ' + error.message);
+            return false;
         }
     },
     

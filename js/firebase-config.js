@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDyCRgqHkCy7gusyAeB724Okmc4IVXNXIE",
   authDomain: "comedor-empresarial.firebaseapp.com",
   projectId: "comedor-empresarial",
-  storageBucket: "comedor-empresarial.appspot.com",
+  storageBucket: "comedor-empresarial.firebasestorage.app",
   messagingSenderId: "786660040665",
   appId: "1:786660040665:web:2c25dff6524f57f763c3c8"
 };
