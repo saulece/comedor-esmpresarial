@@ -488,13 +488,13 @@ async function saveMenu() {
         
         // Mostrar notificación
         if (success) {
-            showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.');
+            AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.');
             loadSavedMenus().catch(error => {
                 console.error('Error al cargar menús después de guardar:', error);
             });
             resetForm();
         } else {
-            showNotification(currentEditingMenuId ? 'Error al actualizar el menú.' : 'Error al guardar el menú.', 'error');
+            AppUtils.showNotification(currentEditingMenuId ? 'Error al actualizar el menú.' : 'Error al guardar el menú.', 'error');
         }
     } catch (error) {
         console.error('Error al guardar menú:', error);
