@@ -333,20 +333,6 @@ function createDishInputGroup(dayName, categoryKey, index) {
     dishInput.name = `dish-${dayName}-${categoryKey}-${index}`;
     dishInput.placeholder = 'Nombre del platillo';
     
-    const dishDescription = document.createElement('input');
-    dishDescription.type = 'text';
-    dishDescription.className = 'dish-description';
-    dishDescription.name = `desc-${dayName}-${categoryKey}-${index}`;
-    dishDescription.placeholder = 'Descripción';
-    
-    const dishPrice = document.createElement('input');
-    dishPrice.type = 'number';
-    dishPrice.className = 'dish-price';
-    dishPrice.name = `price-${dayName}-${categoryKey}-${index}`;
-    dishPrice.placeholder = 'Precio';
-    dishPrice.min = '0';
-    dishPrice.step = '0.01';
-    
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-dish-btn';
@@ -363,8 +349,6 @@ function createDishInputGroup(dayName, categoryKey, index) {
     });
     
     dishInputGroup.appendChild(dishInput);
-    dishInputGroup.appendChild(dishDescription);
-    dishInputGroup.appendChild(dishPrice);
     dishInputGroup.appendChild(removeBtn);
     
     return dishInputGroup;
@@ -448,16 +432,12 @@ async function saveMenu() {
             
             dishGroups.forEach(dishGroup => {
                 const dishName = dishGroup.querySelector('.dish-input').value;
-                const dishDescription = dishGroup.querySelector('.dish-description').value;
-                const dishPrice = parseFloat(dishGroup.querySelector('.dish-price').value);
                 
                 // Solo agregar platillos con nombre
                 if (dishName.trim()) {
                     day.dishes.push({
                         id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                         name: dishName,
-                        description: dishDescription,
-                        price: isNaN(dishPrice) ? 0 : dishPrice,
                         category: categoryKey
                     });
                 }
@@ -770,8 +750,6 @@ function editMenu(menuId) {
             day.dishes.forEach(dish => {
                 if (dish.category === categoryKey) {
                     emptyInputGroup.querySelector('.dish-input').value = dish.name;
-                    emptyInputGroup.querySelector('.dish-description').value = dish.description || '';
-                    emptyInputGroup.querySelector('.dish-price').value = dish.price || '';
                     
                     // Crear un nuevo campo vacío
                     const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
