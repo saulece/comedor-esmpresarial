@@ -5,65 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comedor Empresarial</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/firebase-ui.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <header>
         <div class="container">
-            <h1>Comedor Empresarial</h1>
+            <h1><i class="fas fa-utensils"></i> Comedor Empresarial</h1>
             <nav>
-                <ul>
-                    <li><a href="index.html" class="active">Inicio</a></li>
-                    <li><a href="admin.html">Administración</a></li>
-                    <li><a href="coordinator.html">Coordinador</a></li>
-                </ul>
+                <!-- Eliminada la lista ul para simplificar, usando nav directo como en otras páginas -->
+                <a href="index.html" class="active"><i class="fas fa-home"></i> Inicio</a>
+                <a href="admin.html"><i class="fas fa-cog"></i> Administración</a>
+                <a href="coordinator.html"><i class="fas fa-users"></i> Coordinación</a>
             </nav>
         </div>
     </header>
 
-    <main class="container">
-        <section class="welcome-section">
-            <h2>Bienvenido al Sistema de Comedor Empresarial</h2>
-            <p>Seleccione una opción para continuar:</p>
-            
-            <div class="card-container">
-                <div class="card">
-                    <h3>Acceso para Coordinadores</h3>
-                    <p>Si usted es un coordinador de departamento, ingrese su código de acceso para continuar:</p>
-                    
-                    <form id="coordinator-login-form" class="login-form">
-                        <div class="form-group">
-                            <label for="access-code">Código de Acceso</label>
-                            <input type="text" id="access-code" name="access-code" placeholder="Ingrese su código de 6 caracteres" maxlength="6" required>
-                        </div>
-                        <div id="login-error" class="error-message" style="display: none;">
-                            Código de acceso inválido. Por favor, inténtelo de nuevo.
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Ingresar</button>
-                        </div>
-                    </form>
-                </div>
+    <main>
+        <div class="container">
+            <section class="welcome-section">
+                <h2>Bienvenido al Sistema de Comedor Empresarial</h2>
+                <p>Seleccione una opción para continuar:</p>
                 
-                <div class="card">
-                    <h3>Administración</h3>
-                    <p>Acceso al panel de administración del sistema:</p>
-                    <a href="admin.html" class="btn btn-primary">Panel de Administración</a>
+                <div class="admin-controls"> <!-- Usando admin-controls para layout de tarjetas similar a admin.html -->
+                    <div class="card admin-card"> <!-- Usando admin-card -->
+                        <div class="card-icon"><i class="fas fa-user-check"></i></div>
+                        <h3>Acceso para Coordinadores</h3>
+                        <p>Ingrese su código de acceso para gestionar las confirmaciones de su departamento.</p>
+                        
+                        <form id="coordinator-login-form" class="login-form">
+                            <div class="form-group">
+                                <label for="access-code-main">Código de Acceso</label> <!-- ID cambiado para evitar colisión con modal de coordinator.html -->
+                                <input type="text" id="access-code-main" name="access-code" placeholder="Código de 6 caracteres" maxlength="6" required>
+                            </div>
+                            <div id="login-error" class="error-message" style="display: none;">
+                                Código de acceso inválido. Por favor, inténtelo de nuevo.
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="primary-btn"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="card admin-card"> <!-- Usando admin-card -->
+                        <div class="card-icon"><i class="fas fa-user-shield"></i></div>
+                        <h3>Administración</h3>
+                        <p>Acceda al panel de administración para gestionar menús, usuarios y reportes.</p>
+                        <a href="admin.html" class="primary-btn"><i class="fas fa-tools"></i> Panel de Administración</a>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; 2025 Comedor Empresarial. Todos los derechos reservados.</p>
+            <div class="footer-content">
+                <p>© 2024 Comedor Empresarial</p> <!-- Año actualizado -->
+                 <div class="footer-links">
+                    <a href="index.html">Inicio</a>
+                    <a href="admin.html">Administración</a>
+                    <a href="coordinator.html">Coordinación</a>
+                </div>
+            </div>
         </div>
     </footer>
 
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- firebase-auth.js no es estrictamente necesario aquí si el login no usa Firebase Auth -->
+    
+    <!-- Firebase Configuration and Models -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-coordinator-model.js"></script> <!-- Necesario para FirebaseCoordinatorModel.verifyAccessCode -->
+    
+    <!-- Application Scripts -->
+    <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
+    <!-- models.js y storage.js no son directamente usados por index.js ahora que usa Firebase, pero se dejan por si otras partes dependen de ellos o para futura refactorización -->
     <script src="js/models.js"></script>
-    <script src="js/storage.js"></script>
+    <script src="js/storage.js"></script> 
     <script src="js/index.js"></script>
-    <script src="js/debug.js"></script>
+    <script src="js/debug.js"></script> <!-- Para depuración si es necesario -->
+
+    <script>
+        // Inicializar funcionalidad offline cuando el DOM esté listo
+        // Aunque index.html no tiene operaciones complejas offline, es bueno mantenerlo si se usa en otras páginas
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (typeof FirebaseOffline !== 'undefined' && typeof FirebaseOffline.init === 'function') {
+                try {
+                    await FirebaseOffline.init();
+                    console.log('Funcionalidad offline inicializada correctamente en index.html');
+                } catch (error) {
+                    console.error('Error al inicializar funcionalidad offline en index.html:', error);
+                }
+            } else {
+                // Cargar dinámicamente FirebaseOffline si no está
+                const script = document.createElement('script');
+                script.src = 'js/firebase-offline.js';
+                script.onload = async () => {
+                    if (typeof FirebaseOffline !== 'undefined' && typeof FirebaseOffline.init === 'function') {
+                        try {
+                            await FirebaseOffline.init();
+                            console.log('Funcionalidad offline (cargada dinámicamente) inicializada correctamente en index.html');
+                        } catch (error) {
+                            console.error('Error al inicializar funcionalidad offline (cargada dinámicamente) en index.html:', error);
+                        }
+                    }
+                };
+                document.head.appendChild(script);
+            }
+        });
+    </script>
 </body>
 </html>

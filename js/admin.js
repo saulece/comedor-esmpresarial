@@ -191,7 +191,7 @@ function initMenuForm() {
 function generateWeekDays(startDateStr) {
     try {
         // Convertir la fecha de inicio a objeto Date
-        const startDate = new Date(startDateStr);
+        const startDate = new Date(startDateStr + 'T00:00:00'); // Asegurar que se interprete como local
         
         // Limpiar el contenedor de días
         const daysContainer = document.getElementById('days-container');
@@ -200,29 +200,14 @@ function generateWeekDays(startDateStr) {
             return;
         }
         
-        // Guardar referencia al primer día si existe
-        const firstDay = daysContainer.querySelector('.day-section[data-day="0"]');
+        daysContainer.innerHTML = ''; // Limpiar completamente
         
-        // Limpiar el contenedor
-        daysContainer.innerHTML = '';
-        
-        // Añadir el primer día de vuelta si existía
-        if (firstDay) {
-            daysContainer.appendChild(firstDay);
-            // Actualizar la fecha del primer día
-            updateDayDate(firstDay, startDate);
-        } else {
-            // Si no existía, crear el primer día (Lunes)
-            const mondaySection = createDaySection(0, DAYS_OF_WEEK[0], startDate);
-            daysContainer.appendChild(mondaySection);
-        }
-        
-        // Generar los demás días de la semana
-        for (let i = 1; i < 7; i++) {
-            const nextDate = new Date(startDate);
-            nextDate.setDate(startDate.getDate() + i);
+        // Generar los días de la semana (Lunes a Domingo)
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
             
-            const daySection = createDaySection(i, DAYS_OF_WEEK[i], nextDate);
+            const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
         }
         
@@ -232,6 +217,7 @@ function generateWeekDays(startDateStr) {
         console.error('Error al generar los días de la semana:', error);
     }
 }
+
 
 /**
  * Actualiza la fecha mostrada en una sección de día
@@ -272,7 +258,7 @@ function createDaySection(dayIndex, dayName, date) {
     
     // Crear secciones para cada categoría
     Object.entries(CATEGORIES).forEach(([categoryKey, categoryName]) => {
-        const categorySection = createCategorySection(dayIndex, dayName.toLowerCase(), categoryKey, categoryName);
+        const categorySection = createCategorySection(dayIndex, dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, categoryName);
         daySection.appendChild(categorySection);
     });
     
@@ -282,12 +268,12 @@ function createDaySection(dayIndex, dayName, date) {
 /**
  * Crea una sección para una categoría de platillos
  * @param {number} dayIndex - Índice del día (0-6)
- * @param {string} dayName - Nombre del día en minúsculas
+ * @param {string} dayNameNormalized - Nombre del día en minúsculas y normalizado
  * @param {string} categoryKey - Clave de la categoría
  * @param {string} categoryName - Nombre de la categoría
  * @returns {HTMLElement} - Elemento de sección de categoría
  */
-function createCategorySection(dayIndex, dayName, categoryKey, categoryName) {
+function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categoryName) {
     const categorySection = document.createElement('div');
     categorySection.className = 'category-section';
     
@@ -299,15 +285,15 @@ function createCategorySection(dayIndex, dayName, categoryKey, categoryName) {
     dishesContainer.setAttribute('data-category', categoryKey);
     
     // Crear el primer grupo de entrada de platillo
-    const dishInputGroup = createDishInputGroup(dayName, categoryKey, 0);
+    const dishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, 0);
     dishesContainer.appendChild(dishInputGroup);
     
     const addDishBtn = document.createElement('button');
     addDishBtn.type = 'button';
     addDishBtn.className = 'add-dish-btn';
-    addDishBtn.setAttribute('data-day', dayIndex);
+    addDishBtn.innerHTML = `<i class="fas fa-plus"></i> Agregar ${categoryName.slice(0, -1)}`; // Ícono
+    addDishBtn.setAttribute('data-day-index', dayIndex); // Usar dayIndex
     addDishBtn.setAttribute('data-category', categoryKey);
-    addDishBtn.textContent = `+ Agregar ${categoryName.slice(0, -1)}`;
     
     categorySection.appendChild(categoryTitle);
     categorySection.appendChild(dishesContainer);
@@ -318,34 +304,35 @@ function createCategorySection(dayIndex, dayName, categoryKey, categoryName) {
 
 /**
  * Crea un grupo de entrada para un platillo
- * @param {string} dayName - Nombre del día en minúsculas
+ * @param {string} dayNameNormalized - Nombre del día en minúsculas y normalizado
  * @param {string} categoryKey - Clave de la categoría
  * @param {number} index - Índice del platillo
  * @returns {HTMLElement} - Elemento de grupo de entrada
  */
-function createDishInputGroup(dayName, categoryKey, index) {
+function createDishInputGroup(dayNameNormalized, categoryKey, index) {
     const dishInputGroup = document.createElement('div');
     dishInputGroup.className = 'dish-input-group';
     
     const dishInput = document.createElement('input');
     dishInput.type = 'text';
     dishInput.className = 'dish-input';
-    dishInput.name = `dish-${dayName}-${categoryKey}-${index}`;
+    dishInput.name = `dish-${dayNameNormalized}-${categoryKey}-${index}`;
     dishInput.placeholder = 'Nombre del platillo';
     
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-dish-btn';
-    removeBtn.textContent = '-';
+    removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>'; // Ícono
+    removeBtn.title = 'Eliminar platillo';
     removeBtn.addEventListener('click', function() {
         const parent = dishInputGroup.parentNode;
         parent.removeChild(dishInputGroup);
         
-        // Si no quedan platillos, agregar uno vacío
-        if (parent.children.length === 0) {
-            const newDishInputGroup = createDishInputGroup(dayName, categoryKey, 0);
-            parent.appendChild(newDishInputGroup);
-        }
+        // Si no quedan platillos, agregar uno vacío (opcional, puede ser confuso)
+        // if (parent.children.length === 0) {
+        //     const newDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, 0);
+        //     parent.appendChild(newDishInputGroup);
+        // }
     });
     
     dishInputGroup.appendChild(dishInput);
@@ -361,137 +348,123 @@ function setupAddDishButtons() {
     const addDishButtons = document.querySelectorAll('.add-dish-btn');
     
     addDishButtons.forEach(button => {
-        // Eliminar eventos anteriores para evitar duplicados
-        const newButton = button.cloneNode(true);
+        const newButton = button.cloneNode(true); // Clonar para remover listeners antiguos
         button.parentNode.replaceChild(newButton, button);
         
         newButton.addEventListener('click', function() {
-            const dayIndex = this.getAttribute('data-day');
+            const dayIndex = this.getAttribute('data-day-index');
             const categoryKey = this.getAttribute('data-category');
-            const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
-            const dayName = daySection.querySelector('.day-label').textContent.toLowerCase();
-            const dishesContainer = this.previousElementSibling;
             
-            // Crear nuevo grupo de entrada
+            // Encontrar la sección del día correcta usando dayIndex
+            const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
+            if (!daySection) {
+                console.error(`No se encontró daySection para el índice ${dayIndex}`);
+                return;
+            }
+            const dayNameLabel = daySection.querySelector('.day-label').textContent;
+            const dayNameNormalized = dayNameLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+            if (!dishesContainer) {
+                console.error(`No se encontró dishesContainer para ${categoryKey} en el día ${dayNameLabel}`);
+                return;
+            }
+            
             const index = dishesContainer.children.length;
-            const dishInputGroup = createDishInputGroup(dayName, categoryKey, index);
+            const dishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, index);
             dishesContainer.appendChild(dishInputGroup);
         });
     });
 }
 
+
 /**
  * Guarda el menú actual en el almacenamiento
  */
 async function saveMenu() {
-    // Recopilar datos del formulario
     const menuName = document.getElementById('menu-name').value;
     const weekStartDate = document.getElementById('week-start-date').value;
     
-    // Validar datos básicos
     if (!menuName || !weekStartDate) {
         AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
         return;
     }
     
-    // Crear estructura de datos del menú
     const menuData = {
         id: currentEditingMenuId || 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         name: menuName,
-        items: [],
         startDate: weekStartDate,
-        endDate: calculateEndDate(weekStartDate),
-        active: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        endDate: calculateEndDate(weekStartDate), // Asume menú de 5 días (Lun-Vie)
+        active: true, // Por defecto, los menús nuevos o editados se marcan como activos
+        // createdAt y updatedAt serán manejados por FirebaseMenuModel
     };
     
-    // Organizar los días y platillos
     const days = [];
     const daySections = document.querySelectorAll('.day-section');
     
     daySections.forEach(daySection => {
         const dayIndex = parseInt(daySection.getAttribute('data-day'));
-        const dayDate = daySection.getAttribute('data-date');
+        const dayDate = daySection.getAttribute('data-date'); // YYYY-MM-DD
         const dayName = DAYS_OF_WEEK[dayIndex];
         
-        // Crear objeto para el día
-        const day = {
-            id: dayName.toLowerCase(),
-            name: dayName,
+        const dayData = {
+            id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), // ej: 'lunes'
+            name: dayName, // ej: 'Lunes'
             date: dayDate,
             dishes: []
         };
         
-        // Recopilar platillos por categoría
         Object.keys(CATEGORIES).forEach(categoryKey => {
             const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (!dishesContainer) return;
-            
-            const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
-            
-            dishGroups.forEach(dishGroup => {
-                const dishName = dishGroup.querySelector('.dish-input').value;
-                
-                // Solo agregar platillos con nombre
-                if (dishName.trim()) {
-                    day.dishes.push({
-                        id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                        name: dishName,
-                        category: categoryKey
-                    });
-                }
-            });
+            if (dishesContainer) {
+                const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
+                dishGroups.forEach(dishGroup => {
+                    const dishNameInput = dishGroup.querySelector('.dish-input');
+                    if (dishNameInput && dishNameInput.value.trim()) {
+                        dayData.dishes.push({
+                            id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            name: dishNameInput.value.trim(),
+                            category: categoryKey,
+                            // Podrías añadir más campos aquí si los tuvieras en el formulario (descripción, precio)
+                            description: '', // Placeholder
+                            price: 0.00      // Placeholder
+                        });
+                    }
+                });
+            }
         });
         
-        // Solo agregar días con platillos
-        if (day.dishes.length > 0) {
-            days.push(day);
+        // Solo agregar días que tengan al menos un platillo
+        if (dayData.dishes.length > 0) {
+            days.push(dayData);
         }
     });
     
-    // Validar que haya al menos un día con platillos
-    if (days.length === 0) {
+    if (days.length === 0 && !currentEditingMenuId) { // Solo requerir platillos para menús nuevos
         AppUtils.showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
         return;
     }
     
-    // Agregar días al menú
     menuData.days = days;
     
+    const saveButton = document.getElementById('save-menu-btn');
+    const originalButtonHtml = saveButton.innerHTML;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
+    
     try {
-        // Mostrar indicador de carga
-        const saveButton = document.querySelector('#save-menu-btn');
-        if (saveButton) {
-            saveButton.disabled = true;
-            saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
-        }
-        
         let success = false;
-        
-        // Usar Firebase para guardar el menú
         if (currentEditingMenuId) {
-            // Actualizar menú existente
             console.log('Actualizando menú existente en Firebase:', currentEditingMenuId);
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         } else {
-            // Crear nuevo menú
             console.log('Creando nuevo menú en Firebase');
             success = await FirebaseMenuModel.add(menuData);
         }
         
-        // Restaurar botón
-        if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'Guardar Menú';
-        }
-        
-        // Mostrar notificación
         if (success) {
-            AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.');
-            loadSavedMenus().catch(error => {
-                console.error('Error al cargar menús después de guardar:', error);
-            });
+            AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado correctamente.' : 'Menú guardado correctamente.', 'success');
+            loadSavedMenus().catch(error => console.error('Error al cargar menús después de guardar:', error));
             resetForm();
         } else {
             AppUtils.showNotification(currentEditingMenuId ? 'Error al actualizar el menú.' : 'Error al guardar el menú.', 'error');
@@ -499,26 +472,23 @@ async function saveMenu() {
     } catch (error) {
         console.error('Error al guardar menú:', error);
         AppUtils.showNotification('Error al procesar el menú. Por favor, intente de nuevo.', 'error');
-        
-        // Restaurar botón
-        const saveButton = document.querySelector('#save-menu-btn');
-        if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'Guardar Menú';
-        }
+    } finally {
+        saveButton.disabled = false;
+        saveButton.innerHTML = originalButtonHtml;
     }
 }
+
 
 /**
  * Calcula la fecha de fin basada en la fecha de inicio
  * @param {string} startDateStr - Fecha de inicio en formato YYYY-MM-DD
- * @returns {string} - Fecha de fin en formato YYYY-MM-DD (5 días después)
+ * @returns {string} - Fecha de fin en formato YYYY-MM-DD (6 días después para cubrir Dom)
  */
 function calculateEndDate(startDateStr) {
-    const startDate = new Date(startDateStr);
+    const startDate = new Date(startDateStr + 'T00:00:00');
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 4); // 5 días en total (lunes a viernes)
-    return endDate.toISOString().split('T')[0];
+    endDate.setDate(startDate.getDate() + 6); // Lunes + 6 días = Domingo
+    return AppUtils.formatDateForInput(endDate);
 }
 
 /**
@@ -527,28 +497,29 @@ function calculateEndDate(startDateStr) {
  */
 async function loadSavedMenus() {
     const savedMenusContainer = document.getElementById('saved-menus-container');
-    const menus = await FirebaseMenuModel.getAll();
+    if (!savedMenusContainer) return;
+
+    savedMenusContainer.innerHTML = '<p class="empty-state"><span class="spinner"></span> Cargando menús guardados...</p>';
     
-    // Limpiar contenedor
-    savedMenusContainer.innerHTML = '';
-    
-    if (menus.length === 0) {
-        // Mostrar mensaje si no hay menús
-        const emptyState = document.createElement('p');
-        emptyState.className = 'empty-state';
-        emptyState.textContent = 'No hay menús guardados aún.';
-        savedMenusContainer.appendChild(emptyState);
-        return;
+    try {
+        const menus = await FirebaseMenuModel.getAll();
+        savedMenusContainer.innerHTML = ''; // Limpiar después de cargar
+        
+        if (menus.length === 0) {
+            savedMenusContainer.innerHTML = '<p class="empty-state">No hay menús guardados aún.</p>';
+            return;
+        }
+        
+        menus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+        
+        menus.forEach(menu => {
+            const menuItem = createMenuItemElement(menu);
+            savedMenusContainer.appendChild(menuItem);
+        });
+    } catch (error) {
+        console.error('Error al cargar menús guardados:', error);
+        savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar menús. Intente de nuevo.</p>';
     }
-    
-    // Ordenar menús por fecha (más reciente primero)
-    menus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-    
-    // Crear elementos para cada menú
-    menus.forEach(menu => {
-        const menuItem = createMenuItemElement(menu);
-        savedMenusContainer.appendChild(menuItem);
-    });
 }
 
 /**
@@ -558,10 +529,9 @@ async function loadSavedMenus() {
  */
 function createMenuItemElement(menu) {
     const menuItem = document.createElement('div');
-    menuItem.className = 'menu-item';
+    menuItem.className = 'menu-item card'; // Añadido card para consistencia
     menuItem.setAttribute('data-id', menu.id);
     
-    // Crear encabezado del menú
     const menuHeader = document.createElement('div');
     menuHeader.className = 'menu-header';
     
@@ -572,32 +542,29 @@ function createMenuItemElement(menu) {
     menuTitle.className = 'menu-title';
     menuTitle.textContent = menu.name;
     
-    const menuDate = document.createElement('div');
-    menuDate.className = 'menu-date';
-    menuDate.textContent = new Date(menu.startDate).toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    });
+    const menuDateRange = document.createElement('div');
+    menuDateRange.className = 'menu-date';
+    const startDate = menu.startDate ? AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00')) : 'N/A';
+    const endDate = menu.endDate ? AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00')) : 'N/A';
+    menuDateRange.textContent = `Del ${startDate} al ${endDate}`;
     
     menuInfo.appendChild(menuTitle);
-    menuInfo.appendChild(menuDate);
+    menuInfo.appendChild(menuDateRange);
     
     const menuActions = document.createElement('div');
     menuActions.className = 'menu-actions';
     
     const editBtn = document.createElement('button');
-    editBtn.className = 'edit-menu-btn';
-    editBtn.textContent = 'Editar';
+    editBtn.className = 'secondary-btn edit-menu-btn';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
     editBtn.addEventListener('click', function(event) {
         event.stopPropagation();
         editMenu(menu.id);
     });
     
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-menu-btn';
-    deleteBtn.textContent = 'Eliminar';
+    deleteBtn.className = 'danger-btn delete-menu-btn';
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
     deleteBtn.addEventListener('click', async function(event) {
         event.stopPropagation();
         await deleteMenu(menu.id);
@@ -609,85 +576,63 @@ function createMenuItemElement(menu) {
     menuHeader.appendChild(menuInfo);
     menuHeader.appendChild(menuActions);
     
-    // Crear contenido del menú (inicialmente oculto)
     const menuContent = document.createElement('div');
     menuContent.className = 'menu-content';
     
-    // Agrupar platillos por día
-    const itemsByDay = {};
-    menu.days.forEach(day => {
-        itemsByDay[day.id] = day.dishes;
-    });
-    
-    // Crear secciones para cada día
-    Object.keys(itemsByDay).sort((a, b) => a.localeCompare(b)).forEach(dayId => {
-        const dayItems = itemsByDay[dayId];
-        if (dayItems.length === 0) return;
-        
-        const daySection = document.createElement('div');
-        daySection.className = 'menu-day';
-        
-        const dayTitle = document.createElement('h5');
-        dayTitle.className = 'menu-day-title';
-        dayTitle.textContent = dayId.charAt(0).toUpperCase() + dayId.slice(1) + ' - ' + new Date(menu.startDate).toLocaleDateString('es-ES');
-        
-        daySection.appendChild(dayTitle);
-        
-        // Agrupar platillos por categoría
-        const itemsByCategory = {};
-        dayItems.forEach(item => {
-            if (!itemsByCategory[item.category]) {
-                itemsByCategory[item.category] = [];
-            }
-            itemsByCategory[item.category].push(item);
-        });
-        
-        // Crear secciones para cada categoría
-        Object.keys(itemsByCategory).forEach(categoryKey => {
-            const categoryItems = itemsByCategory[categoryKey];
-            if (categoryItems.length === 0) return;
+    if (menu.days && Array.isArray(menu.days) && menu.days.length > 0) {
+        menu.days.forEach(day => {
+            if (!day.dishes || day.dishes.length === 0) return;
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'menu-day-details';
             
-            const categorySection = document.createElement('div');
-            categorySection.className = 'menu-category';
-            
-            const categoryTitle = document.createElement('h6');
-            categoryTitle.className = 'menu-category-title';
-            categoryTitle.textContent = CATEGORIES[categoryKey];
-            
-            const dishesList = document.createElement('div');
-            dishesList.className = 'menu-dishes';
-            
-            // Crear elementos para cada platillo
-            categoryItems.forEach(item => {
-                const dishElement = document.createElement('div');
-                dishElement.className = 'menu-dish';
-                
-                const dishName = document.createElement('span');
-                dishName.className = 'menu-dish-name';
-                dishName.textContent = item.name;
-                
-                const dishPrice = document.createElement('span');
-                dishPrice.className = 'menu-dish-price';
-                dishPrice.textContent = `$${item.price.toFixed(2)}`;
-                
-                dishElement.appendChild(dishName);
-                dishElement.appendChild(dishPrice);
-                dishesList.appendChild(dishElement);
+            const dayTitle = document.createElement('h5');
+            dayTitle.className = 'menu-day-title';
+            const dayDate = day.date ? AppUtils.formatDate(new Date(day.date + 'T00:00:00')) : '';
+            dayTitle.textContent = `${day.name} (${dayDate})`;
+            dayDiv.appendChild(dayTitle);
+
+            Object.keys(CATEGORIES).forEach(categoryKey => {
+                const dishesInCategory = day.dishes.filter(d => d.category === categoryKey);
+                if (dishesInCategory.length > 0) {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'menu-category-details';
+                    
+                    const categoryTitle = document.createElement('h6');
+                    categoryTitle.className = 'menu-category-title';
+                    categoryTitle.textContent = CATEGORIES[categoryKey];
+                    categoryDiv.appendChild(categoryTitle);
+
+                    const ul = document.createElement('ul');
+                    dishesInCategory.forEach(dish => {
+                        const li = document.createElement('li');
+                        li.className = 'menu-dish-item';
+                        li.textContent = dish.name;
+                        // Podrías agregar (dish.price ? ` - $${dish.price.toFixed(2)}` : '') si tienes precios
+                        ul.appendChild(li);
+                    });
+                    categoryDiv.appendChild(ul);
+                    dayDiv.appendChild(categoryDiv);
+                }
             });
-            
-            categorySection.appendChild(categoryTitle);
-            categorySection.appendChild(dishesList);
-            daySection.appendChild(categorySection);
+            menuContent.appendChild(dayDiv);
         });
-        
-        menuContent.appendChild(daySection);
-    });
+    } else {
+        menuContent.innerHTML = '<p class="empty-state">Este menú no tiene platillos detallados.</p>';
+    }
     
-    // Configurar evento para mostrar/ocultar contenido
     menuHeader.addEventListener('click', function() {
         menuContent.classList.toggle('active');
+        menuHeader.querySelector('.fas.fa-chevron-down, .fas.fa-chevron-up')?.classList.toggle('fa-chevron-down');
+        menuHeader.querySelector('.fas.fa-chevron-down, .fas.fa-chevron-up')?.classList.toggle('fa-chevron-up');
+
     });
-    
+     // Add chevron icon for collapsibility
+    const chevron = document.createElement('i');
+    chevron.className = 'fas fa-chevron-down'; // Default to down
+    menuHeader.appendChild(chevron);
+
+
     menuItem.appendChild(menuHeader);
     menuItem.appendChild(menuContent);
     
@@ -698,74 +643,52 @@ function createMenuItemElement(menu) {
  * Edita un menú existente
  * @param {string} menuId - ID del menú a editar
  */
-function editMenu(menuId) {
-    // Obtener menú del almacenamiento
-    const menu = StorageUtil.Menus.get(menuId);
+async function editMenu(menuId) {
+    const menu = await FirebaseMenuModel.get(menuId);
     if (!menu) {
         AppUtils.showNotification('No se encontró el menú.', 'error');
         return;
     }
     
-    // Guardar ID del menú que se está editando
     currentEditingMenuId = menuId;
     
-    // Llenar formulario con datos del menú
     document.getElementById('menu-name').value = menu.name;
     document.getElementById('week-start-date').value = menu.startDate;
     
-    // Generar días de la semana
-    generateWeekDays(menu.startDate);
+    generateWeekDays(menu.startDate); // Esto crea la estructura de días y categorías vacía
     
-    // Llenar campos de platillos
-    menu.days.forEach(day => {
-        const daySection = document.querySelector(`.day-section[data-day="${DAYS_OF_WEEK.indexOf(day.name)}"]`);
-        if (!daySection) return;
-        
-        // Recopilar platillos por categoría
-        Object.keys(CATEGORIES).forEach(categoryKey => {
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (!dishesContainer) return;
-            
-            // Buscar un campo vacío o crear uno nuevo
-            let emptyInputGroup = null;
-            const inputGroups = dishesContainer.querySelectorAll('.dish-input-group');
-            
-            for (let i = 0; i < inputGroups.length; i++) {
-                const nameInput = inputGroups[i].querySelector('.dish-input');
-                if (!nameInput.value) {
-                    emptyInputGroup = inputGroups[i];
-                    break;
-                }
-            }
-            
-            if (!emptyInputGroup) {
-                // No hay campos vacíos, crear uno nuevo
-                const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
-                const index = inputGroups.length;
-                emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
-                dishesContainer.appendChild(emptyInputGroup);
-            }
-            
-            // Llenar campos
-            day.dishes.forEach(dish => {
-                if (dish.category === categoryKey) {
-                    emptyInputGroup.querySelector('.dish-input').value = dish.name;
-                    
-                    // Crear un nuevo campo vacío
-                    const dayName = DAYS_OF_WEEK[DAYS_OF_WEEK.indexOf(day.name)].toLowerCase();
-                    const index = inputGroups.length;
-                    emptyInputGroup = createDishInputGroup(dayName, categoryKey, index);
-                    dishesContainer.appendChild(emptyInputGroup);
+    // Llenar los campos de platillos con los datos del menú
+    if (menu.days && Array.isArray(menu.days)) {
+        menu.days.forEach(dayData => {
+            const dayIndex = DAYS_OF_WEEK.indexOf(dayData.name);
+            if (dayIndex === -1) return; // Día no encontrado
+
+            const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
+            if (!daySection) return;
+
+            dayData.dishes.forEach(dish => {
+                const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${dish.category}"]`);
+                if (dishesContainer) {
+                    // Quitar el input vacío si existe y es el único
+                    const existingInputs = dishesContainer.querySelectorAll('.dish-input-group');
+                    if (existingInputs.length === 1 && !existingInputs[0].querySelector('.dish-input').value) {
+                        existingInputs[0].remove();
+                    }
+
+                    const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const newDishGroup = createDishInputGroup(dayNameNormalized, dish.category, dishesContainer.children.length);
+                    newDishGroup.querySelector('.dish-input').value = dish.name;
+                    // Llenar otros campos del platillo si existen (descripción, precio)
+                    dishesContainer.appendChild(newDishGroup);
                 }
             });
         });
-    });
+    }
     
-    // Desplazarse al formulario
     document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-    
     AppUtils.showNotification('Menú cargado para edición.');
 }
+
 
 /**
  * Elimina un menú
@@ -773,21 +696,17 @@ function editMenu(menuId) {
  * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
  */
 async function deleteMenu(menuId) {
-    // Confirmar eliminación
     if (!confirm('¿Está seguro de que desea eliminar este menú? Esta acción no se puede deshacer.')) {
         return false;
     }
     
     try {
-        // Eliminar menú del almacenamiento usando Firebase
-        console.log('Eliminando menú de Firebase:', menuId);
         const success = await FirebaseMenuModel.delete(menuId);
         
         if (success) {
-            AppUtils.showNotification('Menú eliminado correctamente.');
+            AppUtils.showNotification('Menú eliminado correctamente.', 'success');
             await loadSavedMenus().catch(error => console.error('Error loading menus after delete:', error));
             
-            // Si estamos editando este menú, resetear el formulario
             if (currentEditingMenuId === menuId) {
                 resetForm();
             }
@@ -807,27 +726,11 @@ async function deleteMenu(menuId) {
  * Resetea el formulario
  */
 function resetForm() {
-    // Limpiar ID de menú en edición
     currentEditingMenuId = null;
-    
-    // Resetear campos del formulario
     document.getElementById('menu-form').reset();
-    
-    // Establecer fecha actual
     const today = new Date();
     document.getElementById('week-start-date').value = AppUtils.formatDateForInput(today);
-    
-    // Regenerar días de la semana
     generateWeekDays(AppUtils.formatDateForInput(today));
-    
-    // Limpiar todos los campos de platillos
-    const dishInputs = document.querySelectorAll('.dish-input');
-    const dishDescriptions = document.querySelectorAll('.dish-description');
-    const dishPrices = document.querySelectorAll('.dish-price');
-    
-    dishInputs.forEach(input => input.value = '');
-    dishDescriptions.forEach(input => input.value = '');
-    dishPrices.forEach(input => input.value = '');
 }
 
 /**
@@ -836,376 +739,208 @@ function resetForm() {
 const CoordinatorManagement = {
     currentEditingCoordinatorId: null,
     
-    /**
-     * Inicializa la gestión de coordinadores
-     */
     init: function() {
-        // Configurar formulario
         const coordinatorForm = document.getElementById('coordinator-form');
         const resetFormBtn = document.getElementById('reset-coordinator-form-btn');
         
-        // Manejar envío del formulario
-        coordinatorForm.addEventListener('submit', async function(event) {
+        coordinatorForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            await CoordinatorManagement.saveCoordinator();
+            await this.saveCoordinator();
         });
         
-        // Configurar botón para limpiar formulario
-        resetFormBtn.addEventListener('click', function() {
-            CoordinatorManagement.resetForm();
-        });
+        resetFormBtn.addEventListener('click', () => this.resetForm());
         
-        // Configurar botones para código de acceso
-        const copyAccessCodeBtn = document.getElementById('copy-access-code-btn');
-        const regenerateAccessCodeBtn = document.getElementById('regenerate-access-code-btn');
+        document.getElementById('copy-access-code-btn').addEventListener('click', () => this.copyAccessCode());
+        document.getElementById('regenerate-access-code-btn').addEventListener('click', () => this.regenerateAccessCode());
         
-        copyAccessCodeBtn.addEventListener('click', function() {
-            CoordinatorManagement.copyAccessCode();
-        });
-        
-        regenerateAccessCodeBtn.addEventListener('click', function() {
-            CoordinatorManagement.regenerateAccessCode();
-        });
-        
-        // Cargar coordinadores existentes
         this.loadCoordinators().catch(error => console.error('Error loading coordinators:', error));
     },
     
-    /**
-     * Genera un código de acceso aleatorio
-     * @returns {string} - Código de acceso de 6 caracteres
-     */
     generateAccessCode: function() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 6; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return code;
+        return Array(6).fill(0).map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36))).join('');
     },
     
-    /**
-     * Guarda un coordinador en el almacenamiento
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se guardó correctamente
-     */
     saveCoordinator: async function() {
-        // Recopilar datos del formulario
         const name = document.getElementById('coordinator-name').value.trim();
         const email = document.getElementById('coordinator-email').value.trim();
         const phone = document.getElementById('coordinator-phone').value.trim();
         const department = document.getElementById('coordinator-department').value;
         
-        // Validar datos básicos
         if (!name || !email || !department) {
-            AppUtils.showNotification('Por favor, complete todos los campos requeridos.', 'error');
-            return;
-        }
-        
-        // Validar formato de correo electrónico
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            AppUtils.showNotification('Por favor, ingrese un correo electrónico válido.', 'error');
-            return;
-        }
-        
-        let accessCode;
-        
-        // Si estamos editando, usar el código existente o generar uno nuevo
-        if (this.currentEditingCoordinatorId) {
-            accessCode = document.getElementById('coordinator-access-code').value;
-            if (!accessCode) {
-                accessCode = this.generateAccessCode();
-            }
-        } else {
-            // Generar nuevo código de acceso
-            accessCode = this.generateAccessCode();
-        }
-        
-        // Crear objeto de coordinador directamente
-        const coordinatorData = {
-            id: this.currentEditingCoordinatorId || 'coord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            name: name,
-            email: email,
-            phone: phone,
-            department: department,
-            accessCode: accessCode,
-            active: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        // Guardar coordinador en Firebase
-        let success = false;
-        try {
-            if (this.currentEditingCoordinatorId) {
-                // Actualizar coordinador existente
-                console.log('Actualizando coordinador en Firebase:', this.currentEditingCoordinatorId);
-                success = await FirebaseCoordinatorModel.update(this.currentEditingCoordinatorId, coordinatorData);
-                if (success) {
-                    AppUtils.showNotification('Coordinador actualizado correctamente.');
-                } else {
-                    AppUtils.showNotification('Error al actualizar el coordinador.', 'error');
-                }
-            } else {
-                // Crear nuevo coordinador
-                console.log('Creando nuevo coordinador en Firebase');
-                success = await FirebaseCoordinatorModel.add(coordinatorData);
-                if (success) {
-                    AppUtils.showNotification('Coordinador guardado correctamente.');
-                } else {
-                    AppUtils.showNotification('Error al guardar el coordinador.', 'error');
-                }
-            }
-        } catch (error) {
-            console.error('Error al guardar coordinador en Firebase:', error);
-            AppUtils.showNotification('Error al procesar el coordinador. Por favor, intente de nuevo.', 'error');
+            AppUtils.showNotification('Por favor, complete todos los campos requeridos (*).', 'error');
             return false;
         }
         
-        // Recargar coordinadores y resetear formulario
-        if (success) {
-            await this.loadCoordinators().catch(error => console.error('Error loading coordinators after save:', error));
-            this.resetForm();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            AppUtils.showNotification('Por favor, ingrese un correo electrónico válido.', 'error');
+            return false;
         }
         
-        return success;
+        let accessCode = document.getElementById('coordinator-access-code').value;
+        if (!accessCode || (this.currentEditingCoordinatorId && !document.getElementById('access-code-container').style.display !== 'none' ) ) {
+            accessCode = this.generateAccessCode(); // Generar si no hay o si no se está editando y mostrando
+        }
+
+
+        const coordinatorData = {
+            name, email, phone, department, accessCode,
+            active: true, 
+            // createdAt y updatedAt serán manejados por FirebaseCoordinatorModel
+        };
+
+        // Si es una edición, pasar el ID
+        if (this.currentEditingCoordinatorId) {
+            coordinatorData.id = this.currentEditingCoordinatorId;
+        }
+
+        const saveButton = document.getElementById('save-coordinator-btn');
+        const originalButtonHtml = saveButton.innerHTML;
+        saveButton.disabled = true;
+        saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
+
+        try {
+            let success = false;
+            if (this.currentEditingCoordinatorId) {
+                success = await FirebaseCoordinatorModel.update(this.currentEditingCoordinatorId, coordinatorData);
+            } else {
+                // Para agregar, el modelo Firebase se encarga del ID si no se provee uno específico
+                // o puedes generarlo aquí si es necesario antes de enviar al modelo.
+                // FirebaseCoordinatorModel.add se encarga de los timestamps.
+                success = await FirebaseCoordinatorModel.add(coordinatorData);
+            }
+            
+            if (success) {
+                AppUtils.showNotification(this.currentEditingCoordinatorId ? 'Coordinador actualizado.' : 'Coordinador agregado.', 'success');
+                this.loadCoordinators();
+                this.resetForm();
+            } else {
+                AppUtils.showNotification('Error al guardar coordinador.', 'error');
+            }
+        } catch (error) {
+            console.error('Error al guardar coordinador:', error);
+            AppUtils.showNotification('Error al procesar el coordinador.', 'error');
+        } finally {
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalButtonHtml;
+        }
+        return true;
     },
     
-    /**
-     * Carga los coordinadores guardados y los muestra en la interfaz
-     * @returns {Promise<void>}
-     */
     loadCoordinators: async function() {
-        const coordinatorsList = document.getElementById('coordinators-list');
-        const noCoordinatorsMessage = document.getElementById('no-coordinators-message');
-        const coordinatorsTable = document.getElementById('coordinators-table');
+        const list = document.getElementById('coordinators-list');
+        const msg = document.getElementById('no-coordinators-message');
+        const table = document.getElementById('coordinators-table');
+
+        if (!list || !msg || !table) return;
+        list.innerHTML = ''; // Limpiar lista
         
-        // Obtener coordinadores del almacenamiento usando Firebase
-        const coordinators = await FirebaseCoordinatorModel.getAll();
-        
-        // Limpiar lista
-        coordinatorsList.innerHTML = '';
-        
-        if (coordinators.length === 0) {
-            // Mostrar mensaje si no hay coordinadores
-            noCoordinatorsMessage.style.display = 'block';
-            coordinatorsTable.style.display = 'none';
-            return;
+        try {
+            const coordinators = await FirebaseCoordinatorModel.getAll();
+            if (coordinators.length === 0) {
+                msg.style.display = 'block';
+                table.style.display = 'none';
+                return;
+            }
+            
+            msg.style.display = 'none';
+            table.style.display = 'table';
+            
+            coordinators.sort((a, b) => a.name.localeCompare(b.name)).forEach(coord => {
+                const row = list.insertRow();
+                row.insertCell().textContent = coord.name;
+                row.insertCell().textContent = coord.email; // Email antes de Depto
+                row.insertCell().textContent = coord.department;
+                
+                const codeCell = row.insertCell();
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'access-code-display-table'; // Estilo para que parezca clickeable
+                codeSpan.textContent = '******'; // Enmascarado por defecto
+                codeSpan.title = 'Click para revelar/ocultar código';
+                let revealed = false;
+                codeSpan.addEventListener('click', () => {
+                    revealed = !revealed;
+                    codeSpan.textContent = revealed ? coord.accessCode : '******';
+                });
+                codeCell.appendChild(codeSpan);
+
+                const actionsCell = row.insertCell();
+                const editBtn = document.createElement('button');
+                editBtn.className = 'secondary-btn icon-btn';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.title = 'Editar coordinador';
+                editBtn.onclick = () => this.editCoordinator(coord.id);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'danger-btn icon-btn';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.title = 'Eliminar coordinador';
+                deleteBtn.onclick = () => this.deleteCoordinator(coord.id);
+                
+                actionsCell.appendChild(editBtn);
+                actionsCell.appendChild(deleteBtn);
+            });
+        } catch (error) {
+            console.error('Error al cargar coordinadores:', error);
+            msg.textContent = 'Error al cargar coordinadores.';
+            msg.style.display = 'block';
+            table.style.display = 'none';
         }
-        
-        // Ocultar mensaje y mostrar tabla
-        noCoordinatorsMessage.style.display = 'none';
-        coordinatorsTable.style.display = 'table';
-        
-        // Ordenar coordinadores por nombre
-        coordinators.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Crear filas para cada coordinador
-        coordinators.forEach(coordinator => {
-            const row = document.createElement('tr');
-            
-            // Columna de nombre
-            const nameCell = document.createElement('td');
-            nameCell.textContent = coordinator.name;
-            row.appendChild(nameCell);
-            
-            // Columna de departamento
-            const departmentCell = document.createElement('td');
-            departmentCell.textContent = coordinator.department;
-            row.appendChild(departmentCell);
-            
-            // Columna de correo
-            const emailCell = document.createElement('td');
-            emailCell.textContent = coordinator.email;
-            row.appendChild(emailCell);
-            
-            // Columna de código de acceso
-            const accessCodeCell = document.createElement('td');
-            const maskedCode = this.getMaskedCode(coordinator.accessCode);
-            
-            const codeSpan = document.createElement('span');
-            codeSpan.className = 'masked-code';
-            codeSpan.textContent = maskedCode;
-            codeSpan.title = 'Haga clic para mostrar/ocultar';
-            codeSpan.style.cursor = 'pointer';
-            
-            // Alternar entre código enmascarado y completo al hacer clic
-            codeSpan.addEventListener('click', function() {
-                if (codeSpan.textContent === maskedCode) {
-                    codeSpan.textContent = coordinator.accessCode;
-                } else {
-                    codeSpan.textContent = maskedCode;
-                }
-            });
-            
-            accessCodeCell.appendChild(codeSpan);
-            row.appendChild(accessCodeCell);
-            
-            // Columna de acciones
-            const actionsCell = document.createElement('td');
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'action-buttons';
-            
-            // Botón de editar
-            const editBtn = document.createElement('button');
-            editBtn.className = 'action-btn edit-btn';
-            editBtn.textContent = 'Editar';
-            editBtn.addEventListener('click', function() {
-                CoordinatorManagement.editCoordinator(coordinator.id);
-            });
-            
-            // Botón de eliminar
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'action-btn delete-btn';
-            deleteBtn.textContent = 'Eliminar';
-            deleteBtn.addEventListener('click', async function() {
-                await CoordinatorManagement.deleteCoordinator(coordinator.id);
-            });
-            
-            actionsDiv.appendChild(editBtn);
-            actionsDiv.appendChild(deleteBtn);
-            actionsCell.appendChild(actionsDiv);
-            row.appendChild(actionsCell);
-            
-            coordinatorsList.appendChild(row);
-        });
     },
-    
-    /**
-     * Obtiene una versión enmascarada del código de acceso
-     * @param {string} code - Código de acceso completo
-     * @returns {string} - Código enmascarado (ej: AB****)
-     */
-    getMaskedCode: function(code) {
-        if (!code || code.length < 2) return '******';
-        return code.substring(0, 2) + '*'.repeat(code.length - 2);
-    },
-    
-    /**
-     * Edita un coordinador existente
-     * @param {string} coordinatorId - ID del coordinador a editar
-     */
-    editCoordinator: function(coordinatorId) {
-        // Obtener coordinador del almacenamiento
-        const coordinator = StorageUtil.Coordinators.get(coordinatorId);
+        
+    editCoordinator: async function(coordinatorId) {
+        const coordinator = await FirebaseCoordinatorModel.get(coordinatorId);
         if (!coordinator) {
             AppUtils.showNotification('No se encontró el coordinador.', 'error');
             return;
         }
         
-        // Guardar ID del coordinador que se está editando
         this.currentEditingCoordinatorId = coordinatorId;
-        
-        // Llenar formulario con datos del coordinador
         document.getElementById('coordinator-name').value = coordinator.name;
         document.getElementById('coordinator-email').value = coordinator.email;
         document.getElementById('coordinator-phone').value = coordinator.phone || '';
         document.getElementById('coordinator-department').value = coordinator.department;
-        
-        // Mostrar contenedor de código de acceso
-        const accessCodeContainer = document.getElementById('access-code-container');
-        accessCodeContainer.style.display = 'block';
-        
-        // Mostrar código de acceso
-        document.getElementById('coordinator-access-code').value = coordinator.accessCode || this.generateAccessCode();
-        
-        // Cambiar texto del botón de guardar
-        document.getElementById('save-coordinator-btn').textContent = 'Actualizar Coordinador';
-        
-        // Desplazarse al formulario
+        document.getElementById('coordinator-access-code').value = coordinator.accessCode;
+        document.getElementById('access-code-container').style.display = 'block';
+        document.getElementById('save-coordinator-btn').innerHTML = '<i class="fas fa-save"></i> Actualizar Coordinador';
         document.getElementById('coordinator-form').scrollIntoView({ behavior: 'smooth' });
     },
     
-    /**
-     * Elimina un coordinador
-     * @param {string} coordinatorId - ID del coordinador a eliminar
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
-     */
     deleteCoordinator: async function(coordinatorId) {
-        // Confirmar eliminación
-        if (!confirm('¿Está seguro de que desea eliminar este coordinador? Esta acción no se puede deshacer.')) {
-            return;
-        }
+        if (!confirm('¿Está seguro de que desea eliminar este coordinador?')) return;
         
         try {
-            // Eliminar coordinador de Firebase
-            console.log('Eliminando coordinador de Firebase:', coordinatorId);
             const success = await FirebaseCoordinatorModel.delete(coordinatorId);
-            
             if (success) {
-                AppUtils.showNotification('Coordinador eliminado correctamente.');
-                await this.loadCoordinators().catch(error => console.error('Error loading coordinators after delete:', error));
-                
-                // Si estamos editando este coordinador, resetear el formulario
-                if (this.currentEditingCoordinatorId === coordinatorId) {
-                    this.resetForm();
-                }
-                return true;
+                AppUtils.showNotification('Coordinador eliminado.', 'success');
+                this.loadCoordinators();
+                if (this.currentEditingCoordinatorId === coordinatorId) this.resetForm();
             } else {
-                AppUtils.showNotification('Error al eliminar el coordinador.', 'error');
-                return false;
+                AppUtils.showNotification('Error al eliminar coordinador.', 'error');
             }
         } catch (error) {
-            console.error('Error al eliminar coordinador de Firebase:', error);
-            AppUtils.showNotification('Error al eliminar el coordinador.', 'error');
-            return false;
+            console.error('Error al eliminar coordinador:', error);
+            AppUtils.showNotification('Error al eliminar coordinador.', 'error');
         }
     },
     
-    /**
-     * Copia el código de acceso al portapapeles
-     */
     copyAccessCode: function() {
-        const accessCodeInput = document.getElementById('coordinator-access-code');
-        
-        // Seleccionar el texto
-        accessCodeInput.select();
-        accessCodeInput.setSelectionRange(0, 99999); // Para dispositivos móviles
-        
-        // Copiar al portapapeles
+        const codeInput = document.getElementById('coordinator-access-code');
+        codeInput.select();
         document.execCommand('copy');
-        
-        // Deseleccionar
-        accessCodeInput.blur();
-        
-        AppUtils.showNotification('Código de acceso copiado al portapapeles.');
+        AppUtils.showNotification('Código copiado.', 'success');
     },
     
-    /**
-     * Regenera el código de acceso
-     */
     regenerateAccessCode: function() {
-        const accessCodeInput = document.getElementById('coordinator-access-code');
         const newCode = this.generateAccessCode();
-        accessCodeInput.value = newCode;
-        
-        // Si estamos editando un coordinador, actualizar su código de acceso
-        if (this.currentEditingCoordinatorId) {
-            const coordinator = StorageUtil.Coordinators.get(this.currentEditingCoordinatorId);
-            if (coordinator) {
-                coordinator.accessCode = newCode;
-                StorageUtil.Coordinators.update(this.currentEditingCoordinatorId, coordinator);
-                this.loadCoordinators();
-                AppUtils.showNotification('Código de acceso regenerado correctamente.');
-            }
-        }
+        document.getElementById('coordinator-access-code').value = newCode;
+        AppUtils.showNotification('Nuevo código generado. Guarde los cambios para aplicarlo.', 'info');
     },
     
-    /**
-     * Resetea el formulario
-     */
     resetForm: function() {
-        // Limpiar ID de coordinador en edición
         this.currentEditingCoordinatorId = null;
-        
-        // Resetear campos del formulario
         document.getElementById('coordinator-form').reset();
-        
-        // Ocultar contenedor de código de acceso
         document.getElementById('access-code-container').style.display = 'none';
-        
-        // Restaurar texto del botón de guardar
-        document.getElementById('save-coordinator-btn').textContent = 'Agregar Coordinador';
+        document.getElementById('save-coordinator-btn').innerHTML = '<i class="fas fa-save"></i> Agregar Coordinador';
     }
 };
 
@@ -1213,17 +948,10 @@ const CoordinatorManagement = {
  * Gestión de reportes de confirmaciones
  */
 const ConfirmationReportManagement = {
-    // Variables para el estado actual
     currentWeekStartDate: null,
     daysOfWeek: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     
-    /**
-     * Inicializa la gestión de reportes de confirmaciones
-     */
     init: function() {
-        console.log('Inicializando gestión de reportes de confirmaciones');
-        
-        // Obtener referencias a elementos DOM
         this.weekSelector = document.getElementById('week-selector');
         this.prevWeekBtn = document.getElementById('prev-week-btn');
         this.nextWeekBtn = document.getElementById('next-week-btn');
@@ -1231,288 +959,164 @@ const ConfirmationReportManagement = {
         this.confirmationsBody = document.getElementById('confirmations-body');
         this.totalsFooter = document.getElementById('totals-footer');
         
-        // Establecer la fecha actual como valor predeterminado (ajustado al lunes de la semana)
-        const today = new Date();
-        this.setCurrentWeek(this.getMonday(today));
-        
-        // Configurar eventos
+        this.setCurrentWeek(this.getMonday(new Date()));
         this.setupEventListeners();
-        
-        // Cargar datos iniciales
-        this.loadConfirmationData().catch(error => console.error('Error loading report data:', error));
+        this.loadConfirmationData().catch(error => console.error('Error loading initial report data:', error));
     },
     
-    /**
-     * Configura los escuchadores de eventos
-     */
     setupEventListeners: function() {
-        // Evento para cambio de semana en el selector
-        this.weekSelector.addEventListener('change', async () => {
-            const selectedDate = new Date(this.weekSelector.value);
-            this.setCurrentWeek(this.getMonday(selectedDate));
-            await this.loadConfirmationData().catch(error => console.error('Error loading report data after week change:', error));
+        this.weekSelector.addEventListener('change', () => {
+            this.setCurrentWeek(this.getMonday(new Date(this.weekSelector.value + 'T00:00:00')));
+            this.loadConfirmationData();
         });
-        
-        // Eventos para botones de navegación de semana
-        this.prevWeekBtn.addEventListener('click', async () => {
-            const prevWeek = new Date(this.currentWeekStartDate);
-            prevWeek.setDate(prevWeek.getDate() - 7);
-            this.setCurrentWeek(prevWeek);
-            await this.loadConfirmationData().catch(error => console.error('Error loading report data for previous week:', error));
-        });
-        
-        this.nextWeekBtn.addEventListener('click', async () => {
-            const nextWeek = new Date(this.currentWeekStartDate);
-            nextWeek.setDate(nextWeek.getDate() + 7);
-            this.setCurrentWeek(nextWeek);
-            await this.loadConfirmationData().catch(error => console.error('Error loading report data for next week:', error));
-        });
+        this.prevWeekBtn.addEventListener('click', () => this.changeWeek(-7));
+        this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
+    },
+
+    changeWeek: function(dayOffset) {
+        const newDate = new Date(this.currentWeekStartDate);
+        newDate.setDate(newDate.getDate() + dayOffset);
+        this.setCurrentWeek(this.getMonday(newDate));
+        this.loadConfirmationData();
     },
     
-    /**
-     * Establece la semana actual y actualiza la interfaz
-     * @param {Date} monday - Fecha del lunes de la semana
-     */
     setCurrentWeek: function(monday) {
         this.currentWeekStartDate = monday;
         this.weekSelector.value = AppUtils.formatDateForInput(monday);
         this.updateDaysHeader();
     },
     
-    /**
-     * Obtiene la fecha del lunes de la semana para una fecha dada
-     * @param {Date} date - Fecha de referencia
-     * @returns {Date} - Fecha del lunes
-     */
-    getMonday: function(date) {
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Ajuste para que la semana comience el lunes
-        const monday = new Date(date);
-        monday.setDate(diff);
-        return monday;
+    getMonday: function(d) {
+        d = new Date(d);
+        const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        return new Date(d.setDate(diff));
     },
     
-    /**
-     * Formatea una fecha para un input de tipo date
-     * @param {Date} date - Fecha a formatear
-     * @returns {string} - Fecha formateada (YYYY-MM-DD)
-     */
-    formatDateForInput: function(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    },
-    
-    /**
-     * Formatea una fecha para mostrarla al usuario
-     * @param {Date} date - Fecha a formatear
-     * @returns {string} - Fecha formateada (DD/MM)
-     */
     formatDateForDisplay: function(date) {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${day}/${month}`;
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     },
     
-    /**
-     * Actualiza el encabezado de días en la tabla
-     */
     updateDaysHeader: function() {
-        // Limpiar encabezados existentes excepto el primero y el último
+        // Clear existing day headers (children[0] is 'Departamento', last is 'Total')
         while (this.daysHeader.children.length > 2) {
             this.daysHeader.removeChild(this.daysHeader.children[1]);
         }
         
-        // Generar encabezados para cada día de la semana
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 7; i++) { // Lunes a Domingo
             const dayDate = new Date(this.currentWeekStartDate);
             dayDate.setDate(dayDate.getDate() + i);
-            
             const th = document.createElement('th');
-            th.innerHTML = `${this.daysOfWeek[i]}<br>${this.formatDateForDisplay(dayDate)}`;
-            th.dataset.dayIndex = i;
-            
-            // Insertar antes del último encabezado (Total)
+            th.innerHTML = `${this.daysOfWeek[i]}<br><small>${this.formatDateForDisplay(dayDate)}</small>`;
+            // Insert before the 'Total' header
             this.daysHeader.insertBefore(th, this.daysHeader.lastElementChild);
         }
     },
     
-    /**
-     * Carga los datos de confirmación para la semana actual
-     * @returns {Promise<void>}
-     */
     loadConfirmationData: async function() {
+        if (!this.confirmationsBody) return;
+        this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="empty-state"><span class="spinner"></span> Cargando reportes...</td></tr>`;
+
         try {
-            console.log('Cargando datos de confirmación desde Firebase para la semana:', AppUtils.formatDateForInput(this.currentWeekStartDate));
-            
-            // Obtener todos los coordinadores desde Firebase
             const coordinators = await FirebaseCoordinatorModel.getAll();
-            
-            // Obtener todas las confirmaciones de asistencia desde Firebase
             const allConfirmations = await FirebaseAttendanceModel.getAll();
             
-            // Filtrar confirmaciones para la semana actual
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
-            const confirmationsForWeek = allConfirmations.filter(conf => {
-                // Convertir la fecha de inicio de la semana a string para comparar
-                const confWeekStart = new Date(conf.weekStartDate);
-                const confWeekStartStr = AppUtils.formatDateForInput(confWeekStart);
-                return confWeekStartStr === weekStartStr;
+            
+            const departmentData = {};
+            coordinators.forEach(coord => {
+                if (!departmentData[coord.department]) {
+                    departmentData[coord.department] = {
+                        name: coord.department,
+                        days: Array(7).fill(0), // Lunes a Domingo
+                        total: 0,
+                        pendingDays: Array(7).fill(true) // Asumir todos los días pendientes inicialmente
+                    };
+                }
             });
-            
-            // Organizar datos por departamento y día
-            const departmentData = this.organizeDepartmentData(coordinators, confirmationsForWeek);
-            
-            // Actualizar la tabla con los datos
+
+            allConfirmations.forEach(conf => {
+                // Asegurarse que weekStartDate de la confirmación es un string YYYY-MM-DD para comparar
+                let confWeekStartStr = conf.weekStartDate;
+                if (conf.weekStartDate && typeof conf.weekStartDate.toDate === 'function') { // Es un Timestamp de Firebase
+                    confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate.toDate());
+                } else if (conf.weekStartDate instanceof Date) {
+                     confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate);
+                }
+                // Si ya es un string YYYY-MM-DD, se usa directamente
+
+
+                if (confWeekStartStr === weekStartStr) {
+                    const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
+                    if (coordinator && departmentData[coordinator.department]) {
+                        const dept = departmentData[coordinator.department];
+                        //DAYS_OF_WEEK = ['Lunes', 'Martes', ...]
+                        //conf.attendanceCounts = { lunes: 10, martes: 5, ... } (o day_0, day_1)
+                        this.daysOfWeek.forEach((dayName, index) => {
+                            const dayId = dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // ej: 'lunes'
+                            const count = conf.attendanceCounts[dayId] || 0;
+                            if (count > 0 || (conf.attendanceCounts.hasOwnProperty(dayId) && conf.attendanceCounts[dayId] !== undefined) ) { // Si hay cuenta o se registró explícitamente (incluso 0)
+                                dept.days[index] += count;
+                                dept.total += count;
+                                dept.pendingDays[index] = false; // Este día tiene datos
+                            }
+                        });
+                    }
+                }
+            });
             this.updateConfirmationsTable(departmentData);
         } catch (error) {
-            console.error('Error al cargar datos de confirmación desde Firebase:', error);
-            // Mostrar mensaje de error en la interfaz
-            this.confirmationsBody.innerHTML = `<tr><td colspan="9" class="error-message">Error al cargar datos. Por favor, intente de nuevo.</td></tr>`;
-            throw error; // Re-lanzar el error para que pueda ser capturado por el llamador
+            console.error('Error al cargar datos de confirmación:', error);
+            this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="error-state">Error al cargar reportes.</td></tr>`;
         }
     },
     
-    /**
-     * Organiza los datos de confirmaciones por departamento
-     * @param {Array} coordinators - Lista de coordinadores
-     * @param {Array} confirmations - Lista de confirmaciones para la semana actual
-     * @returns {Object} - Datos organizados por departamento
-     */
-    organizeDepartmentData: function(coordinators, confirmations) {
-        const departmentData = {};
-        
-        // Agrupar coordinadores por departamento
-        coordinators.forEach(coordinator => {
-            const department = coordinator.department;
-            
-            if (!departmentData[department]) {
-                departmentData[department] = {
-                    name: department,
-                    coordinators: [],
-                    days: Array(7).fill(0),
-                    total: 0,
-                    pending: Array(7).fill(true)
-                };
-            }
-            
-            departmentData[department].coordinators.push(coordinator);
-            
-            // Buscar confirmación para este coordinador
-            const confirmation = confirmations.find(conf => conf.coordinatorId === coordinator.id);
-            
-            if (confirmation) {
-                // Actualizar conteos por día
-                for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-                    const dayId = `day_${dayIndex}`;
-                    const count = confirmation.attendanceCounts[dayId] || 0;
-                    
-                    departmentData[department].days[dayIndex] += count;
-                    departmentData[department].total += count;
-                    departmentData[department].pending[dayIndex] = false;
-                }
-            }
-        });
-        
-        return departmentData;
-    },
-    
-    /**
-     * Actualiza la tabla de confirmaciones con los datos organizados
-     * @param {Object} departmentData - Datos organizados por departamento
-     */
     updateConfirmationsTable: function(departmentData) {
-        // Limpiar tabla
         this.confirmationsBody.innerHTML = '';
-        
-        // Inicializar totales por día
         const dayTotals = Array(7).fill(0);
         let grandTotal = 0;
         
-        // Crear filas para cada departamento
-        for (const department in departmentData) {
-            const data = departmentData[department];
+        const sortedDepartments = Object.keys(departmentData).sort();
+
+        if (sortedDepartments.length === 0) {
+             this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="empty-state">No hay coordinadores registrados para mostrar reportes.</td></tr>`;
+             this.updateTotalsFooter(dayTotals, grandTotal);
+             return;
+        }
+
+        sortedDepartments.forEach(deptName => {
+            const data = departmentData[deptName];
+            const row = this.confirmationsBody.insertRow();
+            row.insertCell().textContent = data.name;
             
-            const row = document.createElement('tr');
-            
-            // Celda de departamento
-            const departmentCell = document.createElement('td');
-            departmentCell.textContent = data.name;
-            row.appendChild(departmentCell);
-            
-            // Celdas para cada día
-            for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-                const cell = document.createElement('td');
-                const count = data.days[dayIndex];
-                
-                cell.textContent = count;
-                cell.classList.add('confirmation-cell');
-                
-                // Agregar clase según estado (pendiente o confirmado)
-                if (data.pending[dayIndex]) {
-                    cell.classList.add('pending');
-                    cell.textContent = 'Pendiente';
-                } else {
-                    cell.classList.add('confirmed');
-                }
-                
-                row.appendChild(cell);
-                
-                // Actualizar total del día
-                dayTotals[dayIndex] += count;
+            for (let i = 0; i < 7; i++) {
+                const cell = row.insertCell();
+                cell.textContent = data.pendingDays[i] ? '-' : data.days[i];
+                cell.className = data.pendingDays[i] ? 'pending' : (data.days[i] > 0 ? 'confirmed' : '');
+                dayTotals[i] += data.days[i];
             }
             
-            // Celda de total por departamento
-            const totalCell = document.createElement('td');
+            const totalCell = row.insertCell();
             totalCell.textContent = data.total;
-            totalCell.classList.add('department-total');
-            row.appendChild(totalCell);
-            
-            // Actualizar total general
+            totalCell.className = 'report-total-dept';
             grandTotal += data.total;
-            
-            // Agregar fila a la tabla
-            this.confirmationsBody.appendChild(row);
-        }
-        
-        // Actualizar fila de totales
+        });
         this.updateTotalsFooter(dayTotals, grandTotal);
-        
-        // Mostrar mensaje si no hay datos
-        if (Object.keys(departmentData).length === 0) {
-            const emptyRow = document.createElement('tr');
-            const emptyCell = document.createElement('td');
-            emptyCell.colSpan = 9; // 7 días + departamento + total
-            emptyCell.textContent = 'No hay datos de confirmación para esta semana';
-            emptyCell.classList.add('empty-state');
-            emptyRow.appendChild(emptyCell);
-            this.confirmationsBody.appendChild(emptyRow);
-        }
     },
     
-    /**
-     * Actualiza la fila de totales en el pie de la tabla
-     * @param {Array} dayTotals - Totales por día
-     * @param {number} grandTotal - Total general
-     */
     updateTotalsFooter: function(dayTotals, grandTotal) {
-        // Limpiar totales existentes
-        while (this.totalsFooter.children.length > 1) {
-            this.totalsFooter.removeChild(this.totalsFooter.children[1]);
-        }
+        this.totalsFooter.innerHTML = ''; // Limpiar
+        const firstCell = this.totalsFooter.insertCell();
+        firstCell.textContent = 'Total por Día';
+        firstCell.colSpan = 1; // 'Departamento'
         
-        // Agregar celdas para cada día
-        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-            const cell = document.createElement('th');
-            cell.textContent = dayTotals[dayIndex];
-            this.totalsFooter.appendChild(cell);
-        }
+        dayTotals.forEach(total => {
+            const cell = this.totalsFooter.insertCell();
+            cell.textContent = total;
+        });
         
-        // Agregar celda para el total general
-        const grandTotalCell = document.createElement('th');
+        const grandTotalCell = this.totalsFooter.insertCell();
         grandTotalCell.textContent = grandTotal;
-        this.totalsFooter.appendChild(grandTotalCell);
+        grandTotalCell.className = 'report-grand-total';
     }
 };
 
@@ -1520,7 +1124,6 @@ const ConfirmationReportManagement = {
  * Gestión de respaldo de datos (exportación e importación)
  */
 const DataBackupManagement = {
-    // Referencias a elementos DOM
     exportBtn: null,
     importBtn: null,
     fileInput: null,
@@ -1528,17 +1131,9 @@ const DataBackupManagement = {
     importActions: null,
     confirmImportBtn: null,
     cancelImportBtn: null,
-    
-    // Archivo seleccionado para importación
     selectedFile: null,
     
-    /**
-     * Inicializa la gestión de respaldo de datos
-     */
     init: function() {
-        console.log('Inicializando gestión de respaldo de datos');
-        
-        // Obtener referencias a elementos DOM
         this.exportBtn = document.getElementById('export-data-btn');
         this.importBtn = document.getElementById('import-data-btn');
         this.fileInput = document.getElementById('import-file-input');
@@ -1546,161 +1141,45 @@ const DataBackupManagement = {
         this.importActions = document.querySelector('.import-actions');
         this.confirmImportBtn = document.getElementById('confirm-import-btn');
         this.cancelImportBtn = document.getElementById('cancel-import-btn');
-        
-        // Configurar eventos
         this.setupEventListeners();
     },
     
-    /**
-     * Configura los escuchadores de eventos
-     */
     setupEventListeners: function() {
-        // Evento para exportar datos
         this.exportBtn.addEventListener('click', () => {
-            this.exportData();
+            AppUtils.showNotification('Funcionalidad de exportación no implementada para Firebase.', 'warning');
+            // this.exportData(); // COMENTADO - Lógica incorrecta para Firebase
         });
         
-        // Evento para seleccionar archivo de importación
         this.importBtn.addEventListener('click', () => {
             this.fileInput.click();
         });
         
-        // Evento para cuando se selecciona un archivo
         this.fileInput.addEventListener('change', (event) => {
-            if (event.target.files.length > 0) {
-                this.handleFileSelection(event.target.files[0]);
-            }
+            AppUtils.showNotification('Funcionalidad de importación no implementada para Firebase.', 'warning');
+            this.cancelImport(); // Para resetear la UI
+            // if (event.target.files.length > 0) { // COMENTADO
+            //     this.handleFileSelection(event.target.files[0]);
+            // }
         });
         
-        // Evento para confirmar importación
         this.confirmImportBtn.addEventListener('click', () => {
-            this.importData();
-        });
-        
-        // Evento para cancelar importación
-        this.cancelImportBtn.addEventListener('click', () => {
-            this.cancelImport();
-        });
-    },
-    
-    /**
-     * Exporta todos los datos del sistema
-     */
-    exportData: function() {
-        try {
-            // Mostrar indicador de carga
-            this.exportBtn.disabled = true;
-            this.exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
-            
-            // Pequeño retraso para mostrar la animación
-            setTimeout(() => {
-                // Llamar a la función de exportación de StorageUtil
-                const success = StorageUtil.downloadData();
-                
-                if (success) {
-                    AppUtils.showNotification('Datos exportados correctamente', 'success');
-                } else {
-                    AppUtils.showNotification('Error al exportar datos', 'error');
-                }
-                
-                // Restaurar botón
-                this.exportBtn.disabled = false;
-                this.exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Datos';
-            }, 500);
-        } catch (error) {
-            console.error('Error al exportar datos:', error);
-            AppUtils.showNotification('Error al exportar datos: ' + error.message, 'error');
-            
-            // Restaurar botón
-            this.exportBtn.disabled = false;
-            this.exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Datos';
-        }
-    },
-    
-    /**
-     * Maneja la selección de un archivo para importación
-     * @param {File} file - Archivo seleccionado
-     */
-    handleFileSelection: function(file) {
-        // Validar que sea un archivo JSON
-        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-            AppUtils.showNotification('El archivo debe ser de tipo JSON', 'error');
-            this.cancelImport();
-            return;
-        }
-        
-        // Guardar referencia al archivo
-        this.selectedFile = file;
-        
-        // Mostrar nombre del archivo
-        this.selectedFileName.textContent = file.name;
-        
-        // Mostrar acciones de importación
-        this.importActions.style.display = 'flex';
-    },
-    
-    /**
-     * Importa los datos desde el archivo seleccionado
-     */
-    importData: function() {
-        if (!this.selectedFile) {
-            AppUtils.showNotification('No se ha seleccionado ningún archivo', 'error');
-            return;
-        }
-        
-        try {
-            // Mostrar indicador de carga
-            this.confirmImportBtn.disabled = true;
-            this.cancelImportBtn.disabled = true;
-            this.confirmImportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importando...';
-            
-            // Importar datos
-            StorageUtil.importFromFile(this.selectedFile)
-                .then(success => {
-                    if (success) {
-                        AppUtils.showNotification('Datos importados correctamente', 'success');
-                        
-                        // Recargar la página para reflejar los cambios
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        AppUtils.showNotification('Error al importar datos', 'error');
-                        this.resetImportUI();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al importar datos:', error);
-                    AppUtils.showNotification('Error al importar datos: ' + error.message, 'error');
-                    this.resetImportUI();
-                });
-        } catch (error) {
-            console.error('Error al importar datos:', error);
-            AppUtils.showNotification('Error al importar datos: ' + error.message, 'error');
+            AppUtils.showNotification('Funcionalidad de importación no implementada para Firebase.', 'warning');
             this.resetImportUI();
-        }
+            // this.importData(); // COMENTADO
+        });
+        
+        this.cancelImportBtn.addEventListener('click', () => this.cancelImport());
     },
     
-    /**
-     * Cancela la importación y resetea la interfaz
-     */
-    cancelImport: function() {
-        this.resetImportUI();
-    },
-    
-    /**
-     * Resetea la interfaz de importación
-     */
+    exportData: function() { /* ... (Lógica original de StorageUtil.downloadData) ... */ },
+    handleFileSelection: function(file) { /* ... */ },
+    importData: function() { /* ... (Lógica original de StorageUtil.importFromFile) ... */ },
+    cancelImport: function() { this.resetImportUI(); },
     resetImportUI: function() {
-        // Limpiar archivo seleccionado
         this.selectedFile = null;
         this.fileInput.value = '';
         this.selectedFileName.textContent = '';
-        
-        // Ocultar acciones de importación
         this.importActions.style.display = 'none';
-        
-        // Resetear botones
         this.confirmImportBtn.disabled = false;
         this.cancelImportBtn.disabled = false;
         this.confirmImportBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Importación';
