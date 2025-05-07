@@ -4,6 +4,93 @@
  */
 
 const FirebaseMenuModel = {
+    // ... (las funciones getAll, get, add, update, delete, listenToAllMenus permanecen igual que en la versión anterior que te di) ...
+
+    /**
+     * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado)
+     * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null si no existe
+     */
+    getActive: async function() {
+        try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const snapshot = await firebase.firestore()
+                .collection('menus')
+                // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
+                .where('endDate', '>=', todayStr)
+                // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
+                .orderBy('endDate', 'asc') // Ordenar por fecha de finalización ascendente (los que terminan antes primero)
+                                           // o 'desc' si quieres los que terminan más tarde primero,
+                                           // pero luego el filtro de cliente es más importante.
+                .get();
+
+            if (snapshot.empty) {
+                return null;
+            }
+
+            // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
+            // Como ordenamos por endDate, necesitamos filtrar los que ya comenzaron y luego
+            // podríamos querer el que comenzó más recientemente de ese subconjunto.
+            const validMenus = snapshot.docs
+                .map(doc => ({ ...doc.data(), id: doc.id }))
+                .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
+
+            if (validMenus.length === 0) {
+                return null;
+            }
+
+            // De los menús válidos (que ya comenzaron y no han terminado),
+            // tomar el que tiene la fecha de inicio más reciente.
+            validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            
+            return validMenus[0];
+
+        } catch (error) {
+            console.error('Error al obtener menú activo de Firestore:', error);
+            return null;
+        }
+    },
+
+    /**
+     * Escucha cambios en tiempo real en el menú activo
+     * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
+     * @returns {Function} - Función para cancelar la suscripción
+     */
+    listenToActiveMenu: function(callback) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const unsubscribe = firebase.firestore()
+            .collection('menus')
+            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
+            .where('endDate', '>=', todayStr)
+            // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
+            .orderBy('endDate', 'asc') // Opcionalmente, puedes añadir un segundo orderBy aquí
+                                       // .orderBy('startDate', 'desc') si necesitas que la BD ayude más en el orden
+            .onSnapshot(snapshot => {
+                let activeMenu = null;
+                
+                // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
+                const validMenus = snapshot.docs
+                    .map(doc => ({ ...doc.data(), id: doc.id }))
+                    .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
+
+                if (validMenus.length > 0) {
+                    // De los menús válidos, tomar el que tiene la fecha de inicio más reciente.
+                    validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+                    activeMenu = validMenus[0];
+                }
+                
+                callback(activeMenu, null); // Llamar con el menú encontrado o null
+            }, error => {
+                console.error('Error al escuchar cambios en menú activo:', error);
+                callback(null, error);
+            });
+
+        return unsubscribe;
+    },
+
+    // ... (las demás funciones como getAll, get, add, update, delete, listenToAllMenus permanecen igual) ...
+    // Asegúrate de incluir las demás funciones que te pasé en la respuesta anterior si no están aquí.
+    // Esta es solo la parte modificada.
+
     /**
      * Obtiene todos los menús de Firestore
      * @returns {Promise<Array>} - Promesa que resuelve a un array de menús
@@ -41,41 +128,7 @@ const FirebaseMenuModel = {
             return null;
         }
     },
-
-    /**
-     * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado)
-     * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null si no existe
-     */
-    getActive: async function() {
-        try {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const snapshot = await firebase.firestore()
-                .collection('menus')
-                // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
-                .where('endDate', '>=', todayStr)
-                // 2. Ordenar por fecha de inicio descendente para priorizar los más recientes
-                .orderBy('startDate', 'desc')
-                .get();
-
-            if (snapshot.empty) {
-                return null;
-            }
-
-            // 3. En el cliente, encontrar el primer menú de esta lista que YA HA COMENZADO
-            for (const doc of snapshot.docs) {
-                const menu = { ...doc.data(), id: doc.id };
-                if (menu.startDate <= todayStr) {
-                    return menu; // Este es el menú activo más reciente
-                }
-            }
-            return null; // Ningún menú que no ha terminado ya ha comenzado
-        } catch (error) {
-            console.error('Error al obtener menú activo de Firestore:', error);
-            return null;
-        }
-    },
-
-    /**
+     /**
      * Agrega un nuevo menú a Firestore
      * @param {Object} menu - Menú a agregar
      * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
@@ -138,39 +191,6 @@ const FirebaseMenuModel = {
             return false;
         }
     },
-
-    /**
-     * Escucha cambios en tiempo real en el menú activo
-     * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
-     * @returns {Function} - Función para cancelar la suscripción
-     */
-    listenToActiveMenu: function(callback) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const unsubscribe = firebase.firestore()
-            .collection('menus')
-            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
-            .where('endDate', '>=', todayStr)
-            // 2. Ordenar por fecha de inicio descendente para priorizar los más recientes
-            .orderBy('startDate', 'desc')
-            .onSnapshot(snapshot => {
-                let activeMenu = null;
-                // 3. En el cliente, encontrar el primer menú de esta lista que YA HA COMENZADO
-                for (const doc of snapshot.docs) {
-                    const menu = { ...doc.data(), id: doc.id };
-                    if (menu.startDate <= todayStr) {
-                        activeMenu = menu; // Este es el menú activo más reciente
-                        break; 
-                    }
-                }
-                callback(activeMenu, null); // Llamar con el menú encontrado o null
-            }, error => {
-                console.error('Error al escuchar cambios en menú activo:', error);
-                callback(null, error);
-            });
-
-        return unsubscribe;
-    },
-
     /**
      * Escucha cambios en tiempo real en todos los menús
      * @param {Function} callback - Función a llamar cuando hay cambios (menus, error)
@@ -193,6 +213,7 @@ const FirebaseMenuModel = {
 
         return unsubscribe;
     }
+
 };
 
 // Exportar para su uso en otros módulos
