@@ -8,6 +8,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Módulo de coordinación inicializado');
     
     try {
+        // Inicializar Firebase Offline primero para evitar problemas de sincronización
+        if (typeof FirebaseOffline !== 'undefined') {
+            try {
+                await FirebaseOffline.init();
+                console.log('Funcionalidad offline inicializada correctamente');
+            } catch (offlineError) {
+                console.warn('Error no crítico al inicializar funcionalidad offline:', offlineError);
+                // Continuamos a pesar del error en la inicialización offline
+            }
+        }
+        
         // Verificar si hay una sesión activa
         const hasSession = await checkSession();
         
@@ -70,16 +81,22 @@ function showLoginModal() {
     const loginForm = document.getElementById('login-form');
     
     if (loginModal) {
-        loginModal.classList.add('active'); // Asegurarse que el modal se muestre
+        // Asegurarse que el modal se muestre y esté visible
+        loginModal.classList.add('active'); 
+        loginModal.style.display = 'block';
         
         if (loginForm) {
-            loginForm.addEventListener('submit', async function(event) {
+            // Eliminar event listeners previos para evitar duplicados
+            const newForm = loginForm.cloneNode(true);
+            loginForm.parentNode.replaceChild(newForm, loginForm);
+            
+            newForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 
                 const accessCodeInput = document.getElementById('access-code'); // ID del input en el modal
                 const accessCode = accessCodeInput.value.trim().toUpperCase();
                 
-                const submitButton = loginForm.querySelector('button[type="submit"]');
+                const submitButton = newForm.querySelector('button[type="submit"]');
                 const originalButtonHtml = submitButton.innerHTML;
 
                 if (accessCode) {
@@ -128,11 +145,19 @@ async function loginCoordinatorWithCode(accessCode) { // Renombrada
             sessionStorage.setItem('coordinatorName', coordinator.name);
             sessionStorage.setItem('loginTime', new Date().toISOString());
             
+            // Asegurarse de que el modal se oculte correctamente
             const loginModal = document.getElementById('login-modal');
-            if (loginModal) loginModal.classList.remove('active');
+            if (loginModal) {
+                loginModal.classList.remove('active');
+                loginModal.style.display = 'none'; // Forzar ocultamiento con estilo
+            }
             
-            initCoordinatorInterface();
-            AppUtils.showNotification(`Bienvenido, ${coordinator.name}`, 'success');
+            // Pequeño retraso para asegurar que el modal se oculte antes de inicializar la interfaz
+            setTimeout(() => {
+                initCoordinatorInterface();
+                AppUtils.showNotification(`Bienvenido, ${coordinator.name}`, 'success');
+            }, 100);
+            
             return true;
         } else {
             AppUtils.showNotification('Código de acceso inválido.', 'error');
