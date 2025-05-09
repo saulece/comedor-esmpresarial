@@ -11,10 +11,7 @@ let currentEditingMenuId = null;
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const CATEGORIES = {
     'plato_fuerte': 'Platos Fuertes',
-    'bebida': 'Bebidas',
-    'entrada': 'Entradas',
-    'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
+    'bebida': 'Bebidas'
 };
 
 // Flag para evitar inicialización múltiple
