@@ -211,14 +211,63 @@ function logoutCoordinator() {
  * Inicializa la interfaz de coordinación
  */
 function initCoordinatorInterface() {
+    console.log('Inicializando interfaz de coordinador');
+    
+    // Mostrar información del coordinador
     displayCoordinatorInfo();
+    
+    // Configurar botones y navegación
     setupLogoutButton();
     setupTabNavigation();
     setupMenuWeekSelector(); // Configurar selector de semana para menús
     setupConfirmationWeekSelector(); // Configurar selector de semana para confirmaciones
-    loadCurrentMenu(); // Para la pestaña de "Menú Semanal"
-    loadNextWeekMenu(); // Cargar el menú de la próxima semana
-    AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
+    
+    // Verificar que Firebase esté disponible antes de cargar los menús
+    if (typeof firebase === 'undefined' || typeof FirebaseMenuModel === 'undefined') {
+        console.error('Firebase o FirebaseMenuModel no están disponibles');
+        AppUtils.showNotification('Error: No se puede conectar con la base de datos. Por favor, recargue la página.', 'error');
+        return;
+    }
+    
+    // Cargar menús con reintentos
+    loadMenusWithRetry();
+    
+    // Inicializar el gestor de asistencia
+    if (typeof AttendanceManager !== 'undefined') {
+        AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
+    } else {
+        console.error('AttendanceManager no está disponible');
+    }
+}
+
+/**
+ * Carga los menús con reintentos en caso de error
+ */
+function loadMenusWithRetry(attempt = 1) {
+    console.log(`Intentando cargar menús (intento ${attempt})`);
+    
+    try {
+        // Cargar menú actual
+        loadCurrentMenu();
+        
+        // Cargar menú de la próxima semana
+        loadNextWeekMenu();
+    } catch (error) {
+        console.error(`Error al cargar menús (intento ${attempt}):`, error);
+        
+        // Reintentar hasta 3 veces con un retraso creciente
+        if (attempt < 3) {
+            const delay = attempt * 1000; // 1s, 2s, 3s
+            console.log(`Reintentando en ${delay}ms...`);
+            
+            setTimeout(() => {
+                loadMenusWithRetry(attempt + 1);
+            }, delay);
+        } else {
+            console.error('Se alcanzó el número máximo de intentos para cargar los menús');
+            AppUtils.showNotification('Error al cargar los menús. Por favor, recargue la página.', 'error');
+        }
+    }
 }
 
 /**
@@ -486,13 +535,36 @@ function loadNextWeekMenu() {
  * @param {HTMLElement} container - Contenedor donde mostrar el menú
  */
 function displayMenuForCoordinator(menu, container) {
+    console.log('Iniciando displayMenuForCoordinator con:', menu ? menu.name : 'menú indefinido');
+    
     if (!menu || typeof menu !== 'object') {
+        console.error('Error: Formato de menú inválido', menu);
         container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
         return;
     }
 
+    // Verificar si AppUtils está disponible
+    if (typeof AppUtils === 'undefined') {
+        console.error('Error: AppUtils no está definido. Usando formateo básico de fechas.');
+        // Implementar formateo básico si AppUtils no está disponible
+        if (!window.AppUtils) {
+            window.AppUtils = {
+                formatDate: function(date) {
+                    if (!date) return '';
+                    try {
+                        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                    } catch (e) {
+                        return date.toString();
+                    }
+                }
+            };
+        }
+    }
+
     // Si hay una imagen del menú, mostrarla como contenido principal
     if (menu.imageUrl) {
+        console.log('El menú tiene imageUrl:', typeof menu.imageUrl, menu.imageUrl ? menu.imageUrl.substring(0, 50) + '...' : 'vacío');
+        
         let html = `
             <div class="menu-header">
                 <h4>${menu.name || 'Menú Semanal'}</h4>
@@ -510,6 +582,8 @@ function displayMenuForCoordinator(menu, container) {
         const loadingIndicator = container.querySelector('.loading-indicator');
         
         if (menuImage) {
+            console.log('Elemento de imagen encontrado, preparando para cargar');
+            
             // Primero comprobamos si la URL de la imagen es muy larga (probablemente una data URL)
             if (menu.imageUrl && menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
                 console.log('Detectada data URL larga, procesando imagen...');
@@ -518,6 +592,7 @@ function displayMenuForCoordinator(menu, container) {
                     // Crear una imagen temporal para verificar que la data URL es válida
                     const tempImg = new Image();
                     tempImg.onload = function() {
+                        console.log('Imagen temporal cargada correctamente, asignando a imagen principal');
                         // La data URL es válida, asignarla a la imagen principal
                         menuImage.src = menu.imageUrl;
                         menuImage.style.display = 'block';
@@ -530,6 +605,7 @@ function displayMenuForCoordinator(menu, container) {
                         }
                     };
                     // Iniciar la carga de la imagen temporal
+                    console.log('Iniciando carga de imagen temporal');
                     tempImg.src = menu.imageUrl;
                 } catch (error) {
                     console.error('Error al procesar la data URL:', error);
@@ -539,7 +615,7 @@ function displayMenuForCoordinator(menu, container) {
                 }
             } else {
                 // Es una URL normal, la cargamos directamente
-                menuImage.src = menu.imageUrl;
+                console.log('Cargando URL de imagen normal:', menu.imageUrl);
                 
                 // Evento cuando la imagen carga correctamente
                 menuImage.onload = function() {
@@ -558,6 +634,7 @@ function displayMenuForCoordinator(menu, container) {
                         const retryBtn = loadingIndicator.querySelector('.retry-btn');
                         if (retryBtn) {
                             retryBtn.onclick = function() {
+                                console.log('Reintentando carga de imagen con timestamp');
                                 // Reintentar carga de imagen
                                 const timestamp = new Date().getTime();
                                 menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
@@ -566,10 +643,17 @@ function displayMenuForCoordinator(menu, container) {
                         }
                     }
                 };
+                
+                // Asignar la URL a la imagen para iniciar la carga
+                menuImage.src = menu.imageUrl;
             }
+        } else {
+            console.error('No se encontró el elemento de imagen en el contenedor');
         }
         
         return;
+    } else {
+        console.warn('El menú no tiene URL de imagen');
     }
     
     // Si no hay imagen, mostrar el formato tradicional (aunque ya no se usará)
