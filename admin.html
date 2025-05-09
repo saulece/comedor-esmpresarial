@@ -89,6 +89,23 @@
                             </div>
                         </div>
                         
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="menu-image">Imagen del Menú:</label>
+                                <input type="file" id="menu-image" name="menu-image" accept="image/*">
+                                <p class="help-text">Opcional: Sube una imagen representativa del menú (máx. 2MB)</p>
+                            </div>
+                            <div class="form-group" id="menu-image-preview-container" style="display: none;">
+                                <label>Vista previa:</label>
+                                <div class="image-preview">
+                                    <img id="menu-image-preview" src="" alt="Vista previa de la imagen">
+                                    <button type="button" id="remove-image-btn" class="danger-btn icon-btn">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="days-container">
                             <!-- Los días de la semana se generarán dinámicamente con JavaScript -->
                         </div>

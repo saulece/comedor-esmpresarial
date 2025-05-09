@@ -264,6 +264,10 @@ function initMenuForm() {
     const weekStartDateInput = document.getElementById('week-start-date');
     const menuForm = document.getElementById('menu-form');
     const resetFormBtn = document.getElementById('reset-form-btn');
+    const menuImageInput = document.getElementById('menu-image');
+    const menuImagePreviewContainer = document.getElementById('menu-image-preview-container');
+    const menuImagePreview = document.getElementById('menu-image-preview');
+    const removeImageBtn = document.getElementById('remove-image-btn');
 
     if (!weekStartDateInput || !menuForm || !resetFormBtn) {
         console.error("Elementos del formulario de menú no encontrados.");
@@ -298,8 +302,86 @@ function initMenuForm() {
         saveMenu();
     });
 
+    // Configurar carga de imagen
+    if (menuImageInput) {
+        // Reemplazar para evitar duplicar listeners
+        const newMenuImageInput = menuImageInput.cloneNode(true);
+        menuImageInput.parentNode.replaceChild(newMenuImageInput, menuImageInput);
+        
+        newMenuImageInput.addEventListener('change', function(e) {
+            handleMenuImageUpload(e);
+        });
+    }
+    
+    // Configurar botón para eliminar imagen
+    if (removeImageBtn) {
+        const newRemoveImageBtn = removeImageBtn.cloneNode(true);
+        removeImageBtn.parentNode.replaceChild(newRemoveImageBtn, removeImageBtn);
+        
+        newRemoveImageBtn.addEventListener('click', function() {
+            removeMenuImage();
+        });
+    }
+
     // Llamar a setupAddDishButtons después de generar los días iniciales
     setupAddDishButtons(); 
+}
+
+/**
+ * Maneja la carga de una imagen para el menú
+ */
+function handleMenuImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Verificar que sea una imagen
+    if (!file.type.match('image.*')) {
+        AppUtils.showNotification('Por favor, selecciona un archivo de imagen válido.', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    // Verificar tamaño (máximo 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
+    if (file.size > maxSize) {
+        AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 2MB.', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    // Mostrar vista previa
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const previewContainer = document.getElementById('menu-image-preview-container');
+        const previewImage = document.getElementById('menu-image-preview');
+        
+        if (previewContainer && previewImage) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = 'block';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Elimina la imagen seleccionada para el menú
+ */
+function removeMenuImage() {
+    const menuImageInput = document.getElementById('menu-image');
+    const previewContainer = document.getElementById('menu-image-preview-container');
+    const previewImage = document.getElementById('menu-image-preview');
+    
+    if (menuImageInput) {
+        menuImageInput.value = '';
+    }
+    
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    
+    if (previewImage) {
+        previewImage.src = '';
+    }
 }
 
 // ... (Aquí irían TODAS las demás funciones que ya tenías en admin.js:
@@ -450,6 +532,8 @@ function setupAddDishButtons() {
 async function saveMenu() {
     const menuName = document.getElementById('menu-name').value;
     const weekStartDate = document.getElementById('week-start-date').value;
+    const menuImageInput = document.getElementById('menu-image');
+    const menuImagePreview = document.getElementById('menu-image-preview');
     
     if (!menuName || !weekStartDate) {
         AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
@@ -460,9 +544,15 @@ async function saveMenu() {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
-        active: true, 
+        active: true,
     };
-     if (currentEditingMenuId) {
+    
+    // Agregar imagen si existe
+    if (menuImagePreview && menuImagePreview.src && menuImagePreview.src !== window.location.href) {
+        menuData.imageUrl = menuImagePreview.src;
+    }
+    
+    if (currentEditingMenuId) {
         menuData.id = currentEditingMenuId; // Pasar ID solo si estamos editando
     }
     
@@ -586,6 +676,20 @@ function createMenuItemElement(menu) {
     const menuHeader = document.createElement('div');
     menuHeader.className = 'menu-header';
     
+    // Verificar si hay imagen para mostrar
+    if (menu.imageUrl) {
+        const menuImageContainer = document.createElement('div');
+        menuImageContainer.className = 'menu-image-container';
+        
+        const menuImage = document.createElement('img');
+        menuImage.className = 'menu-thumbnail';
+        menuImage.src = menu.imageUrl;
+        menuImage.alt = `Imagen del menú ${menu.name}`;
+        
+        menuImageContainer.appendChild(menuImage);
+        menuHeader.appendChild(menuImageContainer);
+    }
+    
     const menuInfo = document.createElement('div');
     menuInfo.className = 'menu-info';
     
@@ -702,6 +806,18 @@ async function editMenu(menuId) {
     document.getElementById('menu-name').value = menu.name;
     document.getElementById('week-start-date').value = menu.startDate;
     
+    // Mostrar imagen si existe
+    const previewContainer = document.getElementById('menu-image-preview-container');
+    const previewImage = document.getElementById('menu-image-preview');
+    
+    if (menu.imageUrl && previewContainer && previewImage) {
+        previewImage.src = menu.imageUrl;
+        previewContainer.style.display = 'block';
+    } else if (previewContainer) {
+        previewContainer.style.display = 'none';
+        if (previewImage) previewImage.src = '';
+    }
+    
     generateWeekDays(menu.startDate); 
     
     if (menu.days && Array.isArray(menu.days)) {
@@ -777,6 +893,10 @@ function resetMenuForm() {
     const today = new Date();
     const dateInput = document.getElementById('week-start-date');
     if(dateInput) dateInput.value = AppUtils.formatDateForInput(today);
+    
+    // Limpiar imagen
+    removeMenuImage();
+    
     generateWeekDays(AppUtils.formatDateForInput(today)); // Regenerar días vacíos
     AppUtils.showNotification('Formulario limpiado.', 'info');
 }

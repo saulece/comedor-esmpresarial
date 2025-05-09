@@ -261,6 +261,74 @@ footer a:hover { color: var(--border-color); }
 /* Párrafos */
 p { margin-bottom: var(--spacing-md); }
 
+/* Estilos específicos para el menú */
+.menu-item {
+    margin-bottom: var(--spacing-md);
+}
+
+.menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--spacing-md);
+}
+
+/* Estilos para la carga de imágenes */
+.image-preview {
+    position: relative;
+    max-width: 300px;
+    margin-top: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.image-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    object-fit: contain;
+}
+
+.image-preview button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.image-preview button:hover {
+    background-color: var(--error-color);
+}
+
+/* Estilos para la miniatura de imagen en la lista de menús */
+.menu-image-container {
+    margin-right: var(--spacing-md);
+    width: 80px;
+    height: 80px;
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.menu-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Secciones */
 section { margin-bottom: var(--spacing-xl); }
 .section-header {
