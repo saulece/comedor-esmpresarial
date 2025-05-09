@@ -53,40 +53,85 @@ const FirebaseMenuModel = {
     /**
      * Escucha cambios en tiempo real en el menú activo
      * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
-     * @returns {Function} - Función para cancelar la suscripción
+     * @returns {string} - ID del listener para cancelarlo posteriormente
      */
     listenToActiveMenu: function(callback) {
         const todayStr = new Date().toISOString().split('T')[0];
-        const unsubscribe = firebase.firestore()
-            .collection('menus')
-            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
-            .where('endDate', '>=', todayStr)
-            // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
-            .orderBy('endDate', 'asc') // Opcionalmente, puedes añadir un segundo orderBy aquí
-                                       // .orderBy('startDate', 'desc') si necesitas que la BD ayude más en el orden
-            .onSnapshot(snapshot => {
-                let activeMenu = null;
-                
-                // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
-                const validMenus = snapshot.docs
-                    .map(doc => ({ ...doc.data(), id: doc.id }))
-                    .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
-
-                if (validMenus.length > 0) {
-                    // De los menús válidos, tomar el que tiene la fecha de inicio más reciente.
+        
+        return FirebaseRealtime.listenToCollection('menus', {
+            where: [['endDate', '>=', todayStr]],
+            orderBy: [['endDate', 'asc']],
+            onSnapshot: (snapshot) => {
+                try {
+                    if (snapshot.empty) {
+                        callback(null);
+                        return;
+                    }
+                    
+                    // Filtrar menús que ya han comenzado
+                    const validMenus = snapshot.docs
+                        .map(doc => ({ ...doc.data(), id: doc.id }))
+                        .filter(menu => menu.startDate <= todayStr);
+                    
+                    if (validMenus.length === 0) {
+                        callback(null);
+                        return;
+                    }
+                    
+                    // Ordenar por fecha de inicio descendente y tomar el primero
                     validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-                    activeMenu = validMenus[0];
+                    callback(validMenus[0]);
+                } catch (error) {
+                    callback(null, error);
                 }
-                
-                callback(activeMenu, null); // Llamar con el menú encontrado o null
-            }, error => {
-                console.error('Error al escuchar cambios en menú activo:', error);
-                callback(null, error);
-            });
-
-        return unsubscribe;
+            },
+            onError: (error) => callback(null, error)
+        });
     },
-
+    
+    /**
+     * Escucha cambios en los menús futuros a partir de una fecha
+     * @param {string} startDate - Fecha de inicio mínima en formato YYYY-MM-DD
+     * @param {number} daysAhead - Número de días hacia adelante para buscar (opcional, por defecto 14)
+     * @param {Function} callback - Función a llamar cuando haya cambios
+     * @returns {string} - ID del listener para cancelarlo posteriormente
+     */
+    listenToFutureMenus: function(startDate, daysAhead = 14, callback) {
+        // Si el tercer parámetro no es una función, asumir que daysAhead es la función callback
+        if (typeof daysAhead === 'function') {
+            callback = daysAhead;
+            daysAhead = 14; // Valor por defecto
+        }
+        
+        // Calcular la fecha límite (startDate + daysAhead)
+        const startDateObj = new Date(startDate + 'T00:00:00');
+        const endDateObj = new Date(startDateObj);
+        endDateObj.setDate(startDateObj.getDate() + daysAhead);
+        const endDateStr = endDateObj.toISOString().split('T')[0];
+        
+        return FirebaseRealtime.listenToCollection('menus', {
+            where: [
+                ['startDate', '>=', startDate],
+                ['startDate', '<=', endDateStr]
+            ],
+            orderBy: [['startDate', 'asc']],
+            onSnapshot: (snapshot) => {
+                try {
+                    if (snapshot.empty) {
+                        callback([]);
+                        return;
+                    }
+                    
+                    // Convertir documentos a objetos de menú
+                    const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    callback(menus);
+                } catch (error) {
+                    callback([], error);
+                }
+            },
+            onError: (error) => callback([], error)
+        });
+    },
     // ... (las demás funciones como getAll, get, add, update, delete, listenToAllMenus permanecen igual) ...
     // Asegúrate de incluir las demás funciones que te pasé en la respuesta anterior si no están aquí.
     // Esta es solo la parte modificada.
