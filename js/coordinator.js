@@ -79,11 +79,34 @@ async function checkSession() {
 function showLoginModal() {
     const loginModal = document.getElementById('login-modal');
     const loginForm = document.getElementById('login-form');
+    const closeModalBtn = document.getElementById('close-login-modal');
     
     if (loginModal) {
         // Asegurarse que el modal se muestre y esté visible
         loginModal.classList.add('active'); 
         loginModal.style.display = 'block';
+        
+        // Limpiar cualquier error anterior
+        const errorMessage = document.querySelector('#login-modal .error-message');
+        if (errorMessage) {
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+        }
+        
+        // Configurar el botón de cierre del modal
+        if (closeModalBtn) {
+            // Eliminar listeners anteriores para evitar duplicados
+            const newCloseBtn = closeModalBtn.cloneNode(true);
+            closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
+            
+            // Agregar listener al nuevo botón
+            newCloseBtn.addEventListener('click', function() {
+                loginModal.classList.remove('active');
+                loginModal.style.display = 'none';
+                // Redirigir al usuario a la página principal
+                window.location.href = 'index.html';
+            });
+        }
         
         if (loginForm) {
             // Eliminar event listeners previos para evitar duplicados

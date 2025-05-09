@@ -64,7 +64,29 @@ function checkAdminSession() {
 function setupAdminLoginForm() {
     const adminLoginForm = document.getElementById('admin-login-form');
     const adminLoginError = document.getElementById('admin-login-error');
-    // NO obtener el input aquí fuera
+    const closeModalBtn = document.getElementById('close-admin-login-modal');
+    
+    if (!adminLoginForm) {
+        console.error("Formulario de login de admin no encontrado.");
+        return;
+    }
+    
+    // Configurar el botón de cierre del modal
+    if (closeModalBtn) {
+        // Eliminar listeners anteriores para evitar duplicados
+        const newCloseBtn = closeModalBtn.cloneNode(true);
+        closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
+        
+        // Agregar listener al nuevo botón
+        newCloseBtn.addEventListener('click', function() {
+            const adminLoginModal = document.getElementById('admin-login-modal');
+            if (adminLoginModal) {
+                adminLoginModal.style.display = 'none';
+                // Redirigir al usuario a la página principal
+                window.location.href = 'index.html';
+            }
+        });
+    }
 
     console.log("Configurando formulario de login admin. Código esperado:", ADMIN_MASTER_ACCESS_CODE);
 
