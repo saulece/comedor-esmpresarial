@@ -290,13 +290,32 @@ function initMenuForm() {
         saveMenu();
     });
 
-    // Configurar carga de imagen
+    // Configurar carga de imagen con el nuevo botón
     if (menuImageInput) {
         // Reemplazar para evitar duplicar listeners
         const newMenuImageInput = menuImageInput.cloneNode(true);
         menuImageInput.parentNode.replaceChild(newMenuImageInput, menuImageInput);
         
+        // Configurar el botón de selección de imagen
+        const selectImageBtn = document.getElementById('select-image-btn');
+        const selectedFileName = document.getElementById('selected-file-name');
+        
+        if (selectImageBtn) {
+            // Reemplazar para evitar duplicar listeners
+            const newSelectImageBtn = selectImageBtn.cloneNode(true);
+            selectImageBtn.parentNode.replaceChild(newSelectImageBtn, selectImageBtn);
+            
+            newSelectImageBtn.addEventListener('click', function() {
+                newMenuImageInput.click(); // Simular clic en el input de archivo
+            });
+        }
+        
         newMenuImageInput.addEventListener('change', function(e) {
+            // Actualizar el nombre del archivo seleccionado
+            if (selectedFileName && e.target.files && e.target.files.length > 0) {
+                selectedFileName.textContent = e.target.files[0].name;
+            }
+            
             handleMenuImageUpload(e);
         });
     }
@@ -325,10 +344,22 @@ function handleMenuImageUpload(event) {
         
         console.log('Archivo seleccionado:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
         
-        // Verificar que sea una imagen
-        if (!file.type.match('image.*')) {
-            AppUtils.showNotification('Por favor, selecciona un archivo de imagen válido.', 'error');
+        // Verificar la extensión del archivo directamente
+        const fileName = file.name.toLowerCase();
+        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'];
+        let isValidExtension = false;
+        
+        for (const ext of validExtensions) {
+            if (fileName.endsWith(ext)) {
+                isValidExtension = true;
+                break;
+            }
+        }
+        
+        if (!isValidExtension) {
+            AppUtils.showNotification('Por favor, selecciona un archivo de imagen válido (JPG, PNG, GIF, etc).', 'error');
             event.target.value = '';
+            document.getElementById('selected-file-name').textContent = 'Ninguna imagen seleccionada';
             return;
         }
         
@@ -337,10 +368,11 @@ function handleMenuImageUpload(event) {
         if (file.size > maxSize) {
             AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 10MB.', 'error');
             event.target.value = '';
+            document.getElementById('selected-file-name').textContent = 'Ninguna imagen seleccionada';
             return;
         }
         
-        // Mostrar vista previa
+        // Mostrar vista previa con manejo mejorado
         const reader = new FileReader();
         
         reader.onload = function(e) {
@@ -353,15 +385,29 @@ function handleMenuImageUpload(event) {
                     return;
                 }
                 
-                // Asignar la imagen y mostrar el contenedor
-                previewImage.src = e.target.result;
-                previewContainer.style.display = 'block';
+                // Crear una imagen temporal para verificar que se cargue correctamente
+                const tempImage = new Image();
+                tempImage.onload = function() {
+                    // La imagen se cargó correctamente, asignarla a la vista previa
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    
+                    console.log('Vista previa de imagen cargada correctamente');
+                    AppUtils.showNotification('Imagen cargada correctamente.', 'success');
+                };
                 
-                console.log('Vista previa de imagen cargada correctamente');
-                AppUtils.showNotification('Imagen cargada correctamente.', 'success');
+                tempImage.onerror = function() {
+                    console.error('Error al cargar la imagen temporal');
+                    AppUtils.showNotification('El archivo seleccionado no es una imagen válida o está dañado.', 'error');
+                    event.target.value = '';
+                };
+                
+                // Intentar cargar la imagen
+                tempImage.src = e.target.result;
             } catch (previewError) {
                 console.error('Error al mostrar la vista previa:', previewError);
                 AppUtils.showNotification('Error al mostrar la vista previa de la imagen.', 'error');
+                event.target.value = '';
             }
         };
         
@@ -556,23 +602,61 @@ async function saveMenu() {
         return;
     }
     
+    // Verificar si hay un archivo seleccionado
     if (!menuImageInput.files || menuImageInput.files.length === 0) {
         AppUtils.showNotification('Por favor, seleccione una imagen del menú.', 'error');
         return;
     }
     
-    // Verificar que el elemento de vista previa tenga una imagen cargada
+    // Obtener el archivo seleccionado
+    const file = menuImageInput.files[0];
+    console.log('Guardando archivo:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
+    
+    // Si no hay vista previa pero hay un archivo, intentamos usar el archivo directamente
     if (!menuImagePreview || !menuImagePreview.src || menuImagePreview.src === window.location.href) {
-        AppUtils.showNotification('Por favor, seleccione una imagen válida para el menú.', 'error');
-        return;
+        // Intentamos leer el archivo directamente
+        try {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Continuar con el guardado usando e.target.result como la URL de la imagen
+                continueMenuSave(menuName, weekStartDate, e.target.result);
+            };
+            reader.onerror = function() {
+                AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
+            };
+            reader.readAsDataURL(file);
+            return; // Salimos porque el guardado continuará en el callback
+        } catch (error) {
+            console.error('Error al leer el archivo:', error);
+            AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
+            return;
+        }
     }
+    
+    // Si tenemos una vista previa válida, continuamos con el guardado normal
+    if (menuImagePreview && menuImagePreview.src && menuImagePreview.src !== window.location.href) {
+        continueMenuSave(menuName, weekStartDate, menuImagePreview.src);
+    } else {
+        // Si llegamos aquí, algo salió mal con la validación
+        AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
+    }
+}
+
+/**
+ * Continúa con el proceso de guardar el menú una vez que tenemos la imagen
+ * @param {string} menuName - Nombre del menú
+ * @param {string} weekStartDate - Fecha de inicio
+ * @param {string} imageUrl - URL de la imagen (data URL)
+ */
+async function continueMenuSave(menuName, weekStartDate, imageUrl) {
+    console.log('Continuando con el guardado del menú con imagen');
     
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
         active: true,
-        imageUrl: menuImagePreview.src,
+        imageUrl: imageUrl,
         // No incluimos días ni platillos, solo la imagen del menú
     };
     

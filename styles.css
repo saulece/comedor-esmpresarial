@@ -322,17 +322,42 @@ p { margin-bottom: var(--spacing-md); }
 
 /* Estilos para el input de archivo */
 input[type="file"] {
-    padding: 10px;
-    border: 2px dashed var(--border-color);
-    border-radius: var(--border-radius-md);
-    background-color: #f9f9f9;
-    width: 100%;
-    cursor: pointer;
-    transition: border-color var(--transition-fast);
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
 }
 
-input[type="file"]:hover {
-    border-color: var(--primary-color);
+.upload-button-container {
+    display: flex;
+    align-items: center;
+    margin-top: var(--spacing-sm);
+    gap: var(--spacing-md);
+}
+
+#select-image-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#select-image-btn:hover {
+    background-color: var(--secondary-dark);
+}
+
+#selected-file-name {
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
 }
 
 .help-text {

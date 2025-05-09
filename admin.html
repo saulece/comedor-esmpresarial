@@ -92,8 +92,14 @@
                         <div class="form-row">
                             <div class="form-group menu-image-upload">
                                 <label for="menu-image">Imagen del Menú:</label>
-                                <input type="file" id="menu-image" name="menu-image" accept="image/*" required>
-                                <p class="help-text">Sube una imagen del menú completo (máx. 10MB)</p>
+                                <input type="file" id="menu-image" name="menu-image" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.tiff,.svg" required>
+                                <p class="help-text">Sube una imagen del menú completo (máx. 10MB) - Formatos aceptados: JPG, PNG, GIF, BMP, etc.</p>
+                                <div class="upload-button-container">
+                                    <button type="button" id="select-image-btn" class="secondary-btn">
+                                        <i class="fas fa-image"></i> Seleccionar imagen
+                                    </button>
+                                    <span id="selected-file-name">Ninguna imagen seleccionada</span>
+                                </div>
                             </div>
                         </div>
                         
