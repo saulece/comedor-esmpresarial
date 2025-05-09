@@ -213,6 +213,15 @@ function logoutCoordinator() {
 function initCoordinatorInterface() {
     console.log('Inicializando interfaz de coordinador...');
     
+    // Configurar navegación de pestañas
+    setupTabNavigation();
+    
+    // Configurar selectores de semana
+    setupWeekSelectors();
+    
+    // Configurar botón de cerrar sesión
+    setupLogoutButton();
+    
     // Verificar que Firebase esté disponible antes de cargar los menús
     if (typeof firebase === 'undefined') {
         console.error('Firebase no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
@@ -236,6 +245,153 @@ function initCoordinatorInterface() {
     } else {
         console.error('AttendanceManager no está disponible');
     }
+}
+
+/**
+ * Configura la navegación entre pestañas
+ */
+function setupTabNavigation() {
+    console.log('Configurando navegación de pestañas...');
+    
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    if (!tabButtons.length || !tabContents.length) {
+        console.error('No se encontraron botones de pestaña o contenidos de pestaña');
+        return;
+    }
+    
+    // Eliminar event listeners previos para evitar duplicados
+    tabButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        // Agregar nuevo event listener
+        newButton.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            console.log('Cambiando a pestaña:', tabId);
+            
+            // Desactivar todos los botones y contenidos
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Activar el botón y contenido seleccionados
+            this.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+    
+    console.log('Navegación de pestañas configurada correctamente');
+}
+
+/**
+ * Configura los selectores de semana para menús y confirmaciones
+ */
+function setupWeekSelectors() {
+    console.log('Configurando selectores de semana...');
+    
+    // Configurar selector de semana para menús
+    setupMenuWeekSelector();
+    
+    // Configurar selector de semana para confirmaciones
+    setupConfirmationWeekSelector();
+}
+
+/**
+ * Configura el selector de semana para menús
+ */
+function setupMenuWeekSelector() {
+    const menuWeekButtons = document.querySelectorAll('.menu-week-btn');
+    const menuContents = document.querySelectorAll('.menu-content');
+    
+    if (!menuWeekButtons.length || !menuContents.length) {
+        console.error('No se encontraron botones de selector de semana para menús');
+        return;
+    }
+    
+    // Eliminar event listeners previos para evitar duplicados
+    menuWeekButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        // Agregar nuevo event listener
+        newButton.addEventListener('click', function() {
+            const weekType = this.getAttribute('data-menu-week');
+            console.log('Cambiando a menú de semana:', weekType);
+            
+            // Desactivar todos los botones y contenidos
+            menuWeekButtons.forEach(btn => btn.classList.remove('active'));
+            menuContents.forEach(content => content.classList.remove('active'));
+            
+            // Activar el botón y contenido seleccionados
+            this.classList.add('active');
+            document.getElementById(weekType + '-menu').classList.add('active');
+        });
+    });
+    
+    console.log('Selector de semana para menús configurado correctamente');
+}
+
+/**
+ * Configura el selector de semana para confirmaciones
+ */
+function setupConfirmationWeekSelector() {
+    const confirmationWeekButtons = document.querySelectorAll('.confirmation-week-btn');
+    const confirmationContents = document.querySelectorAll('.confirmation-content');
+    
+    if (!confirmationWeekButtons.length) {
+        console.error('No se encontraron botones de selector de semana para confirmaciones');
+        return;
+    }
+    
+    // Eliminar event listeners previos para evitar duplicados
+    confirmationWeekButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        // Agregar nuevo event listener
+        newButton.addEventListener('click', function() {
+            const weekType = this.getAttribute('data-confirmation-week');
+            console.log('Cambiando a confirmaciones de semana:', weekType);
+            
+            // Desactivar todos los botones
+            confirmationWeekButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Activar el botón seleccionado
+            this.classList.add('active');
+            
+            // Notificar al gestor de asistencia sobre el cambio de semana
+            if (typeof AttendanceManager !== 'undefined') {
+                AttendanceManager.switchWeek(weekType);
+            }
+        });
+    });
+    
+    console.log('Selector de semana para confirmaciones configurado correctamente');
+}
+
+/**
+ * Configura el botón de cerrar sesión
+ */
+function setupLogoutButton() {
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    if (!logoutBtn) {
+        console.error('No se encontró el botón de cerrar sesión');
+        return;
+    }
+    
+    // Eliminar event listeners previos para evitar duplicados
+    const newLogoutBtn = logoutBtn.cloneNode(true);
+    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+    
+    // Agregar nuevo event listener
+    newLogoutBtn.addEventListener('click', function() {
+        console.log('Cerrando sesión...');
+        logoutCoordinator();
+    });
+    
+    console.log('Botón de cerrar sesión configurado correctamente');
 }
 
 /**
