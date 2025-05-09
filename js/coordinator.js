@@ -500,7 +500,7 @@ function displayMenuForCoordinator(menu, container) {
             </div>
             <div class="menu-image-display">
                 <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
-                <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
+                <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
             </div>
         `;
         container.innerHTML = html;
@@ -510,31 +510,63 @@ function displayMenuForCoordinator(menu, container) {
         const loadingIndicator = container.querySelector('.loading-indicator');
         
         if (menuImage) {
-            // Evento cuando la imagen carga correctamente
-            menuImage.onload = function() {
-                console.log('Imagen del menú cargada correctamente');
-                menuImage.style.display = 'block';
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-            };
-            
-            // Evento cuando hay un error al cargar la imagen
-            menuImage.onerror = function() {
-                console.error('Error al cargar la imagen del menú:', menu.imageUrl);
-                if (loadingIndicator) {
-                    loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
-                    
-                    // Agregar botón para reintentar
-                    const retryBtn = loadingIndicator.querySelector('.retry-btn');
-                    if (retryBtn) {
-                        retryBtn.onclick = function() {
-                            // Reintentar carga de imagen
-                            const timestamp = new Date().getTime();
-                            menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
-                            loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
-                        };
+            // Primero comprobamos si la URL de la imagen es muy larga (probablemente una data URL)
+            if (menu.imageUrl && menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
+                console.log('Detectada data URL larga, procesando imagen...');
+                // Es una data URL, la cargamos de forma segura
+                try {
+                    // Crear una imagen temporal para verificar que la data URL es válida
+                    const tempImg = new Image();
+                    tempImg.onload = function() {
+                        // La data URL es válida, asignarla a la imagen principal
+                        menuImage.src = menu.imageUrl;
+                        menuImage.style.display = 'block';
+                        if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    };
+                    tempImg.onerror = function() {
+                        console.error('Error al cargar la data URL de la imagen');
+                        if (loadingIndicator) {
+                            loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. La URL de datos no es válida.</p>';
+                        }
+                    };
+                    // Iniciar la carga de la imagen temporal
+                    tempImg.src = menu.imageUrl;
+                } catch (error) {
+                    console.error('Error al procesar la data URL:', error);
+                    if (loadingIndicator) {
+                        loadingIndicator.innerHTML = '<p class="error-state">Error al procesar la imagen.</p>';
                     }
                 }
-            };
+            } else {
+                // Es una URL normal, la cargamos directamente
+                menuImage.src = menu.imageUrl;
+                
+                // Evento cuando la imagen carga correctamente
+                menuImage.onload = function() {
+                    console.log('Imagen del menú cargada correctamente');
+                    menuImage.style.display = 'block';
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                };
+                
+                // Evento cuando hay un error al cargar la imagen
+                menuImage.onerror = function() {
+                    console.error('Error al cargar la imagen del menú:', menu.imageUrl);
+                    if (loadingIndicator) {
+                        loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
+                        
+                        // Agregar botón para reintentar
+                        const retryBtn = loadingIndicator.querySelector('.retry-btn');
+                        if (retryBtn) {
+                            retryBtn.onclick = function() {
+                                // Reintentar carga de imagen
+                                const timestamp = new Date().getTime();
+                                menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
+                                loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
+                            };
+                        }
+                    }
+                };
+            }
         }
         
         return;
@@ -827,7 +859,7 @@ const AttendanceManager = {
                 </div>
                 <div class="menu-image-display">
                     <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
-                    <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
+                    <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
                 </div>
             `;
             container.innerHTML = html;
@@ -837,31 +869,63 @@ const AttendanceManager = {
             const loadingIndicator = container.querySelector('.loading-indicator');
             
             if (menuImage) {
-                // Evento cuando la imagen carga correctamente
-                menuImage.onload = function() {
-                    console.log('Imagen del menú cargada correctamente');
-                    menuImage.style.display = 'block';
-                    if (loadingIndicator) loadingIndicator.style.display = 'none';
-                };
-                
-                // Evento cuando hay un error al cargar la imagen
-                menuImage.onerror = function() {
-                    console.error('Error al cargar la imagen del menú:', menu.imageUrl);
-                    if (loadingIndicator) {
-                        loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
-                        
-                        // Agregar botón para reintentar
-                        const retryBtn = loadingIndicator.querySelector('.retry-btn');
-                        if (retryBtn) {
-                            retryBtn.onclick = function() {
-                                // Reintentar carga de imagen
-                                const timestamp = new Date().getTime();
-                                menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
-                                loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
-                            };
+                // Primero comprobamos si la URL de la imagen es muy larga (probablemente una data URL)
+                if (menu.imageUrl && menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
+                    console.log('Detectada data URL larga, procesando imagen...');
+                    // Es una data URL, la cargamos de forma segura
+                    try {
+                        // Crear una imagen temporal para verificar que la data URL es válida
+                        const tempImg = new Image();
+                        tempImg.onload = function() {
+                            // La data URL es válida, asignarla a la imagen principal
+                            menuImage.src = menu.imageUrl;
+                            menuImage.style.display = 'block';
+                            if (loadingIndicator) loadingIndicator.style.display = 'none';
+                        };
+                        tempImg.onerror = function() {
+                            console.error('Error al cargar la data URL de la imagen');
+                            if (loadingIndicator) {
+                                loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. La URL de datos no es válida.</p>';
+                            }
+                        };
+                        // Iniciar la carga de la imagen temporal
+                        tempImg.src = menu.imageUrl;
+                    } catch (error) {
+                        console.error('Error al procesar la data URL:', error);
+                        if (loadingIndicator) {
+                            loadingIndicator.innerHTML = '<p class="error-state">Error al procesar la imagen.</p>';
                         }
                     }
-                };
+                } else {
+                    // Es una URL normal, la cargamos directamente
+                    menuImage.src = menu.imageUrl;
+                    
+                    // Evento cuando la imagen carga correctamente
+                    menuImage.onload = function() {
+                        console.log('Imagen del menú cargada correctamente');
+                        menuImage.style.display = 'block';
+                        if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    };
+                    
+                    // Evento cuando hay un error al cargar la imagen
+                    menuImage.onerror = function() {
+                        console.error('Error al cargar la imagen del menú:', menu.imageUrl);
+                        if (loadingIndicator) {
+                            loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
+                            
+                            // Agregar botón para reintentar
+                            const retryBtn = loadingIndicator.querySelector('.retry-btn');
+                            if (retryBtn) {
+                                retryBtn.onclick = function() {
+                                    // Reintentar carga de imagen
+                                    const timestamp = new Date().getTime();
+                                    menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
+                                    loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
+                                };
+                            }
+                        }
+                    };
+                }
             }
             
             return;

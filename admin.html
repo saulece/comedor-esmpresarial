@@ -333,24 +333,25 @@
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- No se usa firebase-auth.js aquí para el login simple de admin -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
     <!-- Firebase Configuration & Models -->
     <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-auth.js"></script>
     <script src="js/firebase-menu-model.js"></script>
     <script src="js/firebase-coordinator-model.js"></script>
     <script src="js/firebase-attendance-model.js"></script>
-    <!-- firebase-realtime.js y firebase-offline.js si los estás usando -->
+    <script src="js/firebase-storage-utils.js"></script>
     <script src="js/firebase-realtime.js"></script>
     <script src="js/firebase-offline.js"></script>
     
     <!-- Application Scripts -->
-    <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
-    <script src="js/models.js"></script> <!-- Modelos de datos (pueden ser menos relevantes si todo es Firebase) -->
-    <!-- storage.js y storage-adapter.js pueden ser menos relevantes ahora -->
-    <!-- <script src="js/storage.js"></script> -->
-    <!-- <script src="js/storage-adapter.js"></script> -->
+    <script src="js/utils.js"></script>
+    <script src="js/app-utils.js"></script>
+    <script src="js/models.js"></script>
     
+    <!-- Main Application Script -->
     <script src="js/admin.js"></script>
     <script src="js/debug.js"></script>
     
