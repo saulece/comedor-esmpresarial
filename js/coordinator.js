@@ -213,25 +213,16 @@ function logoutCoordinator() {
 function initCoordinatorInterface() {
     console.log('Inicializando interfaz de coordinador...');
     
-    // Verificar que Firebase esté disponible antes de cargar los menús
-    if (typeof firebase === 'undefined') {
-        console.error('Firebase no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
-        setTimeout(loadMenusWithRetry, 1000);
-        AppUtils.showNotification('Error: No se puede conectar con la base de datos. Reintentando...', 'warning');
-    } else if (typeof FirebaseMenuModel === 'undefined') {
-        console.error('FirebaseMenuModel no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
-        setTimeout(loadMenusWithRetry, 1000);
-        AppUtils.showNotification('Error: Componente de menú no disponible. Reintentando...', 'warning');
-    } else {
-        // Cargar menús con reintentos
-        loadMenusWithRetry();
+    // Forzar la carga de menús inmediatamente
+    setTimeout(() => {
+        console.log('Forzando carga de menús...');
+        loadCurrentMenu();
+        loadNextWeekMenu();
         
         // Agregar botón para recargar menús
         addReloadMenusButton();
-    }
-    
-    // Inicializar el gestor de asistencia después de cargar los menús
-    setTimeout(() => {
+        
+        // Inicializar el gestor de asistencia
         if (typeof AttendanceManager !== 'undefined') {
             try {
                 console.log('Inicializando AttendanceManager...');
@@ -242,7 +233,7 @@ function initCoordinatorInterface() {
         } else {
             console.error('AttendanceManager no está disponible');
         }
-    }, 500);
+    }, 300);
 }
 
 // Nota: La función setupTabNavigation se ha movido a coordinator-ui.js
@@ -707,41 +698,7 @@ function displayMenuForCoordinator(menu, container) {
     const isCurrentMenu = container.id === 'current-menu';
     const weekType = isCurrentMenu ? 'current' : 'next';
     
-    // Actualizar el menú en el AttendanceManager si está disponible, con un pequeño retraso
-    setTimeout(() => {
-        if (typeof AttendanceManager !== 'undefined') {
-            console.log(`Actualizando menú ${weekType} en AttendanceManager`);
-            try {
-                // Convertir el formato del menú si es necesario
-                const menuData = {
-                    id: menu.id,
-                    name: menu.name,
-                    startDate: menu.startDate,
-                    endDate: menu.endDate,
-                    days: {}
-                };
-                
-                // Si el menú tiene días como array, convertirlos a objeto
-                if (Array.isArray(menu.days)) {
-                    menu.days.forEach(day => {
-                        const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        menuData.days[dayName] = {
-                            date: day.date,
-                            dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
-                        };
-                    });
-                } else if (typeof menu.days === 'object') {
-                    // Si ya es un objeto, usarlo directamente
-                    menuData.days = menu.days;
-                }
-                
-                // Actualizar el menú en el AttendanceManager
-                AttendanceManager.updateMenu(weekType, menuData);
-            } catch (error) {
-                console.error(`Error al actualizar menú ${weekType} en AttendanceManager:`, error);
-            }
-        }
-    }, 200);
+    console.log(`Mostrando menú para ${weekType}:`, menu.name);
 
     // Verificar si AppUtils está disponible
     if (typeof AppUtils === 'undefined') {
@@ -761,109 +718,28 @@ function displayMenuForCoordinator(menu, container) {
         }
     }
 
-    // Si hay una imagen del menú, mostrarla como contenido principal
-    if (menu.imageUrl) {
-        console.log('El menú tiene imageUrl:', typeof menu.imageUrl, menu.imageUrl ? menu.imageUrl.substring(0, 50) + '...' : 'vacío');
-        
-        let html = `
-            <div class="menu-header">
-                <h4>${menu.name || 'Menú Semanal'}</h4>
-                <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
-            </div>
-            <div class="menu-image-display">
-                <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
-                <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
-            </div>
-        `;
-        container.innerHTML = html;
-        
-        // Obtener la referencia a la imagen y agregar eventos
-        const menuImage = container.querySelector('.menu-image');
-        const loadingIndicator = container.querySelector('.loading-indicator');
-        
-        if (menuImage) {
-            console.log('Elemento de imagen encontrado, preparando para cargar');
-            
-            // Primero comprobamos si la URL de la imagen es muy larga (probablemente una data URL)
-            if (menu.imageUrl && menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
-                console.log('Detectada data URL larga, procesando imagen...');
-                // Es una data URL, la cargamos de forma segura
-                try {
-                    // Crear una imagen temporal para verificar que la data URL es válida
-                    const tempImg = new Image();
-                    tempImg.onload = function() {
-                        console.log('Imagen temporal cargada correctamente, asignando a imagen principal');
-                        // La data URL es válida, asignarla a la imagen principal
-                        menuImage.src = menu.imageUrl;
-                        menuImage.style.display = 'block';
-                        if (loadingIndicator) loadingIndicator.style.display = 'none';
-                    };
-                    tempImg.onerror = function() {
-                        console.error('Error al cargar la data URL de la imagen');
-                        if (loadingIndicator) {
-                            loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. La URL de datos no es válida.</p>';
-                        }
-                    };
-                    // Iniciar la carga de la imagen temporal
-                    console.log('Iniciando carga de imagen temporal');
-                    tempImg.src = menu.imageUrl;
-                } catch (error) {
-                    console.error('Error al procesar la data URL:', error);
-                    if (loadingIndicator) {
-                        loadingIndicator.innerHTML = '<p class="error-state">Error al procesar la imagen.</p>';
-                    }
-                }
-            } else {
-                // Es una URL normal, la cargamos directamente
-                console.log('Cargando URL de imagen normal:', menu.imageUrl);
-                
-                // Evento cuando la imagen carga correctamente
-                menuImage.onload = function() {
-                    console.log('Imagen del menú cargada correctamente');
-                    menuImage.style.display = 'block';
-                    if (loadingIndicator) loadingIndicator.style.display = 'none';
-                };
-                
-                // Evento cuando hay un error al cargar la imagen
-                menuImage.onerror = function() {
-                    console.error('Error al cargar la imagen del menú:', menu.imageUrl);
-                    if (loadingIndicator) {
-                        loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
-                        
-                        // Agregar botón para reintentar
-                        const retryBtn = loadingIndicator.querySelector('.retry-btn');
-                        if (retryBtn) {
-                            retryBtn.onclick = function() {
-                                console.log('Reintentando carga de imagen con timestamp');
-                                // Reintentar carga de imagen
-                                const timestamp = new Date().getTime();
-                                menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
-                                loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
-                            };
-                        }
-                    }
-                };
-                
-                // Asignar la URL a la imagen para iniciar la carga
-                menuImage.src = menu.imageUrl;
-            }
-        } else {
-            console.error('No se encontró el elemento de imagen en el contenedor');
-        }
-        
-        return;
-    } else {
-        console.warn('El menú no tiene URL de imagen');
-    }
-    
-    // Si no hay imagen, mostrar el formato tradicional (aunque ya no se usará)
+    // Crear el HTML base para el menú
     let html = `
         <div class="menu-header">
             <h4>${menu.name || 'Menú Semanal'}</h4>
             <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
         </div>
-        <div class="menu-days">
     `;
+    
+    // Si hay una imagen del menú, agregar el contenedor de imagen
+    if (menu.imageUrl) {
+        console.log('El menú tiene imageUrl:', typeof menu.imageUrl, menu.imageUrl ? menu.imageUrl.substring(0, 50) + '...' : 'vacío');
+        
+        html += `
+            <div class="menu-image-display">
+                <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
+                <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
+            </div>
+        `;
+    }
+    
+    // Agregar sección de días del menú
+    html += `<div class="menu-days">`;
     
     if (Array.isArray(menu.days) && menu.days.length > 0) {
         // Ordenar días
@@ -885,399 +761,137 @@ function displayMenuForCoordinator(menu, container) {
                 // Agrupar por categoría
                 const dishesByCategory = {};
                 day.dishes.forEach(dish => {
-                    if (!dishesByCategory[dish.category]) {
-                        dishesByCategory[dish.category] = [];
+                    const category = dish.category || 'otros';
+                    if (!dishesByCategory[category]) {
+                        dishesByCategory[category] = [];
                     }
-                    dishesByCategory[dish.category].push(dish);
+                    dishesByCategory[category].push(dish);
                 });
-
-                Object.keys(dishesByCategory).forEach(categoryKey => {
-                    html += `<div class="menu-category-display">
-                                <h6>${CATEGORIES[categoryKey] || categoryKey}</h6>
-                                <ul class="dishes-list">`;
-                    dishesByCategory[categoryKey].forEach(dish => {
-                        html += `
-                            <li class="dish-item">
-                                <span class="dish-name">${dish.name}</span>
-                                <!-- Podrías añadir precio/descripción si están en 'dish'
-                                <span class="dish-price">$${dish.price ? dish.price.toFixed(2) : 'N/A'}</span>
-                                <p class="dish-description">${dish.description || ''}</p> 
-                                -->
-                            </li>
-                        `;
+                
+                // Mostrar platos por categoría
+                Object.keys(dishesByCategory).forEach(category => {
+                    const dishes = dishesByCategory[category];
+                    const categoryName = CATEGORIES[category] || category.charAt(0).toUpperCase() + category.slice(1);
+                    
+                    html += `<div class="dish-category"><h6>${categoryName}</h6><ul class="dish-list">`;
+                    
+                    dishes.forEach(dish => {
+                        html += `<li>${dish.name}</li>`;
                     });
+                    
                     html += `</ul></div>`;
                 });
             } else {
-                html += '<p class="empty-state-small">No hay platillos para este día.</p>';
+                html += `<p class="empty-state">No hay platos definidos para este día.</p>`;
             }
-            html += `</div>`; // Cierre de menu-day
+            
+            html += `</div>`;
         });
     } else {
-        html += '<p class="empty-state">El menú no contiene días configurados.</p>';
+        html += `<p class="empty-state">El menú no contiene días configurados.</p>`;
     }
     
-    html += '</div>';
+    html += `</div>`;
+    
+    // Aplicar el HTML al contenedor
     container.innerHTML = html;
+    
+    // Si hay imagen, configurar eventos para cargarla
+    if (menu.imageUrl) {
+        const menuImage = container.querySelector('.menu-image');
+        const loadingIndicator = container.querySelector('.loading-indicator');
+        
+        if (menuImage && loadingIndicator) {
+            // Evento cuando la imagen carga correctamente
+            menuImage.onload = function() {
+                console.log('Imagen del menú cargada correctamente');
+                menuImage.style.display = 'block';
+                loadingIndicator.style.display = 'none';
+            };
+            
+            // Evento cuando hay un error al cargar la imagen
+            menuImage.onerror = function() {
+                console.error('Error al cargar la imagen del menú:', menu.imageUrl);
+                loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
+                
+                // Agregar botón para reintentar
+                const retryBtn = loadingIndicator.querySelector('.retry-btn');
+                if (retryBtn) {
+                    retryBtn.onclick = function() {
+                        console.log('Reintentando carga de imagen con timestamp');
+                        // Reintentar carga de imagen
+                        const timestamp = new Date().getTime();
+                        menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
+                        loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
+                    };
+                }
+            };
+            
+            // Iniciar la carga de la imagen
+            if (menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
+                // Para data URLs largas, usar una imagen temporal primero
+                try {
+                    const tempImg = new Image();
+                    tempImg.onload = function() {
+                        menuImage.src = menu.imageUrl;
+                    };
+                    tempImg.onerror = function() {
+                        menuImage.onerror();
+                    };
+                    tempImg.src = menu.imageUrl;
+                } catch (error) {
+                    console.error('Error al procesar la data URL:', error);
+                    menuImage.onerror();
+                }
+            } else {
+                // URL normal, cargar directamente
+                menuImage.src = menu.imageUrl;
+            }
+        }
+    }
+    
+    // Actualizar el menú en el gestor de asistencia si está disponible
+    setTimeout(() => {
+        if (typeof AttendanceManager !== 'undefined') {
+            try {
+                const menuData = {
+                    id: menu.id,
+                    name: menu.name,
+                    startDate: menu.startDate,
+                    endDate: menu.endDate,
+                    days: {}
+                };
+                
+                // Convertir los días a formato compatible con AttendanceManager
+                if (Array.isArray(menu.days)) {
+                    menu.days.forEach(day => {
+                        const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        menuData.days[dayName] = {
+                            date: day.date,
+                            dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
+                        };
+                    });
+                }
+                
+                // Actualizar el menú en el gestor de asistencia
+                AttendanceManager.updateMenu(weekType, menuData);
+                console.log(`Menú ${weekType} actualizado en AttendanceManager`);
+            } catch (error) {
+                console.error('Error al actualizar menú en AttendanceManager:', error);
+            }
+        }
+    }, 200);
 }
-// Mapeo global de categorías para ser usado por displayMenuForCoordinator
-const CATEGORIES = {
-    'plato_fuerte': 'Platos Fuertes',
-    'bebida': 'Bebidas',
-    // ... puedes añadir más categorías aquí si las usas en admin.js
-    'entrada': 'Entradas',
-    'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
-};
 
-
-/**
- * Gestión de asistencia para coordinadores
- */
+// Gestor de asistencia para coordinadores
 const AttendanceManager = {
     currentWeekStartDate: null,
     nextWeekStartDate: null,
     currentMenu: null,
     nextWeekMenu: null,
-    currentConfirmation: null, // Almacena la confirmación actual para la semana y coordinador
-    nextWeekConfirmation: null, // Almacena la confirmación para la próxima semana
-    
-    init: function() {
-        // Inicializar fechas de semanas
-        const today = new Date();
-        this.currentWeekStartDate = this.getStartOfWeek(today);
-        this.nextWeekStartDate = new Date(this.currentWeekStartDate);
-        this.nextWeekStartDate.setDate(this.nextWeekStartDate.getDate() + 7);
-        
-        // Configurar formulario de la semana actual
-        const currentAttendanceForm = document.getElementById('current-attendance-form');
-        const resetCurrentBtn = document.getElementById('reset-current-attendance-btn');
-        
-        if(currentAttendanceForm) {
-            currentAttendanceForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const submitButton = document.getElementById('save-current-attendance-btn');
-                const originalButtonHtml = submitButton.innerHTML;
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<span class="spinner"></span> Guardando...';
-                }
-                try {
-                    await this.saveCurrentAttendance();
-                } catch (error) {
-                    console.error('Error al guardar confirmación actual:', error);
-                    AppUtils.showNotification('Error al guardar la confirmación de la semana actual.', 'error');
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalButtonHtml;
-                    }
-                }
-            });
-        }
-        if(resetCurrentBtn) resetCurrentBtn.addEventListener('click', () => this.resetCurrentForm());
-        
-        // Configurar formulario de la próxima semana
-        const nextAttendanceForm = document.getElementById('next-attendance-form');
-        const resetNextBtn = document.getElementById('reset-next-attendance-btn');
-        
-        if(nextAttendanceForm) {
-            nextAttendanceForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const submitButton = document.getElementById('save-next-attendance-btn');
-                const originalButtonHtml = submitButton.innerHTML;
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<span class="spinner"></span> Guardando...';
-                }
-                try {
-                    await this.saveNextAttendance();
-                } catch (error) {
-                    console.error('Error al guardar confirmación próxima semana:', error);
-                    AppUtils.showNotification('Error al guardar la confirmación de la próxima semana.', 'error');
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalButtonHtml;
-                    }
-                }
-            });
-        }
-        if(resetNextBtn) resetNextBtn.addEventListener('click', () => this.resetNextForm());
-        
-        // Cargar datos iniciales para la semana actual
-        this.loadCurrentWeekData();
-    },
-    
-    getStartOfWeek: function(date) {
-        const d = new Date(date);
-        const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        d.setDate(diff);
-        d.setHours(0,0,0,0); // Normalizar a medianoche
-        return d;
-    },
-    
-    /**
-     * Carga los datos del menú y confirmaciones para la semana actual
-     */
-    loadCurrentWeekData: async function() {
-        const currentMenuContainer = document.getElementById('current-confirmation-menu-display');
-        if (!currentMenuContainer) return;
-        currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú actual...</p>';
-        
-        try {
-            // Usar FirebaseMenuModel.listenToActiveMenu para obtener el menú actual
-            const unsubscribe = FirebaseMenuModel.listenToActiveMenu((menu, error) => {
-                if (error) {
-                    console.error('Error en la escucha del menú activo:', error);
-                    currentMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú. Por favor, recarga la página.</p>';
-                    return;
-                }
-                
-                if (!menu) {
-                    currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
-                    // Generar inputs vacíos si no hay menú
-                    this.generateAttendanceInputs(null, 'current-attendance-inputs');
-                    return;
-                }
-                
-                // Guardar el menú actual
-                this.currentMenu = menu;
-                
-                // Mostrar el menú en el contenedor
-                currentMenuContainer.innerHTML = '';
-                this.displayMenuInContainer(menu, currentMenuContainer);
-                
-                // Generar inputs para la confirmación
-                this.generateAttendanceInputs(menu, 'current-attendance-inputs');
-                
-                // Cargar confirmación existente si hay
-                this.loadExistingConfirmation('current');
-            });
-            
-            // Guardar la función de cancelación
-            currentMenuContainer.dataset.unsubscribeFunction = unsubscribe;
-            
-        } catch (error) {
-            console.error('Error al cargar menú actual:', error);
-            currentMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú actual. Por favor, recarga la página.</p>';
-            this.generateAttendanceInputs(null, 'current-attendance-inputs');
-        }
-    },
-    
-    /**
-     * Carga los datos del menú y confirmaciones para la próxima semana
-     */
-    loadNextWeekData: async function() {
-        const nextMenuContainer = document.getElementById('next-confirmation-menu-display');
-        if (!nextMenuContainer) return;
-        nextMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú de la próxima semana...</p>';
-        
-        try {
-            // Calcular la fecha de inicio de la próxima semana (7 días a partir de hoy)
-            const today = new Date();
-            const nextWeekStart = new Date(today);
-            nextWeekStart.setDate(today.getDate() + 7);
-            
-            // Formatear la fecha para la consulta
-            const formattedDate = AppUtils.formatDateForInput(nextWeekStart);
-            
-            // Buscar menús que comiencen después de la fecha actual pero no más de 14 días después
-            const unsubscribe = FirebaseMenuModel.listenToFutureMenus(formattedDate, 14, (menus, error) => {
-                if (error) {
-                    console.error('Error en la escucha del menú futuro:', error);
-                    nextMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. Por favor, recarga la página.</p>';
-                    return;
-                }
-                
-                if (!menus || menus.length === 0) {
-                    nextMenuContainer.innerHTML = '<p class="empty-state">No hay menú disponible para la próxima semana.</p>';
-                    // Generar inputs vacíos si no hay menú
-                    this.generateAttendanceInputs(null, 'next-attendance-inputs');
-                    return;
-                }
-                
-                // Ordenar los menús por fecha de inicio y tomar el primero (el más cercano)
-                const sortedMenus = menus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-                const nextWeekMenu = sortedMenus[0];
-                
-                // Guardar el menú de la próxima semana
-                this.nextWeekMenu = nextWeekMenu;
-                
-                // Mostrar el menú en el contenedor
-                nextMenuContainer.innerHTML = '';
-                this.displayMenuInContainer(nextWeekMenu, nextMenuContainer);
-                
-                // Generar inputs para la confirmación
-                this.generateAttendanceInputs(nextWeekMenu, 'next-attendance-inputs');
-                
-                // Cargar confirmación existente si hay
-                this.loadExistingConfirmation('next');
-            });
-            
-            // Guardar la función de cancelación
-            nextMenuContainer.dataset.unsubscribeFunction = unsubscribe;
-            
-        } catch (error) {
-            console.error('Error al cargar menú de la próxima semana:', error);
-            nextMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. Por favor, recarga la página.</p>';
-            this.generateAttendanceInputs(null, 'next-attendance-inputs');
-        }
-    },
-    
-    /**
-     * Muestra un menú en un contenedor
-     */
-    displayMenuInContainer: function(menu, container) {
-        if (!menu || typeof menu !== 'object') {
-            container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
-            return;
-        }
-        
-        // Si hay una imagen del menú, mostrarla como contenido principal
-        if (menu.imageUrl) {
-            let html = `
-                <div class="menu-header">
-                    <h4>${menu.name || 'Menú Semanal'}</h4>
-                    <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
-                </div>
-                <div class="menu-image-display">
-                    <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
-                    <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
-                </div>
-            `;
-            container.innerHTML = html;
-            
-            // Obtener la referencia a la imagen y agregar eventos
-            const menuImage = container.querySelector('.menu-image');
-            const loadingIndicator = container.querySelector('.loading-indicator');
-            
-            if (menuImage) {
-                // Primero comprobamos si la URL de la imagen es muy larga (probablemente una data URL)
-                if (menu.imageUrl && menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
-                    console.log('Detectada data URL larga, procesando imagen...');
-                    // Es una data URL, la cargamos de forma segura
-                    try {
-                        // Crear una imagen temporal para verificar que la data URL es válida
-                        const tempImg = new Image();
-                        tempImg.onload = function() {
-                            // La data URL es válida, asignarla a la imagen principal
-                            menuImage.src = menu.imageUrl;
-                            menuImage.style.display = 'block';
-                            if (loadingIndicator) loadingIndicator.style.display = 'none';
-                        };
-                        tempImg.onerror = function() {
-                            console.error('Error al cargar la data URL de la imagen');
-                            if (loadingIndicator) {
-                                loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. La URL de datos no es válida.</p>';
-                            }
-                        };
-                        // Iniciar la carga de la imagen temporal
-                        tempImg.src = menu.imageUrl;
-                    } catch (error) {
-                        console.error('Error al procesar la data URL:', error);
-                        if (loadingIndicator) {
-                            loadingIndicator.innerHTML = '<p class="error-state">Error al procesar la imagen.</p>';
-                        }
-                    }
-                } else {
-                    // Es una URL normal, la cargamos directamente
-                    menuImage.src = menu.imageUrl;
-                    
-                    // Evento cuando la imagen carga correctamente
-                    menuImage.onload = function() {
-                        console.log('Imagen del menú cargada correctamente');
-                        menuImage.style.display = 'block';
-                        if (loadingIndicator) loadingIndicator.style.display = 'none';
-                    };
-                    
-                    // Evento cuando hay un error al cargar la imagen
-                    menuImage.onerror = function() {
-                        console.error('Error al cargar la imagen del menú:', menu.imageUrl);
-                        if (loadingIndicator) {
-                            loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
-                            
-                            // Agregar botón para reintentar
-                            const retryBtn = loadingIndicator.querySelector('.retry-btn');
-                            if (retryBtn) {
-                                retryBtn.onclick = function() {
-                                    // Reintentar carga de imagen
-                                    const timestamp = new Date().getTime();
-                                    menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
-                                    loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
-                                };
-                            }
-                        }
-                    };
-                }
-            }
-            
-            return;
-        }
-        
-        // Si no hay imagen, mostrar el formato tradicional
-        let html = `
-            <div class="menu-header">
-                <h4>${menu.name || 'Menú Semanal'}</h4>
-                <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
-            </div>
-            <div class="menu-days">
-        `;
-        
-        if (Array.isArray(menu.days) && menu.days.length > 0) {
-            // Ordenar días
-            const dayOrder = { 'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6, 'domingo': 7 };
-            const sortedDays = [...menu.days].sort((a, b) => {
-                const aKey = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const bKey = b.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                return (dayOrder[aKey] || 99) - (dayOrder[bKey] || 99);
-            });
-            
-            sortedDays.forEach(day => {
-                const dayDate = day.date ? AppUtils.formatDate(new Date(day.date + 'T00:00:00')) : '';
-                html += `
-                    <div class="menu-day card">
-                        <h5>${day.name} <small>(${dayDate})</small></h5>
-                `;
-                
-                if (day.dishes && day.dishes.length > 0) {
-                    // Agrupar por categoría
-                    const dishesByCategory = {};
-                    day.dishes.forEach(dish => {
-                        const category = dish.category || 'otros';
-                        if (!dishesByCategory[category]) {
-                            dishesByCategory[category] = [];
-                        }
-                        dishesByCategory[category].push(dish);
-                    });
-                    
-                    // Mostrar platos por categoría
-                    Object.keys(dishesByCategory).forEach(category => {
-                        const dishes = dishesByCategory[category];
-                        const categoryName = CATEGORIES[category] || category.charAt(0).toUpperCase() + category.slice(1);
-                        
-                        html += `<div class="dish-category"><h6>${categoryName}</h6><ul class="dish-list">`;
-                        
-                        dishes.forEach(dish => {
-                            html += `<li>${dish.name}</li>`;
-                        });
-                        
-                        html += `</ul></div>`;
-                    });
-                } else {
-                    html += `<p class="empty-state">No hay platos definidos para este día.</p>`;
-                }
-                
-                html += `</div>`;
-            });
-        } else {
-            html += `<p class="empty-state">No hay días definidos en este menú.</p>`;
-        }
-        
-        html += `</div>`;
-        container.innerHTML = html;
-    },
-    
+    currentConfirmation: null,
+    nextWeekConfirmation: null,
+
     setCurrentWeek: async function(startDate) {
         this.currentWeekStartDate = startDate;
         this.updateWeekDisplay();

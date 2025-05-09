@@ -17,6 +17,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar botón de cerrar sesión
     setupLogoutButton();
     
+    // Iniciar la carga de menús una vez que la UI esté lista
+    setTimeout(function() {
+        if (typeof loadMenusWithRetry === 'function') {
+            console.log('Iniciando carga de menús desde coordinator-ui.js...');
+            loadMenusWithRetry();
+        } else {
+            console.error('La función loadMenusWithRetry no está disponible');
+        }
+    }, 100);
+    
     console.log('coordinator-ui.js inicializado correctamente');
 });
 
