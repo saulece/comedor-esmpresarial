@@ -767,22 +767,43 @@ async function compressImageUrl(dataUrl, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
         try {
             // Verificar que la URL de datos sea válida
-            if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
-                return reject(new Error('URL de datos inválida'));
+            if (!dataUrl || typeof dataUrl !== 'string') {
+                return reject(new Error('URL de datos inválida o vacía'));
             }
+            
+            // Si no es una data URL de imagen, devolverla sin cambios
+            if (!dataUrl.startsWith('data:image/')) {
+                console.log('La URL no es una data URL de imagen, devolviendo sin cambios');
+                return resolve(dataUrl);
+            }
+            
+            console.log(`Comprimiendo imagen: Tamaño original ${Math.round(dataUrl.length/1024)}KB, Ancho máximo ${maxWidth}px, Calidad ${quality}`);
             
             // Crear una imagen temporal para cargar la URL de datos
             const img = new Image();
+            
+            // Establecer un timeout para evitar bloqueos
+            const timeout = setTimeout(() => {
+                console.warn('Tiempo de espera agotado al cargar la imagen para compresión');
+                reject(new Error('Tiempo de espera agotado al cargar la imagen'));
+            }, 10000); // 10 segundos
+            
             img.onload = function() {
+                clearTimeout(timeout);
                 try {
                     // Calcular las nuevas dimensiones manteniendo la proporción
                     let width = img.width;
                     let height = img.height;
                     
+                    console.log(`Dimensiones originales: ${width}x${height}`);
+                    
                     if (width > maxWidth) {
                         const ratio = maxWidth / width;
                         width = maxWidth;
                         height = Math.floor(height * ratio);
+                        console.log(`Dimensiones redimensionadas: ${width}x${height}`);
+                    } else {
+                        console.log('No es necesario redimensionar la imagen');
                     }
                     
                     // Crear un canvas para dibujar la imagen redimensionada
@@ -792,6 +813,8 @@ async function compressImageUrl(dataUrl, maxWidth = 1200, quality = 0.7) {
                     
                     // Dibujar la imagen en el canvas
                     const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF'; // Fondo blanco
+                    ctx.fillRect(0, 0, width, height);
                     ctx.drawImage(img, 0, 0, width, height);
                     
                     // Convertir el canvas a una URL de datos con la calidad especificada
@@ -799,10 +822,20 @@ async function compressImageUrl(dataUrl, maxWidth = 1200, quality = 0.7) {
                     
                     // Verificar que la compresión fue efectiva
                     if (compressedDataUrl.length >= dataUrl.length) {
-                        console.warn('La compresión no redujo el tamaño de la imagen. Usando imagen original.');
-                        resolve(dataUrl);
+                        console.warn('La compresión no redujo el tamaño de la imagen. Intentando con menor calidad.');
+                        
+                        // Intentar con menor calidad
+                        const lowerQualityUrl = canvas.toDataURL('image/jpeg', quality * 0.8);
+                        
+                        if (lowerQualityUrl.length < dataUrl.length) {
+                            console.log(`Imagen comprimida con menor calidad: ${Math.round(dataUrl.length/1024)}KB -> ${Math.round(lowerQualityUrl.length/1024)}KB (${Math.round((lowerQualityUrl.length / dataUrl.length) * 100)}%)`);
+                            resolve(lowerQualityUrl);
+                        } else {
+                            console.warn('No se pudo reducir el tamaño de la imagen. Usando imagen original.');
+                            resolve(dataUrl);
+                        }
                     } else {
-                        console.log(`Imagen comprimida: ${dataUrl.length} -> ${compressedDataUrl.length} bytes (${Math.round((compressedDataUrl.length / dataUrl.length) * 100)}%)`);
+                        console.log(`Imagen comprimida: ${Math.round(dataUrl.length/1024)}KB -> ${Math.round(compressedDataUrl.length/1024)}KB (${Math.round((compressedDataUrl.length / dataUrl.length) * 100)}%)`);
                         resolve(compressedDataUrl);
                     }
                 } catch (error) {
@@ -811,13 +844,16 @@ async function compressImageUrl(dataUrl, maxWidth = 1200, quality = 0.7) {
                 }
             };
             
-            img.onerror = function() {
+            img.onerror = function(error) {
+                clearTimeout(timeout);
+                console.error('Error al cargar la imagen para compresión:', error);
                 reject(new Error('Error al cargar la imagen para compresión'));
             };
             
             // Iniciar la carga de la imagen
             img.src = dataUrl;
         } catch (error) {
+            console.error('Error general en compressImageUrl:', error);
             reject(error);
         }
     });
@@ -888,15 +924,22 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
     // Verificar si Firebase Storage está disponible para optimizar el almacenamiento de imágenes
     let useFirebaseStorage = false;
     try {
-        useFirebaseStorage = typeof FirebaseStorageUtils !== 'undefined' && 
-                             typeof firebase !== 'undefined' && 
-                             typeof firebase.storage === 'function';
+        // Usar el nuevo método isAvailable para verificar si Firebase Storage está disponible
+        if (typeof FirebaseStorageUtils !== 'undefined' && typeof FirebaseStorageUtils.isAvailable === 'function') {
+            useFirebaseStorage = FirebaseStorageUtils.isAvailable();
+        } else {
+            // Verificación alternativa si el método isAvailable no está disponible
+            useFirebaseStorage = typeof FirebaseStorageUtils !== 'undefined' && 
+                                 typeof firebase !== 'undefined' && 
+                                 typeof firebase.storage === 'function' &&
+                                 typeof FirebaseStorageUtils.uploadMenuImage === 'function';
+        }
+        
         console.log('Estado de Firebase Storage:', useFirebaseStorage ? 'Disponible' : 'No disponible');
         
-        // Verificar explícitamente si la función uploadMenuImage existe
-        if (useFirebaseStorage && typeof FirebaseStorageUtils.uploadMenuImage !== 'function') {
-            console.warn('FirebaseStorageUtils está disponible pero falta la función uploadMenuImage');
-            useFirebaseStorage = false;
+        // Si Firebase Storage no está disponible, mostrar un mensaje en la consola
+        if (!useFirebaseStorage) {
+            console.warn('Firebase Storage no está disponible. Las imágenes se guardarán directamente en Firestore.');
         }
     } catch (error) {
         console.error('Error al verificar disponibilidad de Firebase Storage:', error);
@@ -919,8 +962,11 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
         menuData.updatedAt = new Date().toISOString();
     }
     
-    // Si podemos usar Firebase Storage, subir la imagen allí
-    if (useFirebaseStorage) {
+    // Verificar si la imagen es demasiado grande para Firestore (límite de 1MB)
+    const isImageTooLargeForFirestore = imageUrl.startsWith('data:') && imageUrl.length > 1000000;
+    
+    // Si podemos usar Firebase Storage y la imagen es grande, intentar subir la imagen allí
+    if (useFirebaseStorage && isImageTooLargeForFirestore) {
         try {
             console.log('Usando Firebase Storage para la imagen del menú');
             const saveStatus = document.getElementById('save-status');
@@ -941,8 +987,40 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
             else if (imageUrl.startsWith('data:')) {
                 console.log('Subiendo data URL a Firebase Storage...');
                 try {
-                    // Subir la imagen a Firebase Storage
-                    const storageUrl = await FirebaseStorageUtils.uploadMenuImage(imageUrl, menuId);
+                    // Intentar comprimir la imagen antes de subirla para reducir su tamaño
+                    let imageToUpload = imageUrl;
+                    if (imageUrl.length > 500000) { // Si es mayor a 500KB
+                        try {
+                            console.log('Comprimiendo imagen antes de subir a Firebase Storage...');
+                            imageToUpload = await compressImageUrl(imageUrl, 800, 0.6);
+                            console.log('Imagen comprimida correctamente para subida a Firebase Storage');
+                        } catch (compressError) {
+                            console.warn('No se pudo comprimir la imagen antes de subir:', compressError);
+                            // Continuamos con la imagen original
+                        }
+                    }
+                    
+                    // Mostrar mensaje de estado
+                    const saveStatus = document.getElementById('save-status');
+                    if (saveStatus) {
+                        saveStatus.textContent = 'Subiendo imagen a Firebase Storage... (puede tardar unos momentos)';
+                    }
+                    
+                    // Subir la imagen a Firebase Storage con un timeout
+                    const uploadPromise = FirebaseStorageUtils.uploadMenuImage(imageToUpload, menuId);
+                    
+                    // Establecer un timeout de 30 segundos para la subida
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Tiempo de espera agotado')), 30000);
+                    });
+                    
+                    // Usar Promise.race para manejar el timeout
+                    const storageUrl = await Promise.race([uploadPromise, timeoutPromise])
+                        .catch(error => {
+                            console.error('Error o timeout al subir imagen:', error);
+                            throw error;
+                        });
+                    
                     console.log('Imagen subida a Firebase Storage:', storageUrl);
                     
                     // Usar la URL de Storage en lugar de la data URL
@@ -950,9 +1028,20 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
                     menuData.hasStorageImage = true; // Marcar que la imagen está en Storage
                 } catch (uploadError) {
                     console.error('Error al subir imagen a Firebase Storage:', uploadError);
-                    AppUtils.showNotification('Error al subir la imagen a Firebase Storage. Se usará la imagen en formato base64.', 'warning');
-                    // Si falla, seguimos usando la data URL
-                    menuData.imageUrl = imageUrl;
+                    AppUtils.showNotification('Error al subir la imagen a Firebase Storage. Se usará la imagen en formato alternativo.', 'warning');
+                    
+                    // Plan B: Intentar comprimir la imagen al máximo para usarla como data URL
+                    try {
+                        console.log('Implementando plan B: Comprimiendo imagen al máximo...');
+                        const compressedImage = await compressImageUrl(imageUrl, 600, 0.4);
+                        console.log('Imagen comprimida para plan B, tamaño:', compressedImage.length);
+                        menuData.imageUrl = compressedImage;
+                    } catch (compressError) {
+                        console.error('Error al comprimir imagen para plan B:', compressError);
+                        // Si todo falla, usar la imagen original
+                        menuData.imageUrl = imageUrl;
+                    }
+                    
                     menuData.hasStorageImage = false;
                 }
             } 

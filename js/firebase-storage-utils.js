@@ -4,10 +4,58 @@
  * Especialmente optimizado para imágenes de menús
  */
 
+// Verificar que Firebase esté disponible
+let firebaseStorageAvailable = false;
+
+// Intentar inicializar Firebase Storage
+try {
+    if (typeof firebase !== 'undefined' && typeof firebase.storage === 'function') {
+        console.log('Firebase Storage está disponible');
+        firebaseStorageAvailable = true;
+    } else {
+        console.warn('Firebase Storage no está disponible. Algunas funcionalidades estarán limitadas.');
+    }
+} catch (error) {
+    console.error('Error al verificar Firebase Storage:', error);
+}
+
 /**
  * Clase para manejar operaciones con Firebase Storage
  */
 class FirebaseStorageUtils {
+    /**
+     * Verifica si Firebase Storage está disponible para su uso
+     * @returns {boolean} - true si Firebase Storage está disponible
+     */
+    static isAvailable() {
+        try {
+            // Verificar que Firebase esté disponible
+            if (typeof firebase === 'undefined') {
+                console.warn('Firebase no está definido');
+                return false;
+            }
+            
+            // Verificar que Storage esté disponible
+            if (typeof firebase.storage !== 'function') {
+                console.warn('Firebase Storage no está disponible');
+                return false;
+            }
+            
+            // Intentar obtener una referencia a Storage
+            try {
+                const storage = firebase.storage();
+                const testRef = storage.ref();
+                return true;
+            } catch (error) {
+                console.error('Error al inicializar Firebase Storage:', error);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error al verificar disponibilidad de Firebase Storage:', error);
+            return false;
+        }
+    }
+    
     /**
      * Sube una imagen a Firebase Storage
      * @param {string} dataUrl - URL de datos de la imagen (data:image/...)
@@ -21,15 +69,46 @@ class FirebaseStorageUtils {
                 console.log('Iniciando subida de imagen a Firebase Storage...');
                 
                 // Verificar que Firebase y Storage estén disponibles
-                if (typeof firebase === 'undefined' || typeof firebase.storage !== 'function') {
-                    return reject(new Error('Firebase Storage no está disponible'));
+                if (typeof firebase === 'undefined') {
+                    console.error('Firebase no está definido');
+                    return reject(new Error('Firebase no está disponible. Verifique que firebase-app.js está cargado correctamente.'));
+                }
+                
+                if (typeof firebase.storage !== 'function') {
+                    console.error('Firebase Storage no está disponible');
+                    return reject(new Error('Firebase Storage no está disponible. Verifique que firebase-storage.js está cargado correctamente.'));
+                }
+                
+                // Verificar conexión a internet
+                if (!navigator.onLine) {
+                    console.error('No hay conexión a internet');
+                    return reject(new Error('No hay conexión a internet. Verifique su conexión e intente nuevamente.'));
+                }
+                
+                // Verificar que la URL de datos sea válida
+                if (!dataUrl || typeof dataUrl !== 'string') {
+                    console.error('URL de datos inválida');
+                    return reject(new Error('URL de datos inválida o vacía'));
                 }
                 
                 // Obtener referencia a Storage
-                const storage = firebase.storage();
+                let storage;
+                try {
+                    storage = firebase.storage();
+                } catch (storageError) {
+                    console.error('Error al inicializar Firebase Storage:', storageError);
+                    return reject(new Error('Error al inicializar Firebase Storage: ' + storageError.message));
+                }
                 
                 // Convertir data URL a Blob
-                const blob = await this.dataURLtoBlob(dataUrl);
+                let blob;
+                try {
+                    blob = await this.dataURLtoBlob(dataUrl);
+                    console.log('Data URL convertida a Blob correctamente. Tamaño:', blob.size, 'bytes');
+                } catch (blobError) {
+                    console.error('Error al convertir data URL a Blob:', blobError);
+                    return reject(new Error('Error al procesar la imagen: ' + blobError.message));
+                }
                 
                 // Generar un nombre único si no se proporciona uno
                 if (!path) {
@@ -38,8 +117,14 @@ class FirebaseStorageUtils {
                 }
                 
                 // Crear referencia al archivo en Storage
-                const storageRef = storage.ref();
-                const fileRef = storageRef.child(path);
+                let storageRef, fileRef;
+                try {
+                    storageRef = storage.ref();
+                    fileRef = storageRef.child(path);
+                } catch (refError) {
+                    console.error('Error al crear referencia de Storage:', refError);
+                    return reject(new Error('Error al crear referencia de almacenamiento: ' + refError.message));
+                }
                 
                 // Configurar metadatos por defecto
                 const defaultMetadata = {
@@ -50,9 +135,22 @@ class FirebaseStorageUtils {
                 // Combinar metadatos por defecto con los proporcionados
                 const fileMetadata = {...defaultMetadata, ...metadata};
                 
+                // Establecer un timeout para la subida (2 minutos)
+                const uploadTimeout = setTimeout(() => {
+                    console.error('Tiempo de espera agotado para la subida de imagen');
+                    reject(new Error('Tiempo de espera agotado para la subida de imagen. La red puede estar lenta o inestable.'));
+                }, 120000); // 2 minutos
+                
                 // Subir archivo
-                console.log('Subiendo imagen a:', path);
-                const uploadTask = fileRef.put(blob, fileMetadata);
+                console.log('Subiendo imagen a:', path, 'Tamaño:', blob.size, 'bytes');
+                let uploadTask;
+                try {
+                    uploadTask = fileRef.put(blob, fileMetadata);
+                } catch (putError) {
+                    clearTimeout(uploadTimeout);
+                    console.error('Error al iniciar la subida de imagen:', putError);
+                    return reject(new Error('Error al iniciar la subida de imagen: ' + putError.message));
+                }
                 
                 // Monitorear progreso de subida
                 uploadTask.on('state_changed', 
@@ -63,11 +161,47 @@ class FirebaseStorageUtils {
                     },
                     // Error
                     (error) => {
+                        clearTimeout(uploadTimeout);
                         console.error('Error al subir imagen:', error);
-                        reject(error);
+                        
+                        // Proporcionar mensajes de error más descriptivos según el código de error
+                        let errorMessage = 'Error al subir imagen';
+                        if (error.code) {
+                            console.error('Código de error:', error.code);
+                            
+                            switch (error.code) {
+                                case 'storage/unauthorized':
+                                    errorMessage = 'No tiene permisos para subir archivos a Firebase Storage';
+                                    break;
+                                case 'storage/canceled':
+                                    errorMessage = 'La subida fue cancelada';
+                                    break;
+                                case 'storage/unknown':
+                                    errorMessage = 'Error desconocido durante la subida';
+                                    break;
+                                case 'storage/quota-exceeded':
+                                    errorMessage = 'Cuota de almacenamiento excedida en Firebase Storage';
+                                    break;
+                                case 'storage/invalid-checksum':
+                                    errorMessage = 'El archivo está corrupto o fue modificado durante la subida';
+                                    break;
+                                case 'storage/retry-limit-exceeded':
+                                    errorMessage = 'Límite de reintentos excedido. La red puede ser inestable';
+                                    break;
+                                default:
+                                    errorMessage = `Error de Firebase Storage: ${error.code}`;
+                            }
+                        }
+                        
+                        if (error.message) {
+                            errorMessage += ': ' + error.message;
+                        }
+                        
+                        reject(new Error(errorMessage));
                     },
                     // Completado
                     async () => {
+                        clearTimeout(uploadTimeout);
                         try {
                             // Obtener URL de descarga
                             const downloadURL = await fileRef.getDownloadURL();
@@ -75,7 +209,7 @@ class FirebaseStorageUtils {
                             resolve(downloadURL);
                         } catch (urlError) {
                             console.error('Error al obtener URL de descarga:', urlError);
-                            reject(urlError);
+                            reject(new Error('La imagen se subió correctamente pero no se pudo obtener la URL de descarga: ' + urlError.message));
                         }
                     }
                 );
