@@ -499,10 +499,44 @@ function displayMenuForCoordinator(menu, container) {
                 <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
             </div>
             <div class="menu-image-display">
-                <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image">
+                <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
+                <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
             </div>
         `;
         container.innerHTML = html;
+        
+        // Obtener la referencia a la imagen y agregar eventos
+        const menuImage = container.querySelector('.menu-image');
+        const loadingIndicator = container.querySelector('.loading-indicator');
+        
+        if (menuImage) {
+            // Evento cuando la imagen carga correctamente
+            menuImage.onload = function() {
+                console.log('Imagen del menú cargada correctamente');
+                menuImage.style.display = 'block';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+            };
+            
+            // Evento cuando hay un error al cargar la imagen
+            menuImage.onerror = function() {
+                console.error('Error al cargar la imagen del menú:', menu.imageUrl);
+                if (loadingIndicator) {
+                    loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
+                    
+                    // Agregar botón para reintentar
+                    const retryBtn = loadingIndicator.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.onclick = function() {
+                            // Reintentar carga de imagen
+                            const timestamp = new Date().getTime();
+                            menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
+                            loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
+                        };
+                    }
+                }
+            };
+        }
+        
         return;
     }
     
@@ -792,10 +826,44 @@ const AttendanceManager = {
                     <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
                 </div>
                 <div class="menu-image-display">
-                    <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image">
+                    <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
+                    <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
                 </div>
             `;
             container.innerHTML = html;
+            
+            // Obtener la referencia a la imagen y agregar eventos
+            const menuImage = container.querySelector('.menu-image');
+            const loadingIndicator = container.querySelector('.loading-indicator');
+            
+            if (menuImage) {
+                // Evento cuando la imagen carga correctamente
+                menuImage.onload = function() {
+                    console.log('Imagen del menú cargada correctamente');
+                    menuImage.style.display = 'block';
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                };
+                
+                // Evento cuando hay un error al cargar la imagen
+                menuImage.onerror = function() {
+                    console.error('Error al cargar la imagen del menú:', menu.imageUrl);
+                    if (loadingIndicator) {
+                        loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
+                        
+                        // Agregar botón para reintentar
+                        const retryBtn = loadingIndicator.querySelector('.retry-btn');
+                        if (retryBtn) {
+                            retryBtn.onclick = function() {
+                                // Reintentar carga de imagen
+                                const timestamp = new Date().getTime();
+                                menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
+                                loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
+                            };
+                        }
+                    }
+                };
+            }
+            
             return;
         }
         
