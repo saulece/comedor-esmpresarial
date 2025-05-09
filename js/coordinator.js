@@ -213,15 +213,6 @@ function logoutCoordinator() {
 function initCoordinatorInterface() {
     console.log('Inicializando interfaz de coordinador...');
     
-    // Configurar navegación de pestañas
-    setupTabNavigation();
-    
-    // Configurar selectores de semana
-    setupWeekSelectors();
-    
-    // Configurar botón de cerrar sesión
-    setupLogoutButton();
-    
     // Verificar que Firebase esté disponible antes de cargar los menús
     if (typeof firebase === 'undefined') {
         console.error('Firebase no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
@@ -239,12 +230,24 @@ function initCoordinatorInterface() {
         addReloadMenusButton();
     }
     
-    // Inicializar el gestor de asistencia
-    if (typeof AttendanceManager !== 'undefined') {
-        AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
-    } else {
-        console.error('AttendanceManager no está disponible');
-    }
+    // Configurar navegación de pestañas (después de cargar los menús)
+    setTimeout(() => {
+        setupTabNavigation();
+        setupWeekSelectors();
+        setupLogoutButton();
+        
+        // Inicializar el gestor de asistencia después de configurar la interfaz
+        if (typeof AttendanceManager !== 'undefined') {
+            try {
+                console.log('Inicializando AttendanceManager...');
+                AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
+            } catch (error) {
+                console.error('Error al inicializar AttendanceManager:', error);
+            }
+        } else {
+            console.error('AttendanceManager no está disponible');
+        }
+    }, 500);
 }
 
 /**
@@ -253,35 +256,54 @@ function initCoordinatorInterface() {
 function setupTabNavigation() {
     console.log('Configurando navegación de pestañas...');
     
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    if (!tabButtons.length || !tabContents.length) {
-        console.error('No se encontraron botones de pestaña o contenidos de pestaña');
-        return;
-    }
-    
-    // Eliminar event listeners previos para evitar duplicados
-    tabButtons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
+    try {
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
         
-        // Agregar nuevo event listener
-        newButton.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            console.log('Cambiando a pestaña:', tabId);
+        if (!tabButtons.length || !tabContents.length) {
+            console.error('No se encontraron botones de pestaña o contenidos de pestaña');
+            return;
+        }
+        
+        // Eliminar event listeners previos para evitar duplicados
+        tabButtons.forEach(button => {
+            if (!button || !button.parentNode) return;
             
-            // Desactivar todos los botones y contenidos
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            // Activar el botón y contenido seleccionados
-            this.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            try {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                // Agregar nuevo event listener
+                newButton.addEventListener('click', function() {
+                    try {
+                        const tabId = this.getAttribute('data-tab');
+                        console.log('Cambiando a pestaña:', tabId);
+                        
+                        // Desactivar todos los botones y contenidos
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        tabContents.forEach(content => content.classList.remove('active'));
+                        
+                        // Activar el botón y contenido seleccionados
+                        this.classList.add('active');
+                        const tabContent = document.getElementById(tabId);
+                        if (tabContent) {
+                            tabContent.classList.add('active');
+                        } else {
+                            console.error(`No se encontró el contenido de pestaña con ID: ${tabId}`);
+                        }
+                    } catch (clickError) {
+                        console.error('Error al cambiar de pestaña:', clickError);
+                    }
+                });
+            } catch (buttonError) {
+                console.error('Error al configurar botón de pestaña:', buttonError);
+            }
         });
-    });
-    
-    console.log('Navegación de pestañas configurada correctamente');
+        
+        console.log('Navegación de pestañas configurada correctamente');
+    } catch (error) {
+        console.error('Error al configurar navegación de pestañas:', error);
+    }
 }
 
 /**
@@ -450,11 +472,23 @@ function loadMenusWithRetry(attempt = 1) {
     console.log(`Intentando cargar menús (intento ${attempt})`);
     
     try {
-        // Cargar menú actual
-        loadCurrentMenu();
+        // Cargar menú actual con un pequeño retraso para evitar bloqueos
+        setTimeout(() => {
+            try {
+                loadCurrentMenu();
+            } catch (currentError) {
+                console.error('Error al cargar menú actual:', currentError);
+            }
+        }, 100);
         
-        // Cargar menú de la próxima semana
-        loadNextWeekMenu();
+        // Cargar menú de la próxima semana con un retraso mayor
+        setTimeout(() => {
+            try {
+                loadNextWeekMenu();
+            } catch (nextError) {
+                console.error('Error al cargar menú de la próxima semana:', nextError);
+            }
+        }, 500);
     } catch (error) {
         console.error(`Error al cargar menús (intento ${attempt}):`, error);
         
@@ -468,7 +502,9 @@ function loadMenusWithRetry(attempt = 1) {
             }, delay);
         } else {
             console.error('Se alcanzó el número máximo de intentos para cargar los menús');
-            AppUtils.showNotification('Error al cargar los menús. Por favor, recargue la página.', 'error');
+            if (typeof AppUtils !== 'undefined' && AppUtils.showNotification) {
+                AppUtils.showNotification('Error al cargar los menús. Por favor, recargue la página.', 'error');
+            }
         }
     }
 }
@@ -847,39 +883,41 @@ function displayMenuForCoordinator(menu, container) {
     const isCurrentMenu = container.id === 'current-menu';
     const weekType = isCurrentMenu ? 'current' : 'next';
     
-    // Actualizar el menú en el AttendanceManager si está disponible
-    if (typeof AttendanceManager !== 'undefined') {
-        console.log(`Actualizando menú ${weekType} en AttendanceManager`);
-        try {
-            // Convertir el formato del menú si es necesario
-            const menuData = {
-                id: menu.id,
-                name: menu.name,
-                startDate: menu.startDate,
-                endDate: menu.endDate,
-                days: {}
-            };
-            
-            // Si el menú tiene días como array, convertirlos a objeto
-            if (Array.isArray(menu.days)) {
-                menu.days.forEach(day => {
-                    const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    menuData.days[dayName] = {
-                        date: day.date,
-                        dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
-                    };
-                });
-            } else if (typeof menu.days === 'object') {
-                // Si ya es un objeto, usarlo directamente
-                menuData.days = menu.days;
+    // Actualizar el menú en el AttendanceManager si está disponible, con un pequeño retraso
+    setTimeout(() => {
+        if (typeof AttendanceManager !== 'undefined') {
+            console.log(`Actualizando menú ${weekType} en AttendanceManager`);
+            try {
+                // Convertir el formato del menú si es necesario
+                const menuData = {
+                    id: menu.id,
+                    name: menu.name,
+                    startDate: menu.startDate,
+                    endDate: menu.endDate,
+                    days: {}
+                };
+                
+                // Si el menú tiene días como array, convertirlos a objeto
+                if (Array.isArray(menu.days)) {
+                    menu.days.forEach(day => {
+                        const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        menuData.days[dayName] = {
+                            date: day.date,
+                            dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
+                        };
+                    });
+                } else if (typeof menu.days === 'object') {
+                    // Si ya es un objeto, usarlo directamente
+                    menuData.days = menu.days;
+                }
+                
+                // Actualizar el menú en el AttendanceManager
+                AttendanceManager.updateMenu(weekType, menuData);
+            } catch (error) {
+                console.error(`Error al actualizar menú ${weekType} en AttendanceManager:`, error);
             }
-            
-            // Actualizar el menú en el AttendanceManager
-            AttendanceManager.updateMenu(weekType, menuData);
-        } catch (error) {
-            console.error(`Error al actualizar menú ${weekType} en AttendanceManager:`, error);
         }
-    }
+    }, 200);
 
     // Verificar si AppUtils está disponible
     if (typeof AppUtils === 'undefined') {

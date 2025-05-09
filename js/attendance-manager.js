@@ -3,6 +3,18 @@
  * Gestiona las confirmaciones de asistencia para el comedor empresarial
  */
 
+// Verificar que las dependencias necesarias estén disponibles
+if (typeof AppUtils === 'undefined') {
+    console.error('AttendanceManager: AppUtils no está disponible');
+    // Crear un objeto AppUtils mínimo para evitar errores
+    window.AppUtils = window.AppUtils || {
+        showNotification: function(message, type) {
+            console.log('[Notificación]', type, message);
+            alert(message);
+        }
+    };
+}
+
 // Objeto global para gestionar la asistencia
 const AttendanceManager = {
     // Propiedades
@@ -11,6 +23,7 @@ const AttendanceManager = {
     currentMenuData: null,
     nextMenuData: null,
     activeWeekType: 'current', // 'current' o 'next'
+    initialized: false,
     
     /**
      * Inicializa el gestor de asistencia
@@ -18,17 +31,43 @@ const AttendanceManager = {
     init: function() {
         console.log('Inicializando AttendanceManager...');
         
+        // Evitar inicialización múltiple
+        if (this.initialized) {
+            console.log('AttendanceManager ya está inicializado');
+            return;
+        }
+        
         try {
-            // Configurar formularios
-            this.setupForms();
+            // Verificar que los elementos necesarios existan en el DOM
+            const confirmationContainer = document.getElementById('confirmation-container');
+            if (!confirmationContainer) {
+                console.error('No se encontró el contenedor de confirmaciones');
+                return;
+            }
             
-            // Cargar datos iniciales
-            this.loadAttendanceData();
-            
-            console.log('AttendanceManager inicializado correctamente');
+            // Inicializar con un pequeño retraso para asegurar que el DOM esté listo
+            setTimeout(() => {
+                try {
+                    // Configurar formularios
+                    this.setupForms();
+                    
+                    // Cargar datos iniciales
+                    this.loadAttendanceData();
+                    
+                    // Marcar como inicializado
+                    this.initialized = true;
+                    
+                    console.log('AttendanceManager inicializado correctamente');
+                } catch (setupError) {
+                    console.error('Error en la inicialización diferida de AttendanceManager:', setupError);
+                }
+            }, 300);
         } catch (error) {
             console.error('Error al inicializar AttendanceManager:', error);
-            AppUtils.showNotification('Error al inicializar el gestor de asistencia', 'error');
+            // Usar una versión segura de AppUtils
+            if (typeof AppUtils !== 'undefined' && AppUtils.showNotification) {
+                AppUtils.showNotification('Error al inicializar el gestor de asistencia', 'error');
+            }
         }
     },
     
@@ -38,32 +77,119 @@ const AttendanceManager = {
     setupForms: function() {
         console.log('Configurando formularios de asistencia...');
         
-        // Configurar formulario de la semana actual
-        const currentForm = document.getElementById('current-attendance-form');
-        if (currentForm) {
-            currentForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                this.saveAttendance('current');
-            });
+        try {
+            // Verificar si los contenedores de confirmación existen
+            const currentWeekConfirmation = document.getElementById('current-week-confirmation');
+            const nextWeekConfirmation = document.getElementById('next-week-confirmation');
             
-            const resetCurrentBtn = document.getElementById('reset-current-attendance-btn');
-            if (resetCurrentBtn) {
-                resetCurrentBtn.addEventListener('click', () => this.resetForm('current'));
+            if (!currentWeekConfirmation || !nextWeekConfirmation) {
+                console.error('No se encontraron los contenedores de confirmación');
+                return;
             }
+            
+            // Crear formularios si no existen
+            this.createFormIfNotExists('current');
+            this.createFormIfNotExists('next');
+            
+            // Configurar formulario de la semana actual
+            const currentForm = document.getElementById('current-attendance-form');
+            if (currentForm) {
+                // Eliminar event listeners previos para evitar duplicados
+                const newCurrentForm = currentForm.cloneNode(true);
+                if (currentForm.parentNode) {
+                    currentForm.parentNode.replaceChild(newCurrentForm, currentForm);
+                }
+                
+                newCurrentForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    this.saveAttendance('current');
+                });
+                
+                const resetCurrentBtn = newCurrentForm.querySelector('#reset-current-attendance-btn');
+                if (resetCurrentBtn) {
+                    resetCurrentBtn.addEventListener('click', () => this.resetForm('current'));
+                }
+            }
+            
+            // Configurar formulario de la próxima semana
+            const nextForm = document.getElementById('next-attendance-form');
+            if (nextForm) {
+                // Eliminar event listeners previos para evitar duplicados
+                const newNextForm = nextForm.cloneNode(true);
+                if (nextForm.parentNode) {
+                    nextForm.parentNode.replaceChild(newNextForm, nextForm);
+                }
+                
+                newNextForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    this.saveAttendance('next');
+                });
+                
+                const resetNextBtn = newNextForm.querySelector('#reset-next-attendance-btn');
+                if (resetNextBtn) {
+                    resetNextBtn.addEventListener('click', () => this.resetForm('next'));
+                }
+            }
+            
+            console.log('Formularios de asistencia configurados correctamente');
+        } catch (error) {
+            console.error('Error al configurar formularios de asistencia:', error);
         }
+    },
+    
+    /**
+     * Crea un formulario de asistencia si no existe
+     * @param {string} weekType - Tipo de semana ('current' o 'next')
+     */
+    createFormIfNotExists: function(weekType) {
+        const formId = `${weekType}-attendance-form`;
+        const existingForm = document.getElementById(formId);
         
-        // Configurar formulario de la próxima semana
-        const nextForm = document.getElementById('next-attendance-form');
-        if (nextForm) {
-            nextForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                this.saveAttendance('next');
-            });
+        if (!existingForm) {
+            console.log(`Creando formulario para ${weekType}...`);
             
-            const resetNextBtn = document.getElementById('reset-next-attendance-btn');
-            if (resetNextBtn) {
-                resetNextBtn.addEventListener('click', () => this.resetForm('next'));
+            const weekConfirmation = document.getElementById(`${weekType}-week-confirmation`);
+            if (!weekConfirmation) {
+                console.error(`No se encontró el contenedor de confirmación para ${weekType}`);
+                return;
             }
+            
+            // Crear formulario
+            const form = document.createElement('form');
+            form.id = formId;
+            form.className = 'attendance-form';
+            if (weekType === 'current') {
+                form.classList.add('active');
+            }
+            
+            // Crear contenido del formulario
+            form.innerHTML = `
+                <h4><i class="fas fa-users"></i> Confirmar Asistencia - ${weekType === 'current' ? 'Semana Actual' : 'Próxima Semana'}</h4>
+                <p class="help-text">Indique el número estimado de personas que asistirán cada día${weekType === 'next' ? ' para la próxima semana' : ''}:</p>
+                
+                <div id="${weekType}-attendance-inputs" class="attendance-inputs">
+                    <!-- Los inputs para cada día se generarán dinámicamente -->
+                    <p class="empty-state">Cargando menú...</p>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" id="save-${weekType}-attendance-btn" class="primary-btn">
+                        <i class="fas fa-save"></i> Confirmar Asistencia
+                    </button>
+                    <button type="button" id="reset-${weekType}-attendance-btn" class="secondary-btn">
+                        <i class="fas fa-undo"></i> Restablecer
+                    </button>
+                </div>
+                
+                <div id="${weekType}-last-update-info" class="last-update-info" style="display: none;">
+                    <i class="fas fa-clock"></i> Última actualización: <span id="${weekType}-last-update-time"></span>
+                </div>
+            `;
+            
+            // Agregar formulario al contenedor
+            weekConfirmation.appendChild(form);
+            
+            console.log(`Formulario para ${weekType} creado correctamente`);
         }
     },
     

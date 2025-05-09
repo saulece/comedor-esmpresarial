@@ -81,67 +81,20 @@
                     </div>
                     
                     <div id="confirmation-container">
-                        <div id="current-week-confirmation" class="confirmation-content active">
-                            <div id="current-confirmation-menu-display">
-                                <!-- El menú actual se mostrará aquí -->
-                                <p class="empty-state">Cargando menú semanal actual...</p>
-                            </div>
-                        </div>
-                        <div id="next-week-confirmation" class="confirmation-content">
-                            <div id="next-confirmation-menu-display">
-                                <!-- El menú de la próxima semana se mostrará aquí -->
-                                <p class="empty-state">Cargando menú de la próxima semana...</p>
-                            </div>
+                    <!-- Los contenedores de confirmación se generarán dinámicamente por AttendanceManager -->
+                    <div id="current-week-confirmation" class="confirmation-content active">
+                        <div id="current-confirmation-menu-display">
+                            <!-- El menú actual se mostrará aquí -->
+                            <p class="empty-state">Cargando menú semanal actual...</p>
                         </div>
                     </div>
-                    
-                    <div id="attendance-forms-container">
-                        <!-- Formulario para la semana actual -->
-                        <form id="current-attendance-form" class="attendance-form active">
-                            <h4><i class="fas fa-users"></i> Confirmar Asistencia - Semana Actual</h4>
-                            <p class="help-text">Indique el número estimado de personas que asistirán cada día:</p>
-                            
-                            <div id="current-attendance-inputs" class="attendance-inputs">
-                                <!-- Los inputs para cada día se generarán dinámicamente -->
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="submit" id="save-current-attendance-btn" class="primary-btn">
-                                    <i class="fas fa-save"></i> Confirmar Asistencia
-                                </button>
-                                <button type="button" id="reset-current-attendance-btn" class="secondary-btn">
-                                    <i class="fas fa-undo"></i> Restablecer
-                                </button>
-                            </div>
-                            
-                            <div id="current-last-update-info" class="last-update-info" style="display: none;">
-                                <i class="fas fa-clock"></i> Última actualización: <span id="current-last-update-time"></span>
-                            </div>
-                        </form>
-                        
-                        <!-- Formulario para la próxima semana -->
-                        <form id="next-attendance-form" class="attendance-form" style="display: none;">
-                            <h4><i class="fas fa-users"></i> Confirmar Asistencia - Próxima Semana</h4>
-                            <p class="help-text">Indique el número estimado de personas que asistirán cada día para la próxima semana:</p>
-                            
-                            <div id="next-attendance-inputs" class="attendance-inputs">
-                                <!-- Los inputs para cada día se generarán dinámicamente -->
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="submit" id="save-next-attendance-btn" class="primary-btn">
-                                    <i class="fas fa-save"></i> Confirmar Asistencia
-                                </button>
-                                <button type="button" id="reset-next-attendance-btn" class="secondary-btn">
-                                    <i class="fas fa-undo"></i> Restablecer
-                                </button>
-                            </div>
-                            
-                            <div id="next-last-update-info" class="last-update-info" style="display: none;">
-                                <i class="fas fa-clock"></i> Última actualización: <span id="next-last-update-time"></span>
-                            </div>
-                        </form>
+                    <div id="next-week-confirmation" class="confirmation-content">
+                        <div id="next-confirmation-menu-display">
+                            <!-- El menú de la próxima semana se mostrará aquí -->
+                            <p class="empty-state">Cargando menú de la próxima semana...</p>
+                        </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
