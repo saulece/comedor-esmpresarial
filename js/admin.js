@@ -456,8 +456,9 @@ function handleMenuImageUpload(event) {
             };
             
             previewImage.onerror = function() {
-                console.error('Error al cargar la vista previa de la imagen');
-                AppUtils.showNotification('Error al generar la vista previa. La imagen podría estar dañada.', 'error');
+                console.log('Advertencia: Hubo un problema al cargar la vista previa, pero se intentará continuar con el proceso');
+                // No mostrar notificación de error al usuario si la imagen se ve correctamente
+                // Solo registrar en consola para depuración
             };
         };
         
@@ -733,8 +734,19 @@ async function saveMenu() {
         continueMenuSave(menuName, weekStartDate, menuImagePreview.src);
     } else {
         // Este caso no debería ocurrir si la validación anterior es correcta
-        console.error('Error inesperado: La vista previa existe pero no tiene src');
-        AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
+        console.log('Advertencia: La vista previa existe pero no tiene src. Intentando continuar...');
+        // Intentar usar el archivo del input directamente si está disponible
+        if (menuImageInput.files && menuImageInput.files.length > 0) {
+            const file = menuImageInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                continueMenuSave(menuName, weekStartDate, e.target.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Solo mostrar error si realmente no hay forma de obtener la imagen
+            AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
+        }
     }
 }
 
