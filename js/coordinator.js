@@ -360,9 +360,24 @@ function setupConfirmationWeekSelector() {
             // Activar el botón seleccionado
             this.classList.add('active');
             
+            // Activar el contenedor de confirmación correspondiente
+            if (confirmationContents.length > 0) {
+                confirmationContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                const targetContent = document.getElementById(`${weekType}-week-confirmation`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            }
+            
             // Notificar al gestor de asistencia sobre el cambio de semana
             if (typeof AttendanceManager !== 'undefined') {
                 AttendanceManager.switchWeek(weekType);
+            } else {
+                console.error('AttendanceManager no está disponible');
+                AppUtils.showNotification('Error: Componente de asistencia no disponible', 'error');
             }
         });
     });
@@ -826,6 +841,44 @@ function displayMenuForCoordinator(menu, container) {
         console.error('Error: Formato de menú inválido', menu);
         container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
         return;
+    }
+    
+    // Determinar si es el menú actual o el de la próxima semana
+    const isCurrentMenu = container.id === 'current-menu';
+    const weekType = isCurrentMenu ? 'current' : 'next';
+    
+    // Actualizar el menú en el AttendanceManager si está disponible
+    if (typeof AttendanceManager !== 'undefined') {
+        console.log(`Actualizando menú ${weekType} en AttendanceManager`);
+        try {
+            // Convertir el formato del menú si es necesario
+            const menuData = {
+                id: menu.id,
+                name: menu.name,
+                startDate: menu.startDate,
+                endDate: menu.endDate,
+                days: {}
+            };
+            
+            // Si el menú tiene días como array, convertirlos a objeto
+            if (Array.isArray(menu.days)) {
+                menu.days.forEach(day => {
+                    const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    menuData.days[dayName] = {
+                        date: day.date,
+                        dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
+                    };
+                });
+            } else if (typeof menu.days === 'object') {
+                // Si ya es un objeto, usarlo directamente
+                menuData.days = menu.days;
+            }
+            
+            // Actualizar el menú en el AttendanceManager
+            AttendanceManager.updateMenu(weekType, menuData);
+        } catch (error) {
+            console.error(`Error al actualizar menú ${weekType} en AttendanceManager:`, error);
+        }
     }
 
     // Verificar si AppUtils está disponible
