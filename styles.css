@@ -360,6 +360,22 @@ input[type="file"] {
     max-width: 200px;
 }
 
+.save-status {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+    display: inline-block;
+    margin-left: var(--spacing-md);
+}
+
+.save-status.success {
+    color: var(--success-color);
+}
+
+.save-status.error {
+    color: var(--danger-color);
+}
+
 .help-text {
     margin-top: 5px;
     font-size: var(--font-size-sm);

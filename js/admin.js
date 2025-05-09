@@ -283,12 +283,28 @@ function initMenuForm() {
     resetFormBtn.parentNode.replaceChild(newResetBtn, resetFormBtn);
     newResetBtn.addEventListener('click', resetMenuForm);
     
+    // Configurar el formulario de menú
+    const newMenuForm = menuForm.cloneNode(true);
+    menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+    
     // Listener para submit
-    menuForm.replaceWith(menuForm.cloneNode(true)); // Reemplazar con clon para limpiar listeners
-    document.getElementById('menu-form').addEventListener('submit', function(event) {
-        event.preventDefault();
+    newMenuForm.addEventListener('submit', function(e) {
+        e.preventDefault();
         saveMenu();
     });
+    
+    // Configurar el botón de guardar (ahora es type="button")
+    const saveMenuBtn = document.getElementById('save-menu-btn');
+    if (saveMenuBtn) {
+        // Reemplazar para evitar duplicar listeners
+        const newSaveMenuBtn = saveMenuBtn.cloneNode(true);
+        saveMenuBtn.parentNode.replaceChild(newSaveMenuBtn, saveMenuBtn);
+        
+        newSaveMenuBtn.addEventListener('click', function() {
+            console.log('Botón de guardar presionado');
+            saveMenu();
+        });
+    }
 
     // Configurar carga de imagen con el nuevo botón
     if (menuImageInput) {
@@ -372,43 +388,55 @@ function handleMenuImageUpload(event) {
             return;
         }
         
-        // Mostrar vista previa con manejo mejorado
+        // Mostrar vista previa
         const reader = new FileReader();
-        
         reader.onload = function(e) {
-            try {
-                const previewContainer = document.getElementById('menu-image-preview-container');
-                const previewImage = document.getElementById('menu-image-preview');
-                
-                if (!previewContainer || !previewImage) {
-                    console.error('No se encontraron los elementos de vista previa');
-                    return;
-                }
-                
-                // Crear una imagen temporal para verificar que se cargue correctamente
-                const tempImage = new Image();
-                tempImage.onload = function() {
-                    // La imagen se cargó correctamente, asignarla a la vista previa
-                    previewImage.src = e.target.result;
-                    previewContainer.style.display = 'block';
-                    
-                    console.log('Vista previa de imagen cargada correctamente');
-                    AppUtils.showNotification('Imagen cargada correctamente.', 'success');
-                };
-                
-                tempImage.onerror = function() {
-                    console.error('Error al cargar la imagen temporal');
-                    AppUtils.showNotification('El archivo seleccionado no es una imagen válida o está dañado.', 'error');
-                    event.target.value = '';
-                };
-                
-                // Intentar cargar la imagen
-                tempImage.src = e.target.result;
-            } catch (previewError) {
-                console.error('Error al mostrar la vista previa:', previewError);
-                AppUtils.showNotification('Error al mostrar la vista previa de la imagen.', 'error');
-                event.target.value = '';
+            // Crear o actualizar la vista previa
+            let previewContainer = document.getElementById('menu-image-preview-container');
+            let previewImage = document.getElementById('menu-image-preview');
+            
+            if (!previewContainer) {
+                previewContainer = document.createElement('div');
+                previewContainer.id = 'menu-image-preview-container';
+                previewContainer.className = 'menu-image-preview-container';
+                document.querySelector('.menu-image-upload').appendChild(previewContainer);
             }
+            
+            if (!previewImage) {
+                previewImage = document.createElement('img');
+                previewImage.id = 'menu-image-preview';
+                previewImage.className = 'menu-image-preview';
+                previewContainer.appendChild(previewImage);
+                
+                // Agregar botón para eliminar la vista previa
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'remove-preview-btn';
+                removeButton.innerHTML = '<i class="fas fa-trash"></i>';
+                removeButton.addEventListener('click', function() {
+                    previewContainer.style.display = 'none';
+                    previewImage.src = '';
+                    document.getElementById('menu-image').value = '';
+                    document.getElementById('selected-file-name').textContent = 'Ninguna imagen seleccionada';
+                });
+                previewContainer.appendChild(removeButton);
+            }
+            
+            // Asegurarse de que la vista previa sea visible
+            previewContainer.style.display = 'block';
+            previewImage.src = e.target.result;
+            
+            // Verificar que la imagen se cargó correctamente
+            previewImage.onload = function() {
+                console.log('Vista previa cargada correctamente, dimensiones:', previewImage.width, 'x', previewImage.height);
+                // Guardar la URL de la imagen en un atributo de datos para facilitar el acceso
+                previewImage.setAttribute('data-image-loaded', 'true');
+            };
+            
+            previewImage.onerror = function() {
+                console.error('Error al cargar la vista previa de la imagen');
+                AppUtils.showNotification('Error al generar la vista previa. La imagen podría estar dañada.', 'error');
+            };
         };
         
         reader.onerror = function(error) {
@@ -592,6 +620,15 @@ function setupAddDishButtons() {
 
 
 async function saveMenu() {
+    console.log('Iniciando proceso de guardado del menú');
+    
+    // Mostrar estado de guardado
+    const saveStatus = document.getElementById('save-status');
+    if (saveStatus) {
+        saveStatus.className = 'save-status';
+        saveStatus.textContent = 'Procesando...';
+    }
+    
     const menuName = document.getElementById('menu-name').value;
     const weekStartDate = document.getElementById('week-start-date').value;
     const menuImageInput = document.getElementById('menu-image');
@@ -599,22 +636,51 @@ async function saveMenu() {
     
     if (!menuName || !weekStartDate) {
         AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
+        if (saveStatus) {
+            saveStatus.className = 'save-status error';
+            saveStatus.textContent = 'Error: Faltan datos requeridos';
+        }
         return;
     }
     
-    // Verificar si hay un archivo seleccionado
-    if (!menuImageInput.files || menuImageInput.files.length === 0) {
-        AppUtils.showNotification('Por favor, seleccione una imagen del menú.', 'error');
-        return;
+    // Deshabilitar el botón de guardar durante el proceso
+    const saveButton = document.getElementById('save-menu-btn');
+    if (saveButton) {
+        saveButton.disabled = true;
+        const originalText = saveButton.innerHTML;
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        
+        // Restaurar el botón después de 30 segundos por si algo falla
+        setTimeout(() => {
+            if (saveButton.disabled) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+                if (saveStatus) {
+                    saveStatus.className = 'save-status error';
+                    saveStatus.textContent = 'Error: Tiempo de espera agotado';
+                }
+                AppUtils.showNotification('El proceso de guardado está tardando demasiado. Por favor, intente nuevamente.', 'error');
+            }
+        }, 30000);
     }
     
-    // Obtener el archivo seleccionado
-    const file = menuImageInput.files[0];
-    console.log('Guardando archivo:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
+    // Verificar si tenemos una imagen válida (ya sea en el input o en la vista previa)
+    const previewContainer = document.getElementById('menu-image-preview-container');
+    const hasPreview = previewContainer && previewContainer.style.display !== 'none' && 
+                      menuImagePreview && menuImagePreview.src && 
+                      menuImagePreview.src !== window.location.href;
     
-    // Si no hay vista previa pero hay un archivo, intentamos usar el archivo directamente
-    if (!menuImagePreview || !menuImagePreview.src || menuImagePreview.src === window.location.href) {
-        // Intentamos leer el archivo directamente
+    // Si no hay vista previa, verificamos si hay un archivo seleccionado
+    if (!hasPreview) {
+        if (!menuImageInput.files || menuImageInput.files.length === 0) {
+            AppUtils.showNotification('Por favor, seleccione una imagen del menú.', 'error');
+            return;
+        }
+        
+        // Hay un archivo seleccionado pero no hay vista previa, intentamos usar el archivo directamente
+        const file = menuImageInput.files[0];
+        console.log('Guardando archivo sin vista previa:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
+        
         try {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -633,11 +699,19 @@ async function saveMenu() {
         }
     }
     
-    // Si tenemos una vista previa válida, continuamos con el guardado normal
-    if (menuImagePreview && menuImagePreview.src && menuImagePreview.src !== window.location.href) {
+    // Si llegamos aquí, tenemos una vista previa válida
+    console.log('Vista previa detectada, procediendo con el guardado');
+    
+    // Usar directamente la imagen de la vista previa
+    if (menuImagePreview && menuImagePreview.src) {
+        console.log('Usando imagen de vista previa para guardar');
+        // Mostrar notificación de guardado en proceso
+        AppUtils.showNotification('Guardando menú...', 'info');
+        // Guardar usando la imagen de la vista previa
         continueMenuSave(menuName, weekStartDate, menuImagePreview.src);
     } else {
-        // Si llegamos aquí, algo salió mal con la validación
+        // Este caso no debería ocurrir si la validación anterior es correcta
+        console.error('Error inesperado: La vista previa existe pero no tiene src');
         AppUtils.showNotification('Error al procesar la imagen. Por favor, intente con otra imagen.', 'error');
     }
 }
@@ -651,6 +725,27 @@ async function saveMenu() {
 async function continueMenuSave(menuName, weekStartDate, imageUrl) {
     console.log('Continuando con el guardado del menú con imagen');
     
+    // Verificar que la URL de la imagen sea válida
+    if (!imageUrl || typeof imageUrl !== 'string') {
+        console.error('URL de imagen inválida:', imageUrl);
+        AppUtils.showNotification('Error: La imagen no es válida. Por favor, seleccione otra imagen.', 'error');
+        return false;
+    }
+    
+    // Comprobar si la URL de la imagen es demasiado larga (podría causar problemas en Firestore)
+    if (imageUrl.length > 1048576) { // 1MB en bytes
+        console.warn('La URL de la imagen es muy grande:', imageUrl.length, 'bytes');
+        // Intentar comprimir la imagen
+        try {
+            imageUrl = await compressImageUrl(imageUrl);
+            console.log('Imagen comprimida correctamente, nuevo tamaño:', imageUrl.length, 'bytes');
+        } catch (compressError) {
+            console.error('Error al comprimir la imagen:', compressError);
+            AppUtils.showNotification('Error: La imagen es demasiado grande. Por favor, seleccione una imagen más pequeña.', 'error');
+            return false;
+        }
+    }
+    
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
@@ -658,10 +753,12 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
         active: true,
         imageUrl: imageUrl,
         // No incluimos días ni platillos, solo la imagen del menú
+        createdAt: new Date().toISOString() // Agregar timestamp para ordenar
     };
     
     if (currentEditingMenuId) {
         menuData.id = currentEditingMenuId;
+        menuData.updatedAt = new Date().toISOString(); // Agregar timestamp de actualización
     }
     
     const saveButton = document.getElementById('save-menu-btn');
@@ -670,26 +767,55 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
     saveButton.innerHTML = '<span class="spinner"></span> Publicando...';
     
     try {
+        // Actualizar el estado de guardado
+        const saveStatus = document.getElementById('save-status');
+        if (saveStatus) {
+            saveStatus.textContent = 'Guardando en Firebase...';
+        }
+        
+        console.log('Intentando guardar menú en Firebase...');
         let success = false;
+        
         if (currentEditingMenuId) {
+            console.log('Actualizando menú existente:', currentEditingMenuId);
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         } else {
+            console.log('Creando nuevo menú');
             success = await FirebaseMenuModel.add(menuData);
         }
         
         if (success) {
+            console.log('Menú guardado exitosamente');
+            if (saveStatus) {
+                saveStatus.className = 'save-status success';
+                saveStatus.textContent = currentEditingMenuId ? 'Menú actualizado exitosamente' : 'Menú publicado exitosamente';
+            }
             AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú publicado.', 'success');
             loadSavedMenus();
             resetMenuForm();
         } else {
+            console.error('Error al guardar el menú en Firebase');
+            if (saveStatus) {
+                saveStatus.className = 'save-status error';
+                saveStatus.textContent = 'Error al publicar el menú';
+            }
             AppUtils.showNotification('Error al publicar menú.', 'error');
         }
     } catch (error) {
         console.error('Error al publicar menú:', error);
-        AppUtils.showNotification('Error al procesar el menú.', 'error');
+        const saveStatus = document.getElementById('save-status');
+        if (saveStatus) {
+            saveStatus.className = 'save-status error';
+            saveStatus.textContent = 'Error: ' + (error.message || 'Error desconocido');
+        }
+        AppUtils.showNotification('Error al procesar el menú: ' + (error.message || 'Error desconocido'), 'error');
     } finally {
-        saveButton.disabled = false;
-        saveButton.innerHTML = originalButtonHtml;
+        // Restaurar el botón de guardar
+        const saveButton = document.getElementById('save-menu-btn');
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Publicar Menú';
+        }
     }
 }
 
@@ -698,6 +824,70 @@ function calculateEndDateForMenu(startDateStr) {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
     return AppUtils.formatDateForInput(endDate);
+}
+
+/**
+ * Comprime una imagen en formato data URL para reducir su tamaño
+ * @param {string} dataUrl - URL de datos de la imagen (data:image/...)
+ * @returns {Promise<string>} - URL de datos comprimida
+ */
+async function compressImageUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Crear una imagen temporal
+            const img = new Image();
+            img.onload = function() {
+                // Crear un canvas para dibujar la imagen comprimida
+                const canvas = document.createElement('canvas');
+                
+                // Calcular nuevas dimensiones (reducir a máximo 1200px de ancho o alto)
+                let width = img.width;
+                let height = img.height;
+                const maxDimension = 1200;
+                
+                if (width > height && width > maxDimension) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                } else if (height > maxDimension) {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
+                }
+                
+                // Establecer dimensiones del canvas
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Dibujar la imagen en el canvas con las nuevas dimensiones
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convertir el canvas a data URL con calidad reducida (0.7 = 70%)
+                // Intentar detectar el tipo de imagen original
+                let mimeType = 'image/jpeg'; // Por defecto usar JPEG para mejor compresión
+                if (dataUrl.startsWith('data:image/png')) {
+                    mimeType = 'image/png';
+                } else if (dataUrl.startsWith('data:image/gif')) {
+                    mimeType = 'image/gif';
+                }
+                
+                // Comprimir la imagen
+                const compressedDataUrl = canvas.toDataURL(mimeType, 0.7);
+                console.log('Tamaño original:', dataUrl.length, 'bytes');
+                console.log('Tamaño comprimido:', compressedDataUrl.length, 'bytes');
+                console.log('Reducción:', Math.round((1 - compressedDataUrl.length / dataUrl.length) * 100) + '%');
+                
+                resolve(compressedDataUrl);
+            };
+            
+            img.onerror = function() {
+                reject(new Error('Error al cargar la imagen para compresión'));
+            };
+            
+            img.src = dataUrl;
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 async function loadSavedMenus() {
