@@ -167,17 +167,43 @@ class FirebaseStorageUtils {
      */
     static async uploadMenuImage(dataUrl, menuId) {
         try {
-            console.log('Optimizando y subiendo imagen de menú...');
+            console.log('Optimizando y subiendo imagen de menú...', {
+                dataUrlLength: dataUrl ? dataUrl.length : 0,
+                dataUrlType: dataUrl ? (dataUrl.substring(0, 30) + '...') : 'undefined',
+                menuId: menuId
+            });
+            
+            // Verificar que la URL de datos sea válida
+            if (!dataUrl || typeof dataUrl !== 'string') {
+                console.error('URL de datos inválida en uploadMenuImage');
+                throw new Error('URL de datos inválida o vacía');
+            }
+            
+            // Si la URL ya es una URL de Firebase Storage, devolverla directamente
+            if (dataUrl.includes('firebasestorage.googleapis.com')) {
+                console.log('La URL ya es de Firebase Storage, no es necesario subirla nuevamente');
+                return dataUrl;
+            }
+            
+            // Verificar que la URL sea una data URL
+            if (!dataUrl.startsWith('data:')) {
+                console.error('La URL no es una data URL válida:', dataUrl.substring(0, 30) + '...');
+                throw new Error('La URL de la imagen debe ser una data URL');
+            }
             
             // Comprimir la imagen antes de subirla
+            console.log('Comprimiendo imagen antes de subir...');
             const compressedDataUrl = await this.compressMenuImage(dataUrl);
+            console.log('Imagen comprimida correctamente');
             
             // Generar ruta para la imagen
             const timestamp = new Date().getTime();
             const path = `menus/${menuId || 'menu_' + timestamp}.jpg`;
+            console.log('Ruta de almacenamiento:', path);
             
             // Subir imagen comprimida
-            return await this.uploadImage(compressedDataUrl, path, {
+            console.log('Iniciando subida a Firebase Storage...');
+            const storageUrl = await this.uploadImage(compressedDataUrl, path, {
                 contentType: 'image/jpeg',
                 metadata: {
                     purpose: 'menu-image',
@@ -185,8 +211,18 @@ class FirebaseStorageUtils {
                     timestamp: timestamp
                 }
             });
+            
+            console.log('Imagen subida exitosamente a Firebase Storage:', storageUrl);
+            return storageUrl;
         } catch (error) {
             console.error('Error en uploadMenuImage:', error);
+            // Mostrar más detalles sobre el error para facilitar la depuración
+            if (error.code) {
+                console.error('Código de error:', error.code);
+            }
+            if (error.message) {
+                console.error('Mensaje de error:', error.message);
+            }
             throw error;
         }
     }

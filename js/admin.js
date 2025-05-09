@@ -824,25 +824,43 @@ async function compressImageUrl(dataUrl, maxWidth = 1200, quality = 0.7) {
 }
 
 async function continueMenuSave(menuName, weekStartDate, imageUrl) {
-    console.log('Continuando con el guardado del menú con imagen');
+    console.log('Continuando con el guardado del menú con imagen', {
+        menuName: menuName,
+        weekStartDate: weekStartDate,
+        imageUrlType: typeof imageUrl,
+        imageUrlLength: imageUrl ? imageUrl.length : 0,
+        imageUrlPreview: imageUrl ? (imageUrl.substring(0, 30) + '...') : 'undefined'
+    });
+    
+    // Habilitar el botón de guardar si algo falla
+    const enableSaveButton = () => {
+        const saveButton = document.getElementById('save-menu-btn');
+        if (saveButton && saveButton.disabled) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = 'Guardar Menú';
+        }
+    };
     
     // Verificar que la URL de la imagen sea válida
     if (!imageUrl || typeof imageUrl !== 'string') {
         console.error('URL de imagen inválida:', imageUrl);
         AppUtils.showNotification('Error: La imagen no es válida. Por favor, seleccione otra imagen.', 'error');
+        enableSaveButton();
         return false;
     }
     
     // Comprobar si la URL de la imagen es demasiado larga (podría causar problemas en Firestore)
-    if (imageUrl.length > 1048576) { // 1MB en bytes
+    if (imageUrl.length > 1048576 && imageUrl.startsWith('data:')) { // 1MB en bytes y es una data URL
         console.warn('La URL de la imagen es muy grande:', imageUrl.length, 'bytes');
         // Intentar comprimir la imagen
         try {
+            console.log('Intentando comprimir imagen grande...');
             imageUrl = await compressImageUrl(imageUrl);
             console.log('Imagen comprimida correctamente, nuevo tamaño:', imageUrl.length, 'bytes');
         } catch (compressError) {
             console.error('Error al comprimir la imagen:', compressError);
             AppUtils.showNotification('Error: La imagen es demasiado grande. Por favor, seleccione una imagen más pequeña.', 'error');
+            enableSaveButton();
             return false;
         }
     }
@@ -868,9 +886,22 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
     }
     
     // Verificar si Firebase Storage está disponible para optimizar el almacenamiento de imágenes
-    let useFirebaseStorage = typeof FirebaseStorageUtils !== 'undefined' && 
-                           typeof firebase !== 'undefined' && 
-                           typeof firebase.storage === 'function';
+    let useFirebaseStorage = false;
+    try {
+        useFirebaseStorage = typeof FirebaseStorageUtils !== 'undefined' && 
+                             typeof firebase !== 'undefined' && 
+                             typeof firebase.storage === 'function';
+        console.log('Estado de Firebase Storage:', useFirebaseStorage ? 'Disponible' : 'No disponible');
+        
+        // Verificar explícitamente si la función uploadMenuImage existe
+        if (useFirebaseStorage && typeof FirebaseStorageUtils.uploadMenuImage !== 'function') {
+            console.warn('FirebaseStorageUtils está disponible pero falta la función uploadMenuImage');
+            useFirebaseStorage = false;
+        }
+    } catch (error) {
+        console.error('Error al verificar disponibilidad de Firebase Storage:', error);
+        useFirebaseStorage = false;
+    }
     
     // Preparar los datos del menú
     const menuData = {
@@ -889,7 +920,7 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
     }
     
     // Si podemos usar Firebase Storage, subir la imagen allí
-    if (useFirebaseStorage && imageUrl.startsWith('data:')) {
+    if (useFirebaseStorage) {
         try {
             console.log('Usando Firebase Storage para la imagen del menú');
             const saveStatus = document.getElementById('save-status');
@@ -900,21 +931,47 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
             // Generar un ID único para el menú si no existe
             const menuId = currentEditingMenuId || 'menu_' + new Date().getTime();
             
-            // Subir la imagen a Firebase Storage
-            const storageUrl = await FirebaseStorageUtils.uploadMenuImage(imageUrl, menuId);
-            console.log('Imagen subida a Firebase Storage:', storageUrl);
-            
-            // Usar la URL de Storage en lugar de la data URL
-            menuData.imageUrl = storageUrl;
-            menuData.hasStorageImage = true; // Marcar que la imagen está en Storage
+            // Verificar si la imagen ya es una URL de Firebase Storage
+            if (imageUrl.includes('firebasestorage.googleapis.com')) {
+                console.log('La imagen ya es una URL de Firebase Storage, no es necesario subirla nuevamente');
+                menuData.imageUrl = imageUrl;
+                menuData.hasStorageImage = true;
+            } 
+            // Verificar si es una data URL que podemos subir
+            else if (imageUrl.startsWith('data:')) {
+                console.log('Subiendo data URL a Firebase Storage...');
+                try {
+                    // Subir la imagen a Firebase Storage
+                    const storageUrl = await FirebaseStorageUtils.uploadMenuImage(imageUrl, menuId);
+                    console.log('Imagen subida a Firebase Storage:', storageUrl);
+                    
+                    // Usar la URL de Storage en lugar de la data URL
+                    menuData.imageUrl = storageUrl;
+                    menuData.hasStorageImage = true; // Marcar que la imagen está en Storage
+                } catch (uploadError) {
+                    console.error('Error al subir imagen a Firebase Storage:', uploadError);
+                    AppUtils.showNotification('Error al subir la imagen a Firebase Storage. Se usará la imagen en formato base64.', 'warning');
+                    // Si falla, seguimos usando la data URL
+                    menuData.imageUrl = imageUrl;
+                    menuData.hasStorageImage = false;
+                }
+            } 
+            // Si no es ninguno de los anteriores, usar la URL tal como está
+            else {
+                console.log('La imagen no es una data URL ni una URL de Firebase Storage, usándola tal como está');
+                menuData.imageUrl = imageUrl;
+                menuData.hasStorageImage = false;
+            }
         } catch (storageError) {
-            console.error('Error al subir imagen a Firebase Storage:', storageError);
-            // Si falla, seguimos usando la data URL
+            console.error('Error general al procesar imagen para Firebase Storage:', storageError);
+            AppUtils.showNotification('Error al procesar la imagen. Se usará la imagen en formato alternativo.', 'warning');
+            // Si falla, seguimos usando la URL original
             menuData.imageUrl = imageUrl;
             menuData.hasStorageImage = false;
         }
     } else {
-        // Si no podemos usar Firebase Storage, usar la data URL directamente
+        // Si no podemos usar Firebase Storage, usar la URL directamente
+        console.log('Firebase Storage no está disponible, usando la URL de imagen directamente');
         menuData.imageUrl = imageUrl;
         menuData.hasStorageImage = false;
     }
@@ -930,10 +987,19 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
         if (saveStatus) {
             saveStatus.textContent = 'Guardando en Firebase...';
         }
-        
-        console.log('Intentando guardar menú en Firebase...');
+                        
+        console.log('Intentando guardar menú en Firebase...', {
+            menuData: {
+                name: menuData.name,
+                startDate: menuData.startDate,
+                endDate: menuData.endDate,
+                hasStorageImage: menuData.hasStorageImage,
+                imageUrlLength: menuData.imageUrl ? menuData.imageUrl.length : 0
+            }
+        });
+                        
         let success = false;
-        
+                        
         if (currentEditingMenuId) {
             console.log('Actualizando menú existente:', currentEditingMenuId);
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
@@ -941,7 +1007,7 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
             console.log('Creando nuevo menú');
             success = await FirebaseMenuModel.add(menuData);
         }
-        
+                        
         if (success) {
             console.log('Menú guardado exitosamente');
             if (saveStatus) {
@@ -949,31 +1015,78 @@ async function continueMenuSave(menuName, weekStartDate, imageUrl) {
                 saveStatus.textContent = currentEditingMenuId ? 'Menú actualizado exitosamente' : 'Menú publicado exitosamente';
             }
             AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú publicado.', 'success');
-            loadSavedMenus();
+            
+            // Restablecer formulario
             resetMenuForm();
+            
+            // Actualizar lista de menús
+            loadSavedMenus();
+            
+            // Habilitar botón de guardar
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = 'Guardar Menú';
+            }
+            
+            return true;
         } else {
-            console.error('Error al guardar el menú en Firebase');
+            console.error('Error al guardar menú en Firebase');
             if (saveStatus) {
                 saveStatus.className = 'save-status error';
-                saveStatus.textContent = 'Error al publicar el menú';
+                saveStatus.textContent = 'Error al guardar menú';
             }
-            AppUtils.showNotification('Error al publicar menú.', 'error');
+            AppUtils.showNotification('Error al guardar el menú. Por favor, intente nuevamente.', 'error');
+            
+            // Habilitar botón de guardar
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = 'Guardar Menú';
+            }
+            
+            return false;
         }
     } catch (error) {
-        console.error('Error al publicar menú:', error);
+        console.error('Error al guardar menú:', error);
+        
+        // Mostrar más detalles sobre el error para facilitar la depuración
+        if (error.code) {
+            console.error('Código de error:', error.code);
+        }
+        if (error.message) {
+            console.error('Mensaje de error:', error.message);
+        }
+        
+        // Mostrar notificación al usuario
+        let errorMessage = 'Error al guardar el menú';
+        if (error.message) {
+            // Simplificar el mensaje de error para el usuario
+            if (error.message.includes('Firebase Storage')) {
+                errorMessage += ': Error al subir la imagen. Intente con una imagen más pequeña.';
+            } else if (error.message.includes('permission')) {
+                errorMessage += ': No tiene permisos suficientes.';
+            } else if (error.message.includes('network')) {
+                errorMessage += ': Problema de conexión. Verifique su internet.';
+            } else {
+                errorMessage += ': ' + error.message;
+            }
+        }
+        
+        AppUtils.showNotification(errorMessage, 'error');
+        
+        // Actualizar estado de guardado
         const saveStatus = document.getElementById('save-status');
         if (saveStatus) {
             saveStatus.className = 'save-status error';
             saveStatus.textContent = 'Error: ' + (error.message || 'Error desconocido');
         }
-        AppUtils.showNotification('Error al procesar el menú: ' + (error.message || 'Error desconocido'), 'error');
-    } finally {
-        // Restaurar el botón de guardar
-        const saveButton = document.getElementById('save-menu-btn');
+        
+        // Habilitar botón de guardar
         if (saveButton) {
             saveButton.disabled = false;
-            saveButton.innerHTML = '<i class="fas fa-save"></i> Publicar Menú';
+            saveButton.innerHTML = 'Guardar Menú';
         }
+        
+        return false;
     }
 }
 
