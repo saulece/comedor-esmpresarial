@@ -211,26 +211,24 @@ function logoutCoordinator() {
  * Inicializa la interfaz de coordinación
  */
 function initCoordinatorInterface() {
-    console.log('Inicializando interfaz de coordinador');
-    
-    // Mostrar información del coordinador
-    displayCoordinatorInfo();
-    
-    // Configurar botones y navegación
-    setupLogoutButton();
-    setupTabNavigation();
-    setupMenuWeekSelector(); // Configurar selector de semana para menús
-    setupConfirmationWeekSelector(); // Configurar selector de semana para confirmaciones
+    console.log('Inicializando interfaz de coordinador...');
     
     // Verificar que Firebase esté disponible antes de cargar los menús
-    if (typeof firebase === 'undefined' || typeof FirebaseMenuModel === 'undefined') {
-        console.error('Firebase o FirebaseMenuModel no están disponibles');
-        AppUtils.showNotification('Error: No se puede conectar con la base de datos. Por favor, recargue la página.', 'error');
-        return;
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
+        setTimeout(loadMenusWithRetry, 1000);
+        AppUtils.showNotification('Error: No se puede conectar con la base de datos. Reintentando...', 'warning');
+    } else if (typeof FirebaseMenuModel === 'undefined') {
+        console.error('FirebaseMenuModel no está disponible. Esperando 1 segundo antes de intentar cargar los menús...');
+        setTimeout(loadMenusWithRetry, 1000);
+        AppUtils.showNotification('Error: Componente de menú no disponible. Reintentando...', 'warning');
+    } else {
+        // Cargar menús con reintentos
+        loadMenusWithRetry();
+        
+        // Agregar botón para recargar menús
+        addReloadMenusButton();
     }
-    
-    // Cargar menús con reintentos
-    loadMenusWithRetry();
     
     // Inicializar el gestor de asistencia
     if (typeof AttendanceManager !== 'undefined') {
@@ -238,6 +236,40 @@ function initCoordinatorInterface() {
     } else {
         console.error('AttendanceManager no está disponible');
     }
+}
+
+/**
+ * Agrega un botón para recargar los menús manualmente
+ */
+function addReloadMenusButton() {
+    // Buscar el contenedor del menú semanal
+    const menuSection = document.querySelector('.menu-section');
+    if (!menuSection) return;
+    
+    // Verificar si ya existe el botón
+    if (document.querySelector('.reload-all-menus-btn')) return;
+    
+    // Crear el botón de recarga
+    const reloadButton = document.createElement('button');
+    reloadButton.className = 'reload-all-menus-btn';
+    reloadButton.innerHTML = '<i class="fas fa-sync-alt"></i> Recargar menús';
+    reloadButton.style.marginBottom = '15px';
+    reloadButton.style.padding = '5px 10px';
+    reloadButton.style.backgroundColor = '#3498db';
+    reloadButton.style.color = 'white';
+    reloadButton.style.border = 'none';
+    reloadButton.style.borderRadius = '4px';
+    reloadButton.style.cursor = 'pointer';
+    
+    // Agregar evento de clic
+    reloadButton.addEventListener('click', function() {
+        console.log('Recargando todos los menús...');
+        AppUtils.showNotification('Recargando menús...', 'info');
+        loadMenusWithRetry();
+    });
+    
+    // Insertar el botón al principio de la sección de menú
+    menuSection.insertBefore(reloadButton, menuSection.firstChild);
 }
 
 /**
@@ -454,7 +486,7 @@ function loadCurrentMenu() {
 }
 
 /**
- * Carga el menú de la próxima semana
+ * Carga el menú de la próxima semana (la que comienza el lunes siguiente)
  */
 function loadNextWeekMenu() {
     const nextMenuContainer = document.getElementById('next-menu');
@@ -469,65 +501,162 @@ function loadNextWeekMenu() {
         }
 
         try {
-            // Calcular la fecha de inicio de la próxima semana (7 días a partir de hoy)
+            // Obtener la fecha actual
             const today = new Date();
-            const nextWeekStart = new Date(today);
-            nextWeekStart.setDate(today.getDate() + 7);
             
-            // Formatear la fecha para la consulta
-            const formattedDate = AppUtils.formatDateForInput(nextWeekStart);
+            // Calcular la fecha del próximo lunes
+            const nextMonday = new Date(today);
+            const currentDay = today.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+            const daysUntilNextMonday = currentDay === 0 ? 1 : 8 - currentDay; // Si hoy es domingo, el próximo lunes es mañana
+            nextMonday.setDate(today.getDate() + daysUntilNextMonday);
             
-            // Buscar menús que comiencen después de la fecha actual pero no más de 14 días después
-            const unsubscribe = FirebaseMenuModel.listenToFutureMenus(formattedDate, 14, (menus, error) => {
-                if (error) {
-                    console.error('Error en la escucha del menú futuro:', error);
-                    nextMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. Por favor, recarga la página.</p>';
-                    return;
+            // Formatear la fecha para la consulta (YYYY-MM-DD)
+            const nextMondayFormatted = nextMonday.toISOString().split('T')[0];
+            
+            console.log('Fecha actual:', today.toISOString().split('T')[0]);
+            console.log('Próximo lunes:', nextMondayFormatted);
+            console.log('Buscando menú que comienza el lunes de la próxima semana:', nextMondayFormatted);
+            
+            // Buscar menús que comiencen exactamente el lunes de la próxima semana
+            const unsubscribe = FirebaseRealtime.listenToCollection('menus', {
+                where: [
+                    ['startDate', '==', nextMondayFormatted]
+                ],
+                onSnapshot: (snapshot) => {
+                    try {
+                        console.log('Snapshot recibido para menú del próximo lunes, docs:', snapshot.docs.length);
+                        
+                        if (snapshot.empty) {
+                            console.log('No se encontró menú para el lunes', nextMondayFormatted);
+                            console.log('Buscando menús futuros cercanos como alternativa...');
+                            
+                            // Si no hay menú para el lunes exacto, buscar menús futuros cercanos
+                            searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
+                            return;
+                        }
+                        
+                        // Convertir documentos a objetos de menú
+                        const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                        console.log('Menú para el lunes encontrado:', menus.length);
+                        
+                        if (menus.length > 0) {
+                            const nextWeekMenu = menus[0];
+                            console.log('Mostrando menú del próximo lunes:', nextWeekMenu.name, 'ID:', nextWeekMenu.id);
+                            
+                            displayMenuForCoordinator(nextWeekMenu, nextMenuContainer);
+                            
+                            // Marcar el contenedor como cargado
+                            nextMenuContainer.dataset.loaded = 'true';
+                            nextMenuContainer.dataset.unsubscribeListenerId = unsubscribe;
+                        } else {
+                            searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
+                        }
+                    } catch (error) {
+                        console.error('Error procesando snapshot para menú del próximo lunes:', error);
+                        searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
+                    }
+                },
+                onError: (error) => {
+                    console.error('Error en la búsqueda del menú del próximo lunes:', error);
+                    searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
                 }
-                
-                if (!menus || menus.length === 0) {
-                    nextMenuContainer.innerHTML = '<p class="empty-state">No hay menú disponible para la próxima semana.</p>';
-                    return;
-                }
-                
-                // Ordenar los menús por fecha de inicio y tomar el primero (el más cercano)
-                const sortedMenus = menus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-                const nextWeekMenu = sortedMenus[0];
-                
-                displayMenuForCoordinator(nextWeekMenu, nextMenuContainer);
-                
-                // Marcar el contenedor como cargado
-                nextMenuContainer.dataset.loaded = 'true';
-                
-                // Mostrar indicador de sincronización en tiempo real
-                const syncIndicator = document.createElement('div');
-                syncIndicator.className = 'sync-indicator';
-                syncIndicator.innerHTML = '<i class="fas fa-sync"></i> Sincronizado en tiempo real';
-                
-                // Agregar el indicador al contenedor
-                const header = nextMenuContainer.querySelector('.menu-header');
-                if (header) header.appendChild(syncIndicator);
-                else nextMenuContainer.appendChild(syncIndicator);
-                
-                // Mostrar indicador de sincronización por un tiempo y luego ocultarlo
-                setTimeout(() => {
-                    syncIndicator.classList.add('fade-out');
-                    setTimeout(() => syncIndicator.remove(), 500);
-                }, 3000);
             });
             
-            // Guardar la función de cancelación
-            nextMenuContainer.dataset.unsubscribeListenerId = unsubscribe;
+            return unsubscribe;
         } catch (error) {
-            console.error('Error al inicializar escucha del menú futuro con Firebase:', error);
-            nextMenuContainer.innerHTML = '<p class="error-state">Error al conectar con Firebase. Por favor, recarga la página.</p>';
+            console.error('Error al iniciar la búsqueda del menú de la próxima semana:', error);
+            nextMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. <button class="reload-menu-btn">Reintentar</button></p>';
+            
+            // Agregar evento al botón de reintentar
+            const retryBtn = nextMenuContainer.querySelector('.reload-menu-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', loadNextWeekMenu);
+            }
         }
     } else {
-        console.error('FirebaseMenuModel no está disponible.');
-        nextMenuContainer.innerHTML = '<p class="error-state">Error: Componente de menú no disponible.</p>';
+        console.error('FirebaseMenuModel no está disponible');
+        nextMenuContainer.innerHTML = '<p class="error-state">Error: Componente de menú no disponible. <button class="reload-menu-btn">Reintentar</button></p>';
+        
+        // Agregar evento al botón de reintentar
+        const retryBtn = nextMenuContainer.querySelector('.reload-menu-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', loadNextWeekMenu);
+        }
     }
 }
 
+/**
+ * Busca menús futuros cercanos como alternativa si no se encuentra un menú para el lunes exacto
+ * @param {HTMLElement} container - Contenedor donde mostrar el menú
+ * @param {string} startDate - Fecha de inicio para la búsqueda (YYYY-MM-DD)
+ */
+function searchNearbyFutureMenus(container, startDate) {
+    console.log('Buscando menús futuros cercanos a partir de:', startDate);
+    
+    // Buscar menús que comiencen después de la fecha dada pero no más de 14 días después
+    const unsubscribe = FirebaseMenuModel.listenToFutureMenus(startDate, 14, (menus, error) => {
+        if (error) {
+            console.error('Error en la búsqueda de menús futuros cercanos:', error);
+            container.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. <button class="reload-menu-btn">Reintentar</button></p>';
+            
+            // Agregar evento al botón de reintentar
+            const retryBtn = container.querySelector('.reload-menu-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', loadNextWeekMenu);
+            }
+            return;
+        }
+        
+        console.log('Menús futuros cercanos recibidos:', menus ? menus.length : 0);
+        
+        if (!menus || menus.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay menú disponible para la próxima semana. <button class="reload-menu-btn">Reintentar carga</button></p>';
+            
+            // Agregar evento al botón de reintentar
+            const retryBtn = container.querySelector('.reload-menu-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', loadNextWeekMenu);
+            }
+            return;
+        }
+        
+        // Ordenar los menús por fecha de inicio y tomar el primero (el más cercano)
+        const sortedMenus = menus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+        
+        // Mostrar información detallada sobre los menús encontrados
+        sortedMenus.forEach((menu, index) => {
+            console.log(`Menú futuro cercano ${index + 1}:`, menu.name, 
+                        'Inicio:', menu.startDate, 
+                        'Fin:', menu.endDate,
+                        'ID:', menu.id);
+        });
+        
+        const nextWeekMenu = sortedMenus[0];
+        console.log('Mostrando menú futuro cercano:', nextWeekMenu.name, 'ID:', nextWeekMenu.id);
+        
+        displayMenuForCoordinator(nextWeekMenu, container);
+        
+        // Marcar el contenedor como cargado
+        container.dataset.loaded = 'true';
+        container.dataset.unsubscribeListenerId = unsubscribe;
+        
+        // Mostrar indicador de sincronización en tiempo real
+        const syncIndicator = document.createElement('div');
+        syncIndicator.className = 'sync-indicator';
+        syncIndicator.innerHTML = '<i class="fas fa-sync"></i> Sincronizado en tiempo real';
+        
+        // Agregar el indicador al contenedor
+        const header = container.querySelector('.menu-header');
+        if (header) header.appendChild(syncIndicator);
+        else container.appendChild(syncIndicator);
+        
+        // Mostrar indicador de sincronización por un tiempo y luego ocultarlo
+        setTimeout(() => {
+            syncIndicator.classList.add('fade-out');
+            setTimeout(() => syncIndicator.remove(), 500);
+        }, 3000);
+    });
+}
 
 /**
  * Muestra un menú en el contenedor especificado para el coordinador

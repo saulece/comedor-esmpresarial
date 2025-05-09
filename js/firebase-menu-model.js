@@ -130,13 +130,18 @@ const FirebaseMenuModel = {
         endDateObj.setDate(startDateObj.getDate() + daysAhead);
         const endDateStr = endDateObj.toISOString().split('T')[0];
         
-        console.log('Buscando menús futuros entre', startDate, 'y', endDateStr);
+        // Obtener la fecha actual para filtrar menús que ya han pasado
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        console.log('Buscando menús futuros entre', startDate, 'y', endDateStr, '(Hoy es:', todayStr, ')');
         
         try {
+            // Primero intentamos buscar menús que comiencen en el futuro
             return FirebaseRealtime.listenToCollection('menus', {
                 where: [
-                    ['startDate', '>=', startDate],
-                    ['startDate', '<=', endDateStr]
+                    // Buscamos menús que terminen en el futuro (para incluir menús actuales que se extienden al futuro)
+                    ['endDate', '>=', todayStr]
                 ],
                 orderBy: [['startDate', 'asc']],
                 onSnapshot: (snapshot) => {
@@ -150,15 +155,35 @@ const FirebaseMenuModel = {
                         }
                         
                         // Convertir documentos a objetos de menú
-                        const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                        console.log('Menús futuros encontrados:', menus.length);
+                        let menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                        console.log('Menús encontrados (sin filtrar):', menus.length);
+                        
+                        // Filtrar menús que comienzan en el futuro o que incluyen la fecha de inicio solicitada
+                        const futureMenus = menus.filter(menu => {
+                            // Convertir fechas a objetos Date para comparación
+                            const menuStartDate = new Date(menu.startDate + 'T00:00:00');
+                            const menuEndDate = new Date(menu.endDate + 'T00:00:00');
+                            
+                            // Un menú es futuro si:
+                            // 1. Comienza después de la fecha de inicio solicitada
+                            // 2. No ha terminado aún (su fecha de fin es mayor o igual a hoy)
+                            // 3. No es el menú actual (su fecha de inicio es mayor que hoy)
+                            return menuStartDate >= startDateObj && 
+                                   menuEndDate >= today && 
+                                   menuStartDate > today;
+                        });
+                        
+                        console.log('Menús futuros filtrados:', futureMenus.length);
+                        
+                        // Ordenar por fecha de inicio ascendente
+                        futureMenus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
                         
                         // Mostrar información de los menús encontrados
-                        menus.forEach((menu, index) => {
+                        futureMenus.forEach((menu, index) => {
                             console.log(`Menú futuro ${index + 1}:`, menu.name, 'Inicio:', menu.startDate, 'Fin:', menu.endDate);
                         });
                         
-                        callback(menus);
+                        callback(futureMenus);
                     } catch (error) {
                         console.error('Error procesando snapshot en listenToFutureMenus:', error);
                         callback([], error);
