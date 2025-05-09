@@ -230,13 +230,8 @@ function initCoordinatorInterface() {
         addReloadMenusButton();
     }
     
-    // Configurar navegación de pestañas (después de cargar los menús)
+    // Inicializar el gestor de asistencia después de cargar los menús
     setTimeout(() => {
-        setupTabNavigation();
-        setupWeekSelectors();
-        setupLogoutButton();
-        
-        // Inicializar el gestor de asistencia después de configurar la interfaz
         if (typeof AttendanceManager !== 'undefined') {
             try {
                 console.log('Inicializando AttendanceManager...');
@@ -250,186 +245,15 @@ function initCoordinatorInterface() {
     }, 500);
 }
 
-/**
- * Configura la navegación entre pestañas
- */
-function setupTabNavigation() {
-    console.log('Configurando navegación de pestañas...');
-    
-    try {
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        if (!tabButtons.length || !tabContents.length) {
-            console.error('No se encontraron botones de pestaña o contenidos de pestaña');
-            return;
-        }
-        
-        // Eliminar event listeners previos para evitar duplicados
-        tabButtons.forEach(button => {
-            if (!button || !button.parentNode) return;
-            
-            try {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                
-                // Agregar nuevo event listener
-                newButton.addEventListener('click', function() {
-                    try {
-                        const tabId = this.getAttribute('data-tab');
-                        console.log('Cambiando a pestaña:', tabId);
-                        
-                        // Desactivar todos los botones y contenidos
-                        tabButtons.forEach(btn => btn.classList.remove('active'));
-                        tabContents.forEach(content => content.classList.remove('active'));
-                        
-                        // Activar el botón y contenido seleccionados
-                        this.classList.add('active');
-                        const tabContent = document.getElementById(tabId);
-                        if (tabContent) {
-                            tabContent.classList.add('active');
-                        } else {
-                            console.error(`No se encontró el contenido de pestaña con ID: ${tabId}`);
-                        }
-                    } catch (clickError) {
-                        console.error('Error al cambiar de pestaña:', clickError);
-                    }
-                });
-            } catch (buttonError) {
-                console.error('Error al configurar botón de pestaña:', buttonError);
-            }
-        });
-        
-        console.log('Navegación de pestañas configurada correctamente');
-    } catch (error) {
-        console.error('Error al configurar navegación de pestañas:', error);
-    }
-}
+// Nota: La función setupTabNavigation se ha movido a coordinator-ui.js
 
-/**
- * Configura los selectores de semana para menús y confirmaciones
- */
-function setupWeekSelectors() {
-    console.log('Configurando selectores de semana...');
-    
-    // Configurar selector de semana para menús
-    setupMenuWeekSelector();
-    
-    // Configurar selector de semana para confirmaciones
-    setupConfirmationWeekSelector();
-}
+// Nota: La función setupWeekSelectors se ha movido a coordinator-ui.js
 
-/**
- * Configura el selector de semana para menús
- */
-function setupMenuWeekSelector() {
-    const menuWeekButtons = document.querySelectorAll('.menu-week-btn');
-    const menuContents = document.querySelectorAll('.menu-content');
-    
-    if (!menuWeekButtons.length || !menuContents.length) {
-        console.error('No se encontraron botones de selector de semana para menús');
-        return;
-    }
-    
-    // Eliminar event listeners previos para evitar duplicados
-    menuWeekButtons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-        
-        // Agregar nuevo event listener
-        newButton.addEventListener('click', function() {
-            const weekType = this.getAttribute('data-menu-week');
-            console.log('Cambiando a menú de semana:', weekType);
-            
-            // Desactivar todos los botones y contenidos
-            menuWeekButtons.forEach(btn => btn.classList.remove('active'));
-            menuContents.forEach(content => content.classList.remove('active'));
-            
-            // Activar el botón y contenido seleccionados
-            this.classList.add('active');
-            document.getElementById(weekType + '-menu').classList.add('active');
-        });
-    });
-    
-    console.log('Selector de semana para menús configurado correctamente');
-}
+// Nota: La función setupMenuWeekSelector se ha movido a coordinator-ui.js
 
-/**
- * Configura el selector de semana para confirmaciones
- */
-function setupConfirmationWeekSelector() {
-    const confirmationWeekButtons = document.querySelectorAll('.confirmation-week-btn');
-    const confirmationContents = document.querySelectorAll('.confirmation-content');
-    
-    if (!confirmationWeekButtons.length) {
-        console.error('No se encontraron botones de selector de semana para confirmaciones');
-        return;
-    }
-    
-    // Eliminar event listeners previos para evitar duplicados
-    confirmationWeekButtons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-        
-        // Agregar nuevo event listener
-        newButton.addEventListener('click', function() {
-            const weekType = this.getAttribute('data-confirmation-week');
-            console.log('Cambiando a confirmaciones de semana:', weekType);
-            
-            // Desactivar todos los botones
-            confirmationWeekButtons.forEach(btn => btn.classList.remove('active'));
-            
-            // Activar el botón seleccionado
-            this.classList.add('active');
-            
-            // Activar el contenedor de confirmación correspondiente
-            if (confirmationContents.length > 0) {
-                confirmationContents.forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                const targetContent = document.getElementById(`${weekType}-week-confirmation`);
-                if (targetContent) {
-                    targetContent.classList.add('active');
-                }
-            }
-            
-            // Notificar al gestor de asistencia sobre el cambio de semana
-            if (typeof AttendanceManager !== 'undefined') {
-                AttendanceManager.switchWeek(weekType);
-            } else {
-                console.error('AttendanceManager no está disponible');
-                AppUtils.showNotification('Error: Componente de asistencia no disponible', 'error');
-            }
-        });
-    });
-    
-    console.log('Selector de semana para confirmaciones configurado correctamente');
-}
+// Nota: La función setupConfirmationWeekSelector se ha movido a coordinator-ui.js
 
-/**
- * Configura el botón de cerrar sesión
- */
-function setupLogoutButton() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    if (!logoutBtn) {
-        console.error('No se encontró el botón de cerrar sesión');
-        return;
-    }
-    
-    // Eliminar event listeners previos para evitar duplicados
-    const newLogoutBtn = logoutBtn.cloneNode(true);
-    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-    
-    // Agregar nuevo event listener
-    newLogoutBtn.addEventListener('click', function() {
-        console.log('Cerrando sesión...');
-        logoutCoordinator();
-    });
-    
-    console.log('Botón de cerrar sesión configurado correctamente');
-}
+// Nota: La función setupLogoutButton se ha movido a coordinator-ui.js
 
 /**
  * Agrega un botón para recargar los menús manualmente
