@@ -260,7 +260,7 @@ function initAdminInterface() {
  * Inicializa el formulario de menú
  */
 function initMenuForm() {
-     console.log("Ejecutando initMenuForm..."); // Log
+    console.log("Ejecutando initMenuForm...");
     const weekStartDateInput = document.getElementById('week-start-date');
     const menuForm = document.getElementById('menu-form');
     const resetFormBtn = document.getElementById('reset-form-btn');
@@ -278,26 +278,14 @@ function initMenuForm() {
     const formattedDate = AppUtils.formatDateForInput(today);
     weekStartDateInput.value = formattedDate;
     
-    generateWeekDays(weekStartDateInput.value);
-    
-    // Listener para cambio de fecha
-    const newWeekInput = weekStartDateInput.cloneNode(true);
-    weekStartDateInput.parentNode.replaceChild(newWeekInput, weekStartDateInput);
-    newWeekInput.addEventListener('change', function() {
-        generateWeekDays(this.value);
-    });
-    
     // Listener para reset
     const newResetBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetBtn, resetFormBtn);
     newResetBtn.addEventListener('click', resetMenuForm);
     
     // Listener para submit
-    const newMenuForm = menuForm.cloneNode(true); // Clonar form podría perder referencias internas? Mejor solo el listener
-    // Remover listener anterior si existe para evitar duplicados
-    // (Asumiendo que no hay otros listeners importantes en el form)
     menuForm.replaceWith(menuForm.cloneNode(true)); // Reemplazar con clon para limpiar listeners
-    document.getElementById('menu-form').addEventListener('submit', function(event) { // Añadir listener al nuevo form
+    document.getElementById('menu-form').addEventListener('submit', function(event) {
         event.preventDefault();
         saveMenu();
     });
@@ -322,45 +310,73 @@ function initMenuForm() {
             removeMenuImage();
         });
     }
-
-    // Llamar a setupAddDishButtons después de generar los días iniciales
-    setupAddDishButtons(); 
 }
 
 /**
  * Maneja la carga de una imagen para el menú
  */
 function handleMenuImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Verificar que sea una imagen
-    if (!file.type.match('image.*')) {
-        AppUtils.showNotification('Por favor, selecciona un archivo de imagen válido.', 'error');
-        event.target.value = '';
-        return;
-    }
-    
-    // Verificar tamaño (máximo 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
-    if (file.size > maxSize) {
-        AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 2MB.', 'error');
-        event.target.value = '';
-        return;
-    }
-    
-    // Mostrar vista previa
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const previewContainer = document.getElementById('menu-image-preview-container');
-        const previewImage = document.getElementById('menu-image-preview');
-        
-        if (previewContainer && previewImage) {
-            previewImage.src = e.target.result;
-            previewContainer.style.display = 'block';
+    try {
+        const file = event.target.files[0];
+        if (!file) {
+            console.log('No se seleccionó ningún archivo');
+            return;
         }
-    };
-    reader.readAsDataURL(file);
+        
+        console.log('Archivo seleccionado:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
+        
+        // Verificar que sea una imagen
+        if (!file.type.match('image.*')) {
+            AppUtils.showNotification('Por favor, selecciona un archivo de imagen válido.', 'error');
+            event.target.value = '';
+            return;
+        }
+        
+        // Verificar tamaño (máximo 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+        if (file.size > maxSize) {
+            AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 5MB.', 'error');
+            event.target.value = '';
+            return;
+        }
+        
+        // Mostrar vista previa
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const previewContainer = document.getElementById('menu-image-preview-container');
+                const previewImage = document.getElementById('menu-image-preview');
+                
+                if (!previewContainer || !previewImage) {
+                    console.error('No se encontraron los elementos de vista previa');
+                    return;
+                }
+                
+                // Asignar la imagen y mostrar el contenedor
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+                
+                console.log('Vista previa de imagen cargada correctamente');
+                AppUtils.showNotification('Imagen cargada correctamente.', 'success');
+            } catch (previewError) {
+                console.error('Error al mostrar la vista previa:', previewError);
+                AppUtils.showNotification('Error al mostrar la vista previa de la imagen.', 'error');
+            }
+        };
+        
+        reader.onerror = function(error) {
+            console.error('Error al leer el archivo:', error);
+            AppUtils.showNotification('Error al procesar la imagen.', 'error');
+            event.target.value = '';
+        };
+        
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error al manejar la carga de imagen:', error);
+        AppUtils.showNotification('Error al procesar la imagen.', 'error');
+        if (event.target) event.target.value = '';
+    }
 }
 
 /**
@@ -540,92 +556,52 @@ async function saveMenu() {
         return;
     }
     
+    if (!menuImageInput.files || menuImageInput.files.length === 0) {
+        AppUtils.showNotification('Por favor, seleccione una imagen del menú.', 'error');
+        return;
+    }
+    
+    // Verificar que el elemento de vista previa tenga una imagen cargada
+    if (!menuImagePreview || !menuImagePreview.src || menuImagePreview.src === window.location.href) {
+        AppUtils.showNotification('Por favor, seleccione una imagen válida para el menú.', 'error');
+        return;
+    }
+    
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
         active: true,
+        imageUrl: menuImagePreview.src,
+        // No incluimos días ni platillos, solo la imagen del menú
     };
     
-    // Agregar imagen si existe
-    if (menuImagePreview && menuImagePreview.src && menuImagePreview.src !== window.location.href) {
-        menuData.imageUrl = menuImagePreview.src;
-    }
-    
     if (currentEditingMenuId) {
-        menuData.id = currentEditingMenuId; // Pasar ID solo si estamos editando
+        menuData.id = currentEditingMenuId;
     }
-    
-    const days = [];
-    const daySections = document.querySelectorAll('.day-section');
-    
-    daySections.forEach(daySection => {
-        const dayIndex = parseInt(daySection.getAttribute('data-day'));
-        const dayDate = daySection.getAttribute('data-date');
-        const dayName = DAYS_OF_WEEK[dayIndex];
-        
-        const dayData = {
-            id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-            name: dayName,
-            date: dayDate,
-            dishes: []
-        };
-        
-        Object.keys(CATEGORIES).forEach(categoryKey => {
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (dishesContainer) {
-                const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
-                dishGroups.forEach(dishGroup => {
-                    const dishNameInput = dishGroup.querySelector('.dish-input');
-                    if (dishNameInput && dishNameInput.value.trim()) {
-                        dayData.dishes.push({
-                            id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + categoryKey + dayIndex,
-                            name: dishNameInput.value.trim(),
-                            category: categoryKey,
-                            description: '', 
-                            price: 0.00      
-                        });
-                    }
-                });
-            }
-        });
-        
-        if (dayData.dishes.length > 0) {
-            days.push(dayData);
-        }
-    });
-    
-    if (days.length === 0 && !currentEditingMenuId) {
-        AppUtils.showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
-        return;
-    }
-    
-    menuData.days = days;
     
     const saveButton = document.getElementById('save-menu-btn');
     const originalButtonHtml = saveButton.innerHTML;
     saveButton.disabled = true;
-    saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
+    saveButton.innerHTML = '<span class="spinner"></span> Publicando...';
     
     try {
         let success = false;
         if (currentEditingMenuId) {
-            // Para actualizar, pasamos el ID y los datos
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         } else {
-             // Para añadir, no pasamos ID, Firebase lo genera
             success = await FirebaseMenuModel.add(menuData);
         }
         
         if (success) {
-            AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú guardado.', 'success');
+            AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú publicado.', 'success');
             loadSavedMenus();
             resetMenuForm();
         } else {
-            AppUtils.showNotification('Error al guardar menú.', 'error');
+            AppUtils.showNotification('Error al publicar menú.', 'error');
         }
     } catch (error) {
-        console.error('Error al guardar menú:', error);
+        console.error('Error al publicar menú:', error);
         AppUtils.showNotification('Error al procesar el menú.', 'error');
     } finally {
         saveButton.disabled = false;
@@ -897,7 +873,6 @@ function resetMenuForm() {
     // Limpiar imagen
     removeMenuImage();
     
-    generateWeekDays(AppUtils.formatDateForInput(today)); // Regenerar días vacíos
     AppUtils.showNotification('Formulario limpiado.', 'info');
 }
 

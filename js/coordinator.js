@@ -307,6 +307,22 @@ function displayMenuForCoordinator(menu, container) {
         return;
     }
 
+    // Si hay una imagen del menú, mostrarla como contenido principal
+    if (menu.imageUrl) {
+        let html = `
+            <div class="menu-header">
+                <h4>${menu.name || 'Menú Semanal'}</h4>
+                <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
+            </div>
+            <div class="menu-image-display">
+                <img src="${menu.imageUrl}" alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image">
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
+    }
+    
+    // Si no hay imagen, mostrar el formato tradicional (aunque ya no se usará)
     let html = `
         <div class="menu-header">
             <h4>${menu.name || 'Menú Semanal'}</h4>
