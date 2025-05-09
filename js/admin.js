@@ -332,10 +332,10 @@ function handleMenuImageUpload(event) {
             return;
         }
         
-        // Verificar tamaño (máximo 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+        // Verificar tamaño (máximo 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB en bytes
         if (file.size > maxSize) {
-            AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 5MB.', 'error');
+            AppUtils.showNotification('La imagen es demasiado grande. El tamaño máximo es 10MB.', 'error');
             event.target.value = '';
             return;
         }
