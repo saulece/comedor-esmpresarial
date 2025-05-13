@@ -1304,103 +1304,90 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
             return;
         }
         
-        console.log('[ConfirmationReportManagement] Configurando selector de fechas...');
         this.setCurrentWeek(this.getMonday(new Date())); 
-        console.log('[ConfirmationReportManagement] Configurando event listeners...');
         this.setupEventListeners();
-        console.log('[ConfirmationReportManagement] Cargando datos iniciales...');
         this.loadConfirmationData().catch(error => console.error('Error loading initial report data:', error));
     },
     setupEventListeners: function() { 
-        console.log('[ConfirmationReportManagement] Configurando event listeners para reportes...');
-        
-        // Clonar y reemplazar el selector de semana para limpiar listeners previos
         const newWeekSel = this.weekSelector.cloneNode(true);
         this.weekSelector.parentNode.replaceChild(newWeekSel, this.weekSelector);
         this.weekSelector = newWeekSel;
-        
-        // Añadir evento change con mejor manejo de errores y logging
-        this.weekSelector.addEventListener('change', (event) => {
-            console.log(`[ConfirmationReportManagement] Fecha seleccionada cambiada a: ${this.weekSelector.value}`);
-            try {
-                if (!this.weekSelector.value) {
-                    console.error('[ConfirmationReportManagement] Valor de fecha vacío');
-                    return;
-                }
-                
-                // Crear fecha a partir del valor seleccionado
-                const selectedDate = new Date(this.weekSelector.value + 'T00:00:00');
-                if (isNaN(selectedDate.getTime())) {
-                    console.error(`[ConfirmationReportManagement] Fecha inválida: ${this.weekSelector.value}`);
-                    return;
-                }
-                
-                console.log(`[ConfirmationReportManagement] Calculando lunes para: ${selectedDate.toISOString()}`);
-                const mondayDate = this.getMonday(selectedDate);
-                console.log(`[ConfirmationReportManagement] Lunes calculado: ${mondayDate.toISOString()}`);
-                
-                // Actualizar la semana actual y cargar datos
-                this.setCurrentWeek(mondayDate);
-                this.loadConfirmationData();
-                
-                // Notificar al usuario
-                AppUtils.showNotification(`Mostrando datos para la semana del ${new Intl.DateTimeFormat('es-ES', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                }).format(mondayDate)}`, 'info');
-            } catch (error) {
-                console.error('[ConfirmationReportManagement] Error al cambiar fecha:', error);
-                AppUtils.showNotification('Error al cambiar la fecha. Intente de nuevo.', 'error');
-            }
+        this.weekSelector.addEventListener('change', () => {
+            this.setCurrentWeek(this.getMonday(new Date(this.weekSelector.value + 'T00:00:00Z')));
+            this.loadConfirmationData();
         });
 
-        // Configurar botón de semana anterior
         const newPrevBtn = this.prevWeekBtn.cloneNode(true);
         this.prevWeekBtn.parentNode.replaceChild(newPrevBtn, this.prevWeekBtn);
         this.prevWeekBtn = newPrevBtn;
-        this.prevWeekBtn.addEventListener('click', () => {
-            console.log('[ConfirmationReportManagement] Botón semana anterior clickeado');
-            this.changeWeek(-7);
-        });
+        this.prevWeekBtn.addEventListener('click', () => this.changeWeek(-7));
 
-        // Configurar botón de semana siguiente
         const newNextBtn = this.nextWeekBtn.cloneNode(true);
         this.nextWeekBtn.parentNode.replaceChild(newNextBtn, this.nextWeekBtn);
         this.nextWeekBtn = newNextBtn;
-        this.nextWeekBtn.addEventListener('click', () => {
-            console.log('[ConfirmationReportManagement] Botón semana siguiente clickeado');
-            this.changeWeek(7);
-        });
-        
-        console.log('[ConfirmationReportManagement] Event listeners configurados correctamente');
+        this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
     },
     changeWeek: function(dayOffset) { 
+        console.log(`[ConfirmationReportManagement.changeWeek] Offset: ${dayOffset}, Fecha actual: ${this.currentWeekStartDate.toISOString()}`);
+        
+        // Usar métodos locales para mantener consistencia
         const newDate = new Date(this.currentWeekStartDate);
-        newDate.setUTCDate(newDate.getUTCDate() + dayOffset); 
-        this.setCurrentWeek(this.getMonday(newDate)); 
-        this.loadConfirmationData();
+        newDate.setDate(newDate.getDate() + dayOffset); 
+        
+        console.log(`[ConfirmationReportManagement.changeWeek] Nueva fecha: ${newDate.toISOString()}`);
+        
+        // Obtener el lunes de la nueva semana y actualizar
+        this.setCurrentWeek(this.getMonday(newDate));
+        // No es necesario llamar a loadConfirmationData() aquí porque ya se llama en setCurrentWeek
     },
     setCurrentWeek: function(monday) { 
-        this.currentWeekStartDate = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate()));
-        this.weekSelector.value = AppUtils.formatDateForInput(this.currentWeekStartDate);
+        console.log(`[ConfirmationReportManagement.setCurrentWeek] Lunes recibido: ${monday.toISOString()}`);
+        
+        // Mantener consistencia usando el formato local ya que getMondayOfGivenDate devuelve fechas locales
+        this.currentWeekStartDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0, 0);
+        
+        console.log(`[ConfirmationReportManagement.setCurrentWeek] currentWeekStartDate establecido: ${this.currentWeekStartDate.toISOString()}`);
+        
+        // Actualizar el valor del selector de semana
+        const formattedDate = AppUtils.formatDateForInput(this.currentWeekStartDate);
+        console.log(`[ConfirmationReportManagement.setCurrentWeek] Actualizando weekSelector a: ${formattedDate}`);
+        this.weekSelector.value = formattedDate;
+        
+        // Actualizar los encabezados de días y cargar los datos
         this.updateDaysHeader();
+        this.loadConfirmationData().catch(error => console.error('[ConfirmationReportManagement] Error al cargar datos:', error));
     },
     getMonday: function(dParam) { 
-        return getMondayOfGivenDate(dParam); 
+        // Reutilizar la función global ya corregida
+        console.log(`[ConfirmationReportManagement.getMonday] Entrada: ${dParam instanceof Date ? dParam.toISOString() : dParam}`);
+        const result = getMondayOfGivenDate(dParam);
+        console.log(`[ConfirmationReportManagement.getMonday] Resultado: ${result.toISOString()}`);
+        return result;
     },
     formatDateForDisplayInReport: function(date) { 
-        return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`; 
+        // Usar métodos locales ya que getMondayOfGivenDate devuelve fechas locales
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`; 
     },
     updateDaysHeader: function() { 
         if (!this.daysHeader) return;
+        console.log(`[ConfirmationReportManagement.updateDaysHeader] Actualizando encabezados para semana: ${this.currentWeekStartDate.toISOString()}`);
+        
         const fixedHeaders = [this.daysHeader.firstElementChild.cloneNode(true), this.daysHeader.lastElementChild.cloneNode(true)]; // Clonar para evitar problemas al limpiar innerHTML
         this.daysHeader.innerHTML = ''; 
         this.daysHeader.appendChild(fixedHeaders[0]); 
 
+        // Generar los encabezados para cada día de la semana
         for (let i = 0; i < 7; i++) {
+            // Crear una nueva fecha para cada día, usando métodos locales
             const dayDate = new Date(this.currentWeekStartDate);
-            dayDate.setUTCDate(dayDate.getUTCDate() + i); 
+            dayDate.setDate(dayDate.getDate() + i);
+            
+            const formattedDate = this.formatDateForDisplayInReport(dayDate);
+            console.log(`[ConfirmationReportManagement.updateDaysHeader] Día ${i}: ${AppUtils.DAYS_OF_WEEK[i]}, Fecha: ${formattedDate}, Objeto fecha: ${dayDate.toISOString()}`);
+            
             const th = document.createElement('th');
-            th.innerHTML = `${AppUtils.DAYS_OF_WEEK[i]}<br><small>${this.formatDateForDisplayInReport(dayDate)}</small>`;
+            th.innerHTML = `${AppUtils.DAYS_OF_WEEK[i]}<br><small>${formattedDate}</small>`;
+            th.setAttribute('data-date', AppUtils.formatDateForInput(dayDate));
             this.daysHeader.appendChild(th);
         }
         this.daysHeader.appendChild(fixedHeaders[1]);
@@ -1430,15 +1417,26 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
                 }
             });
 
+            console.log(`[ConfirmationReportManagement.loadConfirmationData] Buscando confirmaciones para la semana: ${weekStartStr}`);
+            console.log(`[ConfirmationReportManagement.loadConfirmationData] Total de confirmaciones encontradas: ${allConfirmations.length}`);
+            
             allConfirmations.forEach(conf => {
                 let confWeekStartStr = conf.weekStartDate;
+                
+                // Normalizar el formato de la fecha de la confirmación
                 if (conf.weekStartDate && typeof conf.weekStartDate.toDate === 'function') {
+                    // Es un Timestamp de Firestore
                     confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate.toDate());
                 } else if (conf.weekStartDate instanceof Date) {
-                     confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate);
+                    // Es un objeto Date de JavaScript
+                    confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate);
                 } else if (typeof conf.weekStartDate === 'string' && conf.weekStartDate.includes('T')) {
+                    // Es un ISO string completo (YYYY-MM-DDTHH:mm:ss.sssZ)
                     confWeekStartStr = conf.weekStartDate.split('T')[0];
                 }
+                
+                // Añadir log para depuración de fechas
+                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Coincide: ${confWeekStartStr === weekStartStr}, CoordinatorId: ${conf.coordinatorId}`);
 
                 if (confWeekStartStr === weekStartStr) {
                     const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
