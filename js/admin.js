@@ -367,6 +367,7 @@ function generateWeekDays(selectedDateStrFromInput) {
             return;
         }
 
+        // Limpiar las secciones de días existentes para recrearlas con las nuevas fechas
         const existingDaySections = daysContainer.querySelectorAll('.accordion-item');
         existingDaySections.forEach(ds => ds.remove());
         let accordionControls = daysContainer.querySelector('.accordion-controls');
@@ -404,16 +405,30 @@ function generateWeekDays(selectedDateStrFromInput) {
 
         // 3. Generar los 7 días de la semana a partir de 'actualMondayDate'
         let firstDaySection = null;
+        
+        // Crear un array con las fechas de la semana para facilitar la depuración
+        const weekDates = [];
         for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(actualMondayDate.getTime()); // Empezar desde el lunes calculado
-            currentDate.setDate(actualMondayDate.getDate() + i); // Sumar días en la zona horaria local
-
-            console.log(`[generateWeekDays] Iteración ${i}: Día: ${AppUtils.DAYS_OF_WEEK[i]}, Fecha para crear sección: ${currentDate.toLocaleDateString('es-ES')}`);
-            
-            const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
-            daysContainer.appendChild(daySection);
-            if (i === 0) firstDaySection = daySection;
+            const currentDate = new Date(actualMondayDate.getTime());
+            currentDate.setDate(actualMondayDate.getDate() + i);
+            weekDates.push({
+                index: i,
+                dayName: AppUtils.DAYS_OF_WEEK[i],
+                date: currentDate,
+                formattedDate: currentDate.toLocaleDateString('es-ES')
+            });
         }
+        
+        console.log('[generateWeekDays] Fechas de la semana calculadas:', JSON.stringify(weekDates.map(d => d.formattedDate)));
+        
+        // Crear las secciones de días con las fechas calculadas
+        weekDates.forEach(dayInfo => {
+            console.log(`[generateWeekDays] Creando sección para: ${dayInfo.dayName} (${dayInfo.formattedDate})`);
+            
+            const daySection = createDaySection(dayInfo.index, dayInfo.dayName, dayInfo.date);
+            daysContainer.appendChild(daySection);
+            if (dayInfo.index === 0) firstDaySection = daySection;
+        });
 
         if (firstDaySection && !currentEditingMenuId) {
             const accordionHeader = firstDaySection.querySelector('.accordion-header');
@@ -422,6 +437,14 @@ function generateWeekDays(selectedDateStrFromInput) {
                 accordionHeader.click(); // Simular clic para expandir
             }
         }
+        
+        // Notificar al usuario que los días se han actualizado correctamente
+        AppUtils.showNotification(`Días actualizados para la semana del ${new Intl.DateTimeFormat('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(actualMondayDate)}`, "success");
+        
     } catch (error) {
         console.error('Error detallado en generateWeekDays:', error);
         AppUtils.showNotification("Error al generar los días de la semana.", "error");
@@ -462,9 +485,21 @@ function createDaySection(dayIndex, dayName, date) {
     const dayLabel = document.createElement('h4');
     dayLabel.className = 'day-label';
     dayLabel.textContent = dayName;
+    
+    // Mejorar la visualización de la fecha con formato más claro
     const dayDateDisplay = document.createElement('div');
     dayDateDisplay.className = 'day-date';
-    dayDateDisplay.textContent = AppUtils.formatDate(date); // Usar la fecha UTC formateada
+    
+    // Formato más detallado para la fecha (día, mes y año)
+    const formattedDate = new Intl.DateTimeFormat('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }).format(date);
+    
+    dayDateDisplay.textContent = formattedDate;
+    dayDateDisplay.setAttribute('data-full-date', date.toISOString());
+    
     const accordionIcon = document.createElement('i');
     accordionIcon.className = 'fas fa-chevron-down accordion-icon';
     accordionHeader.appendChild(dayLabel);
