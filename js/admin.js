@@ -438,6 +438,8 @@ function toggleAllAccordions(expand, container) {
 }
 
 function createDaySection(dayIndex, dayName, date) {
+    console.log(`[createDaySection] Creando para: dayIndex=${dayIndex}, dayName=${dayName}, dateObj=${date.toISOString()}, data-date a establecer: ${AppUtils.formatDateForInput(date)}, displayDate: ${AppUtils.formatDate(date)}`);
+    
     const daySection = document.createElement('div');
     daySection.className = 'day-section accordion-item card';
     daySection.setAttribute('data-day-index', dayIndex);
@@ -561,6 +563,8 @@ async function saveMenu() {
         const dayIndex = parseInt(daySection.getAttribute('data-day-index'));
         const dayDate = daySection.getAttribute('data-date');
         const dayName = AppUtils.DAYS_OF_WEEK[dayIndex];
+        
+        console.log(`[saveMenu] Procesando DaySection: dayIndex=${dayIndex}, data-date leído=${dayDate}, dayName calculado=${dayName}`);
 
         const dayDataObject = {
             id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
@@ -568,6 +572,8 @@ async function saveMenu() {
             date: dayDate,
             dishes: []
         };
+        
+        console.log('[saveMenu] dayDataObject a pushear:', JSON.parse(JSON.stringify(dayDataObject)));
 
         Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
             const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
@@ -591,6 +597,8 @@ async function saveMenu() {
         // Guardar el día incluso si no tiene platillos (para que el coordinador sepa que está activo)
         menuData.days.push(dayDataObject);
     });
+    
+    console.log('[saveMenu] menuData.days final a guardar:', JSON.parse(JSON.stringify(menuData.days)));
 
     // Validar si hay al menos un platillo si es un menú nuevo
     const totalDishes = menuData.days.reduce((acc, day) => acc + day.dishes.length, 0);
@@ -659,12 +667,10 @@ async function loadSavedMenus() {
         menus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
         menus.forEach(menu => savedMenusContainer.appendChild(createMenuItemElement(menu)));
     } catch (error) {
-        console.error('Error al cargar menús guardados:', error);
-        savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar menús.</p>';
-    }
-}
 
 function createMenuItemElement(menu) {
+    console.log('[createMenuItemElement] Mostrando menú guardado:', JSON.parse(JSON.stringify(menu)));
+    
     const menuItem = document.createElement('div');
     menuItem.className = 'menu-item card';
     menuItem.setAttribute('data-id', menu.id);
@@ -712,12 +718,18 @@ function createMenuItemElement(menu) {
         const sortedDays = [...menu.days].sort((a,b) => (dayOrder[a.id] || 99) - (dayOrder[b.id] || 99));
         
         sortedDays.forEach(day => {
+            console.log(`[createMenuItemElement] Mostrando día: Nombre=${day.name}, Fecha Almacenada=${day.date}`);
+            
             if (!day.dishes || day.dishes.length === 0) return;
             const dayDiv = document.createElement('div');
             dayDiv.className = 'menu-day-details';
             const dayTitleElement = document.createElement('h5');
             dayTitleElement.className = 'menu-day-title';
-            const dayDate = day.date ? AppUtils.formatDate(new Date(day.date + 'T00:00:00Z')) : '';
+            
+            const dateForDisplay = new Date(day.date + 'T00:00:00Z');
+            console.log(`[createMenuItemElement] Objeto Date para display: ${dateForDisplay.toISOString()}, Formateado: ${AppUtils.formatDate(dateForDisplay)}`);
+            
+            const dayDate = AppUtils.formatDate(dateForDisplay);
             dayTitleElement.textContent = `${day.name} (${dayDate})`;
             dayDiv.appendChild(dayTitleElement);
 
