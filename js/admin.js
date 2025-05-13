@@ -512,12 +512,22 @@ function createDaySection(dayIndex, dayName, date) {
     accordionContent.appendChild(tabContentCategoriesContainer);
     
     // Añadir event listener para el toggle del acordeón
-    accordionHeader.addEventListener('click', function() {
+    accordionHeader.addEventListener('click', function(event) {
+        event.stopPropagation(); // Prevenir que el evento se propague a listeners padres
+        console.log('Clic en Accordion Header:', this); // Depurar: ¿Es el elemento correcto?
+
+        const content = this.nextElementSibling; // El .accordion-content
+        console.log('Contenido del Acordeón a mostrar/ocultar:', content); // Depurar
+
+        if (!content || !content.classList.contains('accordion-content')) {
+            console.error('No se encontró el contenido del acordeón adyacente.');
+            return;
+        }
+        
         // Toggle de la clase active en el header
         this.classList.toggle('active');
         
         // Toggle del display del contenido
-        const content = this.nextElementSibling;
         if (content.style.display === 'none' || content.style.display === '') {
             content.style.display = 'block';
         } else {
@@ -560,49 +570,54 @@ function setupCategoryTabsNavigation(daySection) {
     
     // Añadir event listeners a cada botón de pestaña
     tabButtons.forEach((button, index) => {
-        // Eliminar listeners anteriores para evitar duplicados
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
+        console.log(`Configurando botón de pestaña ${index}:`, button.textContent, 
+                   'data-category:', button.getAttribute('data-category'));
         
-        console.log(`Configurando botón de pestaña ${index}:`, newButton.textContent, 
-                   'data-category:', newButton.getAttribute('data-category'));
+        // Remover cualquier listener previo (aunque no debería haber ninguno si setupCategoryTabsNavigation 
+        // solo se llama una vez por daySection)
+        button.removeEventListener('click', handleTabClick);
         
-        newButton.addEventListener('click', function(event) {
-            // Prevenir comportamiento predeterminado
-            event.preventDefault();
-            event.stopPropagation();
-            
-            console.log('Clic en pestaña:', this.textContent);
-            
-            const categoryKey = this.getAttribute('data-category');
-            const dayIndex = this.getAttribute('data-day-index');
-            
-            console.log('Categoría:', categoryKey, 'Día:', dayIndex);
-            
-            // Desactivar todas las pestañas y contenidos activos en este día
-            const allTabButtons = daySection.querySelectorAll('.tab-btn-category');
-            const allTabContents = daySection.querySelectorAll('.tab-content-category');
-            
-            console.log('Desactivando', allTabButtons.length, 'botones y', 
-                       allTabContents.length, 'contenidos');
-            
-            allTabButtons.forEach(btn => btn.classList.remove('active'));
-            allTabContents.forEach(content => content.classList.remove('active'));
-            
-            // Activar la pestaña y contenido seleccionados
-            this.classList.add('active');
-            
-            const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
-            console.log('Contenido seleccionado:', selectedContent);
-            
-            if (selectedContent) {
-                selectedContent.classList.add('active');
-                console.log('Contenido activado correctamente');
-            } else {
-                console.error(`No se encontró contenido para la categoría ${categoryKey}`);
-            }
-        });
+        // Añadir el listener directamente al botón original
+        button.addEventListener('click', handleTabClick);
     });
+    
+    // Función de manejo de clics en las pestañas
+    function handleTabClick(event) {
+        // Prevenir comportamiento predeterminado y propagación
+        event.preventDefault();
+        event.stopPropagation();
+        
+        console.log('Clic en pestaña de categoría:', this.textContent);
+        
+        // Obtener la categoría de este botón
+        const categoryKey = this.getAttribute('data-category');
+        console.log('Categoría seleccionada:', categoryKey);
+        
+        // Buscar elementos RELATIVOS a daySection
+        const allTabButtonsInDay = daySection.querySelectorAll('.tab-btn-category');
+        const allTabContentsInDay = daySection.querySelectorAll('.tab-content-category');
+        
+        console.log('Desactivando', allTabButtonsInDay.length, 'botones y', 
+                   allTabContentsInDay.length, 'contenidos en este día');
+        
+        // Desactivar todas las pestañas y contenidos
+        allTabButtonsInDay.forEach(btn => btn.classList.remove('active'));
+        allTabContentsInDay.forEach(content => content.classList.remove('active'));
+        
+        // Activar esta pestaña
+        this.classList.add('active');
+        
+        // Buscar y activar el contenido correspondiente
+        const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+        console.log('Contenido seleccionado:', selectedContent);
+        
+        if (selectedContent) {
+            selectedContent.classList.add('active');
+            console.log('Contenido activado correctamente');
+        } else {
+            console.error(`No se encontró contenido para la categoría ${categoryKey} en este día`);
+        }
+    }
 }
 
 function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categoryName) {
@@ -728,12 +743,32 @@ function setupAddDishButtons() {
             const dayNameNormalized = dayNameLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             console.log('Nombre del día normalizado:', dayNameNormalized);
             
-            // Buscar el contenedor de platillos usando la categoría
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+            // Primero encontrar la pestaña de categoría activa
+            const activeTabContent = daySection.querySelector('.tab-content-category.active');
+            console.log('Pestaña de categoría activa:', activeTabContent);
+            
+            if (!activeTabContent) {
+                console.error("No hay pestaña de categoría activa para añadir el platillo.");
+                // Intentar activar la pestaña correspondiente a la categoría del botón
+                const tabButton = daySection.querySelector(`.tab-btn-category[data-category="${categoryKey}"]`);
+                if (tabButton) {
+                    console.log('Activando la pestaña correspondiente a la categoría del botón...');
+                    tabButton.click(); // Simular clic en la pestaña
+                }
+            }
+            
+            // Buscar el contenedor de platillos dentro de la pestaña activa
+            const activeTab = daySection.querySelector('.tab-content-category.active');
+            if (!activeTab) {
+                console.error("No se pudo activar ninguna pestaña de categoría.");
+                return;
+            }
+            
+            const dishesContainer = activeTab.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
             console.log('Contenedor de platillos encontrado:', dishesContainer);
             
             if (!dishesContainer) {
-                console.error(`No se encontró el contenedor para la categoría ${categoryKey} en el día ${dayIndex}`);
+                console.error(`No se encontró el contenedor para la categoría ${categoryKey} en la pestaña activa.`);
                 return;
             }
             
