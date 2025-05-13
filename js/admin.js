@@ -547,29 +547,59 @@ function createDaySection(dayIndex, dayName, date) {
  * @param {HTMLElement} daySection - El elemento del día que contiene las pestañas
  */
 function setupCategoryTabsNavigation(daySection) {
-    if (!daySection) return;
+    if (!daySection) {
+        console.error('setupCategoryTabsNavigation: daySection es null o undefined');
+        return;
+    }
+    
+    console.log('Configurando navegación de pestañas para:', daySection);
     
     // Obtener todos los botones de pestaña dentro de este día
     const tabButtons = daySection.querySelectorAll('.tab-btn-category');
+    console.log('Botones de pestaña encontrados:', tabButtons.length);
     
     // Añadir event listeners a cada botón de pestaña
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
+    tabButtons.forEach((button, index) => {
+        // Eliminar listeners anteriores para evitar duplicados
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        console.log(`Configurando botón de pestaña ${index}:`, newButton.textContent, 
+                   'data-category:', newButton.getAttribute('data-category'));
+        
+        newButton.addEventListener('click', function(event) {
+            // Prevenir comportamiento predeterminado
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log('Clic en pestaña:', this.textContent);
+            
             const categoryKey = this.getAttribute('data-category');
             const dayIndex = this.getAttribute('data-day-index');
+            
+            console.log('Categoría:', categoryKey, 'Día:', dayIndex);
             
             // Desactivar todas las pestañas y contenidos activos en este día
             const allTabButtons = daySection.querySelectorAll('.tab-btn-category');
             const allTabContents = daySection.querySelectorAll('.tab-content-category');
+            
+            console.log('Desactivando', allTabButtons.length, 'botones y', 
+                       allTabContents.length, 'contenidos');
             
             allTabButtons.forEach(btn => btn.classList.remove('active'));
             allTabContents.forEach(content => content.classList.remove('active'));
             
             // Activar la pestaña y contenido seleccionados
             this.classList.add('active');
+            
             const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+            console.log('Contenido seleccionado:', selectedContent);
+            
             if (selectedContent) {
                 selectedContent.classList.add('active');
+                console.log('Contenido activado correctamente');
+            } else {
+                console.error(`No se encontró contenido para la categoría ${categoryKey}`);
             }
         });
     });
