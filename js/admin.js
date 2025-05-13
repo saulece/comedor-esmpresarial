@@ -183,18 +183,33 @@ function initAdminInterface() {
 }
 
 function getMondayOfGivenDate(dateInput) {
-    const d = dateInput instanceof Date ? new Date(dateInput.getTime()) : new Date(dateInput);
-    if (isNaN(d.getTime())) {
-        console.error("Fecha inválida para getMondayOfGivenDate:", dateInput, "Se usará la fecha actual.");
-        const todayForFallback = new Date();
-        todayForFallback.setHours(0,0,0,0); // Normalizar
-        return getMondayOfGivenDate(todayForFallback); // Recursión segura con fallback
+    let d;
+    if (dateInput instanceof Date) {
+        d = new Date(dateInput.getTime()); // Clonar
+    } else if (typeof dateInput === 'string') {
+        // Asumir que el string es YYYY-MM-DD y parsearlo como UTC
+        // para evitar que el navegador lo interprete como local y cause desfases.
+        const parts = dateInput.split('-');
+        if (parts.length === 3) {
+            d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+        } else {
+            d = new Date(dateInput); // Fallback si no es YYYY-MM-DD
+        }
+    } else {
+        console.error("getMondayOfGivenDate: Tipo de entrada inválido", dateInput);
+        d = new Date(); // Fallback a hoy
     }
-    // Usar UTC para los cálculos de días para evitar problemas de zona horaria
-    d.setUTCHours(0, 0, 0, 0);
-    const day = d.getUTCDay(); // 0 (Domingo) a 6 (Sábado)
-    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // diff para llegar al Lunes
-    return new Date(d.setUTCDate(diff));
+
+    if (isNaN(d.getTime())) {
+        console.error("getMondayOfGivenDate: Fecha inválida parseada", dateInput, ". Usando hoy como fallback.");
+        d = new Date();
+    }
+
+    d.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
+    const day = d.getUTCDay(); // 0 (Domingo) a 6 (Sábado) en UTC
+    const diffToMonday = day === 0 ? -6 : 1 - day; // Días a restar/sumar para llegar al Lunes
+    d.setUTCDate(d.getUTCDate() + diffToMonday);
+    return d; // Devuelve un objeto Date que es el Lunes a medianoche UTC
 }
 
 function initMenuForm() {
@@ -216,15 +231,15 @@ function initMenuForm() {
     // Limpiar y re-añadir listeners para evitar duplicados
     const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
     weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
-    newWeekStartDateInput.addEventListener('change', function() { 
-        console.log('Fecha cambiada a:', this.value);
-        generateWeekDays(this.value); 
-    });
-    // También añadir listener para input para capturar cambios hechos con el selector de fecha
-    newWeekStartDateInput.addEventListener('input', function() { 
-        console.log('Input de fecha detectado:', this.value);
-        generateWeekDays(this.value); 
-    });
+    
+    // Función handler para reutilizar
+    const dateChangeHandler = function() {
+        console.log(`Fecha cambiada/input a: ${this.value} por evento ${event.type}`);
+        generateWeekDays(this.value);
+    };
+    
+    newWeekStartDateInput.addEventListener('change', dateChangeHandler);
+    newWeekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es bueno para selectores de fecha
 
     const newResetFormBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
@@ -323,9 +338,9 @@ function handleMenuFormClicks(event){
 }
 
 
-function generateWeekDays(selectedDateStr) {
+function generateWeekDays(selectedDateStrFromInput) {
     try {
-        console.log('Generando días de la semana para fecha:', selectedDateStr);
+        console.log('generateWeekDays llamado con:', selectedDateStrFromInput);
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
             console.error("Contenedor de días (#days-container) no encontrado.");
@@ -353,67 +368,52 @@ function generateWeekDays(selectedDateStr) {
             accordionControls.appendChild(collapseAllBtn);
             daysContainer.prepend(accordionControls); // Añadir al inicio del contenedor de días
         }
-        
-        // Validar y procesar la fecha seleccionada
-        console.log('Procesando fecha seleccionada:', selectedDateStr);
-        let userSelectedDate;
-        
-        if (!selectedDateStr || selectedDateStr.trim() === '') {
-            console.warn('Fecha vacía, usando fecha actual');
-            userSelectedDate = new Date();
-        } else {
-            // Intentar parsear la fecha seleccionada
-            userSelectedDate = new Date(selectedDateStr);
-            if (isNaN(userSelectedDate.getTime())) {
-                console.error('Fecha inválida:', selectedDateStr);
-                AppUtils.showNotification("Fecha seleccionada inválida.", "error");
-                return;
-            }
-        }
-        
-        // Obtener el lunes de la semana seleccionada
-        const actualMondayDate = getMondayOfGivenDate(userSelectedDate);
-        console.log('Lunes calculado:', actualMondayDate);
-        
-        // Actualizar el input de fecha si es necesario
+
+        // 1. Obtener el Lunes de la semana de la fecha seleccionada
+        const actualMondayDate = getMondayOfGivenDate(selectedDateStrFromInput);
+        console.log('Lunes calculado para la semana:', actualMondayDate.toISOString());
+
+        // 2. (Opcional pero recomendado) Actualizar el valor del input #week-start-date
+        //    para que refleje este Lunes calculado, si es diferente.
         const weekStartDateInput = document.getElementById('week-start-date');
-        const formattedMonday = AppUtils.formatDateForInput(actualMondayDate);
-        console.log('Fecha formateada para input:', formattedMonday);
-        
-        if (weekStartDateInput.value !== formattedMonday) {
-            console.log('Actualizando valor del input a:', formattedMonday);
-            weekStartDateInput.value = formattedMonday;
+        const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
+        if (weekStartDateInput.value !== formattedMondayForInput) {
+            console.log(`Actualizando input de fecha a: ${formattedMondayForInput} (desde ${weekStartDateInput.value})`);
+            weekStartDateInput.value = formattedMondayForInput;
         }
 
-        // Generar secciones para cada día de la semana
-        console.log('Generando secciones para los 7 días de la semana');
+        // 3. Generar los 7 días de la semana
         let firstDaySection = null;
         for (let i = 0; i < 7; i++) {
-            // Crear una nueva fecha para cada día, sumando días al lunes
-            const currentDate = new Date(actualMondayDate);
-            currentDate.setDate(actualMondayDate.getDate() + i);
-            
-            console.log(`Día ${i} (${AppUtils.DAYS_OF_WEEK[i]}):`, 
-                        currentDate.toISOString().split('T')[0]);
-                        
-            // Crear la sección del día con la fecha calculada
+            const currentDate = new Date(actualMondayDate.getTime()); // Clonar para no modificar actualMondayDate
+            currentDate.setUTCDate(actualMondayDate.getUTCDate() + i); // Sumar días en UTC
+
+            // AppUtils.DAYS_OF_WEEK[i] dará el nombre del día correcto.
+            // 'currentDate' es el objeto Date para ese día.
             const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
-            daysContainer.appendChild(daySection); // Añadir después de los controles
+            daysContainer.appendChild(daySection);
             if (i === 0) firstDaySection = daySection;
         }
 
-        if (firstDaySection && !currentEditingMenuId) { // Expandir solo si es nuevo menú
+        // Expandir el primer día por defecto si es un menú nuevo
+        if (firstDaySection && !currentEditingMenuId) {
             const accordionHeader = firstDaySection.querySelector('.accordion-header');
             const accordionContent = firstDaySection.querySelector('.accordion-content');
             if (accordionHeader && accordionContent) {
-                accordionHeader.classList.add('active');
-                accordionContent.style.display = 'block';
-                const icon = accordionHeader.querySelector('.accordion-icon');
-                if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+                if (!accordionHeader.classList.contains('active')) { // Solo si no está ya activo
+                    accordionHeader.classList.add('active');
+                    accordionContent.style.display = 'block';
+                    const icon = accordionHeader.querySelector('.accordion-icon');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    }
+                }
             }
         }
     } catch (error) {
-        console.error('Error al generar días de la semana:', error);
+        console.error('Error detallado en generateWeekDays:', error);
+        AppUtils.showNotification("Error al generar los días de la semana.", "error");
     }
 }
 
