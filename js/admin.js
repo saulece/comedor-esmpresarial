@@ -182,64 +182,70 @@ function initAdminInterface() {
     showSection(sections.dashboardSection); // Mostrar dashboard por defecto
 }
 
+/**
+ * Obtiene el lunes de la semana para una fecha dada.
+ * La fecha de entrada puede ser un string "YYYY-MM-DD" o un objeto Date.
+ * Devuelve un objeto Date representando el Lunes a medianoche en la zona horaria local del navegador.
+ */
 function getMondayOfGivenDate(dateInput) {
     let d;
     if (dateInput instanceof Date) {
-        d = new Date(dateInput.getTime()); // Clonar
-    } else if (typeof dateInput === 'string') {
-        // Asumir que el string es YYYY-MM-DD y parsearlo como UTC
-        // para evitar que el navegador lo interprete como local y cause desfases.
+        d = new Date(dateInput.getTime()); // Clonar para no modificar la original
+    } else if (typeof dateInput === 'string' && dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Si es YYYY-MM-DD, el constructor de Date lo interpreta como UTC 00:00.
+        // Para tratarlo como local 00:00, necesitamos parsearlo manualmente.
         const parts = dateInput.split('-');
-        if (parts.length === 3) {
-            d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
-        } else {
-            d = new Date(dateInput); // Fallback si no es YYYY-MM-DD
-        }
+        d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    } else if (typeof dateInput === 'string') {
+        d = new Date(dateInput); // Dejar que el constructor intente con otros formatos
     } else {
         console.error("getMondayOfGivenDate: Tipo de entrada inválido", dateInput);
         d = new Date(); // Fallback a hoy
     }
 
     if (isNaN(d.getTime())) {
-        console.error("getMondayOfGivenDate: Fecha inválida parseada", dateInput, ". Usando hoy como fallback.");
+        console.warn("getMondayOfGivenDate: Fecha inválida parseada", dateInput, ". Usando hoy como fallback.");
         d = new Date();
     }
 
-    d.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
-    const day = d.getUTCDay(); // 0 (Domingo) a 6 (Sábado) en UTC
-    const diffToMonday = day === 0 ? -6 : 1 - day; // Días a restar/sumar para llegar al Lunes
-    d.setUTCDate(d.getUTCDate() + diffToMonday);
-    return d; // Devuelve un objeto Date que es el Lunes a medianoche UTC
+    d.setHours(0, 0, 0, 0); // Normalizar a medianoche local
+    const dayOfWeek = d.getDay(); // 0 (Domingo) a 6 (Sábado) en local
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Días para llegar al Lunes
+    d.setDate(d.getDate() + diffToMonday);
+    
+    console.log(`[getMondayOfGivenDate] Entrada: ${dateInput instanceof Date ? dateInput.toISOString() : dateInput}, Lunes Calculado: ${d.toISOString()}`);
+    return d;
 }
 
 function initMenuForm() {
     const menuForm = document.getElementById('menu-form');
     const weekStartDateInput = document.getElementById('week-start-date');
     const resetFormBtn = document.getElementById('reset-form-btn');
-    const daysContainer = document.getElementById('days-container'); // Necesario para delegación
+    const daysContainer = document.getElementById('days-container');
 
     if (!menuForm || !weekStartDateInput || !resetFormBtn || !daysContainer) {
-        console.error("Elementos del formulario de menú no encontrados (#menu-form, #week-start-date, #reset-form-btn, #days-container).");
+        console.error("Elementos del formulario de menú no encontrados.");
         return;
     }
 
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
-    generateWeekDays(weekStartDateInput.value);
+    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek); // AppUtils.formatDateForInput debería usar getFullYear, getMonth, getDate
+    
+    // Llamada inicial para generar los días con el lunes calculado
+    generateWeekDays(weekStartDateInput.value); 
 
     // Limpiar y re-añadir listeners para evitar duplicados
     const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
     weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
     
-    // Función handler para reutilizar
-    const dateChangeHandler = function() {
+    const dateChangeHandler = function(event) { // Añadir event como parámetro
         console.log(`Fecha cambiada/input a: ${this.value} por evento ${event.type}`);
         generateWeekDays(this.value);
     };
-    
     newWeekStartDateInput.addEventListener('change', dateChangeHandler);
-    newWeekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es bueno para selectores de fecha
+    newWeekStartDateInput.addEventListener('input', dateChangeHandler);
+
 
     const newResetFormBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
@@ -252,11 +258,8 @@ function initMenuForm() {
         saveMenu();
     });
 
-    // Delegación de eventos para acordeones, pestañas y botones de platillos
-    // Limpiar listener anterior del daysContainer si esta función se llama múltiples veces
-    const newDaysContainer = daysContainer.cloneNode(false); // Clonar sin hijos para limpiar listeners
+    const newDaysContainer = daysContainer.cloneNode(false);
     daysContainer.parentNode.replaceChild(newDaysContainer, daysContainer);
-    // Re-obtener la referencia al nuevo daysContainer
     document.getElementById('days-container').addEventListener('click', handleMenuFormClicks);
     
     console.log("Formulario de menú y delegación de eventos inicializados.");
@@ -340,18 +343,18 @@ function handleMenuFormClicks(event){
 
 function generateWeekDays(selectedDateStrFromInput) {
     try {
-        console.log('generateWeekDays llamado con:', selectedDateStrFromInput);
+        console.log('[generateWeekDays] INICIO. Fecha seleccionada del input:', selectedDateStrFromInput);
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
             console.error("Contenedor de días (#days-container) no encontrado.");
             return;
         }
-        // Limpiar solo el contenido previo de días, no los controles si están fuera
+
         const existingDaySections = daysContainer.querySelectorAll('.accordion-item');
         existingDaySections.forEach(ds => ds.remove());
         let accordionControls = daysContainer.querySelector('.accordion-controls');
 
-        if (!accordionControls) { // Crear controles solo si no existen
+        if (!accordionControls) {
             accordionControls = document.createElement('div');
             accordionControls.className = 'accordion-controls';
             const expandAllBtn = document.createElement('button');
@@ -366,49 +369,40 @@ function generateWeekDays(selectedDateStrFromInput) {
             collapseAllBtn.addEventListener('click', () => toggleAllAccordions(false, daysContainer));
             accordionControls.appendChild(expandAllBtn);
             accordionControls.appendChild(collapseAllBtn);
-            daysContainer.prepend(accordionControls); // Añadir al inicio del contenedor de días
+            daysContainer.prepend(accordionControls);
         }
 
-        // 1. Obtener el Lunes de la semana de la fecha seleccionada
+        // 1. Calcular el LUNES de la semana de la fecha seleccionada por el usuario
         const actualMondayDate = getMondayOfGivenDate(selectedDateStrFromInput);
-        console.log('Lunes calculado para la semana:', actualMondayDate.toISOString());
+        console.log('[generateWeekDays] Lunes de la semana calculado (actualMondayDate):', actualMondayDate.toLocaleDateString('es-ES'), actualMondayDate);
 
-        // 2. (Opcional pero recomendado) Actualizar el valor del input #week-start-date
-        //    para que refleje este Lunes calculado, si es diferente.
+        // 2. Actualizar el valor del input #week-start-date para que refleje este Lunes.
+        //    Esto es crucial si el usuario seleccionó, por ejemplo, un martes.
         const weekStartDateInput = document.getElementById('week-start-date');
         const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
         if (weekStartDateInput.value !== formattedMondayForInput) {
-            console.log(`Actualizando input de fecha a: ${formattedMondayForInput} (desde ${weekStartDateInput.value})`);
+            console.log(`[generateWeekDays] Input original era ${weekStartDateInput.value}, actualizando a Lunes: ${formattedMondayForInput}`);
             weekStartDateInput.value = formattedMondayForInput;
         }
 
-        // 3. Generar los 7 días de la semana
+        // 3. Generar los 7 días de la semana a partir de 'actualMondayDate'
         let firstDaySection = null;
         for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(actualMondayDate.getTime()); // Clonar para no modificar actualMondayDate
-            currentDate.setUTCDate(actualMondayDate.getUTCDate() + i); // Sumar días en UTC
+            const currentDate = new Date(actualMondayDate.getTime()); // Empezar desde el lunes calculado
+            currentDate.setDate(actualMondayDate.getDate() + i); // Sumar días en la zona horaria local
 
-            // AppUtils.DAYS_OF_WEEK[i] dará el nombre del día correcto.
-            // 'currentDate' es el objeto Date para ese día.
+            console.log(`[generateWeekDays] Iteración ${i}: Día: ${AppUtils.DAYS_OF_WEEK[i]}, Fecha para crear sección: ${currentDate.toLocaleDateString('es-ES')}`);
+            
             const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
             if (i === 0) firstDaySection = daySection;
         }
 
-        // Expandir el primer día por defecto si es un menú nuevo
         if (firstDaySection && !currentEditingMenuId) {
             const accordionHeader = firstDaySection.querySelector('.accordion-header');
             const accordionContent = firstDaySection.querySelector('.accordion-content');
-            if (accordionHeader && accordionContent) {
-                if (!accordionHeader.classList.contains('active')) { // Solo si no está ya activo
-                    accordionHeader.classList.add('active');
-                    accordionContent.style.display = 'block';
-                    const icon = accordionHeader.querySelector('.accordion-icon');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-up');
-                    }
-                }
+            if (accordionHeader && accordionContent && !accordionHeader.classList.contains('active')) {
+                accordionHeader.click(); // Simular clic para expandir
             }
         }
     } catch (error) {
