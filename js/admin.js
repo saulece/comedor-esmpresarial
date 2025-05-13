@@ -218,68 +218,103 @@ function getMondayOfGivenDate(dateInput) {
 }
 
 function initMenuForm() {
+    console.log('[initMenuForm] Inicializando formulario de menú...');
     const menuForm = document.getElementById('menu-form');
-    let weekStartDateInput = document.getElementById('week-start-date'); // Usar let
+    let weekStartDateInput = document.getElementById('week-start-date'); // Usar let para poder reasignar
     const resetFormBtn = document.getElementById('reset-form-btn');
     const daysContainer = document.getElementById('days-container');
 
     if (!menuForm || !weekStartDateInput || !resetFormBtn || !daysContainer) {
-        console.error("Elementos del formulario de menú no encontrados.");
+        console.error("[initMenuForm] ERROR: Elementos del formulario de menú no encontrados.");
         return;
     }
 
+    // Remover listeners existentes del input de fecha para evitar duplicados
     // Clonar el input de fecha UNA VEZ para limpiar listeners si es necesario
-    // y reasignar la variable al nuevo nodo.
-    const newWeekStartDateInputForListeners = weekStartDateInput.cloneNode(true);
-    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInputForListeners, weekStartDateInput);
-    weekStartDateInput = newWeekStartDateInputForListeners; // Actualizar la referencia
+    console.log('[initMenuForm] Clonando input de fecha para limpiar listeners existentes...');
+    const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
+    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
+    weekStartDateInput = newWeekStartDateInput; // Actualizar la referencia al nuevo nodo en el DOM
 
+    // Establecer la fecha inicial (lunes de la semana actual)
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
+    const formattedMonday = AppUtils.formatDateForInput(mondayOfThisWeek);
+    console.log(`[initMenuForm] Estableciendo fecha inicial: ${formattedMonday}`);
+    weekStartDateInput.value = formattedMonday;
     
-    generateWeekDays(weekStartDateInput.value); // Llamada inicial
+    // Generar los días de la semana para la fecha inicial
+    console.log('[initMenuForm] Generando días para la fecha inicial...');
+    generateWeekDays(weekStartDateInput.value); // Llamada inicial con la fecha establecida
 
-    // Función handler para reutilizar
-    const dateChangeHandler = function(event) { // event es pasado automáticamente
+    // Función handler para detectar cambios en la fecha
+    const dateChangeHandler = function(event) {
         console.log(`[dateChangeHandler] Evento: ${event.type}, Nuevo valor de fecha: ${this.value}`);
-        generateWeekDays(this.value);
+        if (this.value) { // Verificar que haya un valor válido
+            generateWeekDays(this.value);
+        } else {
+            console.warn('[dateChangeHandler] ADVERTENCIA: Valor de fecha vacío, no se generan días.');
+        }
     };
 
     // Añadir listeners al input de fecha (que ahora es el clonado)
+    console.log('[initMenuForm] Añadiendo listeners al input de fecha...');
     weekStartDateInput.addEventListener('change', dateChangeHandler);
-    weekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo para date pickers
+    weekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo
 
-    // Para reset y submit, la clonación del formulario completo es más robusta
+    // Configurar el botón de reset
+    console.log('[initMenuForm] Configurando botón de reset...');
     const newResetFormBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
-    newResetFormBtn.addEventListener('click', resetMenuForm);
+    newResetFormBtn.addEventListener('click', function(event) {
+        console.log('[resetFormBtn] Botón de reset clickeado');
+        resetMenuForm();
+    });
 
-    // Clonar el formulario para limpiar su listener de submit
+    // Configurar el formulario para el evento submit
+    console.log('[initMenuForm] Configurando evento submit del formulario...');
     const newMenuForm = menuForm.cloneNode(true); // Clonar solo el formulario
+    
+    // Guardar una referencia al contenido original del daysContainer
+    const daysContainerContent = daysContainer.innerHTML;
     
     // Reemplazar el formulario antiguo
     if (menuForm.parentNode) {
         menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+        console.log('[initMenuForm] Formulario reemplazado en el DOM');
     }
     
-    // Re-obtener daysContainer del nuevo formulario si es necesario
-    const actualDaysContainer = document.getElementById('days-container'); // Siempre referirse al que está en el DOM
+    // Re-obtener daysContainer del DOM actual (después de reemplazar el formulario)
+    console.log('[initMenuForm] Configurando delegación de eventos para el contenedor de días...');
+    const actualDaysContainer = document.getElementById('days-container');
     if (actualDaysContainer) {
-        // Limpiar listeners de daysContainer antes de añadir uno nuevo
-        const newActualDaysContainer = actualDaysContainer.cloneNode(true); // Clon profundo para copiar los controles
+        // Limpiar listeners existentes clonando el contenedor
+        const newActualDaysContainer = actualDaysContainer.cloneNode(true);
         actualDaysContainer.parentNode.replaceChild(newActualDaysContainer, actualDaysContainer);
+        
+        // Añadir el listener de delegación para manejar clics en acordeones, tabs, etc.
         newActualDaysContainer.addEventListener('click', handleMenuFormClicks);
+        console.log('[initMenuForm] Listener de delegación añadido al contenedor de días');
     } else {
-        console.error("#days-container no encontrado en el DOM después de reemplazar el formulario.");
+        console.error("[initMenuForm] ERROR: #days-container no encontrado en el DOM después de reemplazar el formulario.");
     }
 
+    // Configurar el evento submit en el nuevo formulario
     newMenuForm.addEventListener('submit', function(event) {
         event.preventDefault();
+        console.log('[menuForm] Formulario enviado, guardando menú...');
         saveMenu();
     });
     
-    console.log("Formulario de menú y delegación de eventos inicializados con manejo mejorado de listeners.");
+    // Verificar que el input de fecha tenga los listeners correctos
+    const currentWeekStartInput = document.getElementById('week-start-date');
+    if (currentWeekStartInput !== weekStartDateInput) {
+        console.warn('[initMenuForm] ADVERTENCIA: La referencia al input de fecha ha cambiado, actualizando listeners...');
+        currentWeekStartInput.addEventListener('change', dateChangeHandler);
+        currentWeekStartInput.addEventListener('input', dateChangeHandler);
+    }
+    
+    console.log("[initMenuForm] Formulario de menú inicializado correctamente con todos los listeners configurados.");
 }
 
 function handleMenuFormClicks(event){
@@ -361,93 +396,145 @@ function handleMenuFormClicks(event){
 function generateWeekDays(selectedDateStrFromInput) {
     try {
         console.log('[generateWeekDays] INICIO. Fecha seleccionada del input:', selectedDateStrFromInput);
+        
+        // Validar que la fecha de entrada sea válida
+        if (!selectedDateStrFromInput) {
+            console.error('[generateWeekDays] ERROR: Fecha de entrada vacía o inválida');
+            AppUtils.showNotification("Fecha inválida. Usando fecha actual como fallback.", "warning");
+            selectedDateStrFromInput = AppUtils.formatDateForInput(new Date());
+        }
+        
+        // Obtener el contenedor de días
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
-            console.error("Contenedor de días (#days-container) no encontrado.");
+            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado.");
             return;
         }
 
+        console.log('[generateWeekDays] Limpiando secciones de días existentes...');
         // Limpiar las secciones de días existentes para recrearlas con las nuevas fechas
         const existingDaySections = daysContainer.querySelectorAll('.accordion-item');
         existingDaySections.forEach(ds => ds.remove());
+        
+        // Mantener los controles de acordeón si existen
         let accordionControls = daysContainer.querySelector('.accordion-controls');
-
         if (!accordionControls) {
+            console.log('[generateWeekDays] Creando controles de acordeón...');
             accordionControls = document.createElement('div');
             accordionControls.className = 'accordion-controls';
+            
             const expandAllBtn = document.createElement('button');
             expandAllBtn.type = 'button';
             expandAllBtn.className = 'secondary-btn';
             expandAllBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Expandir todos';
             expandAllBtn.addEventListener('click', () => toggleAllAccordions(true, daysContainer));
+            
             const collapseAllBtn = document.createElement('button');
             collapseAllBtn.type = 'button';
             collapseAllBtn.className = 'secondary-btn';
             collapseAllBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Colapsar todos';
             collapseAllBtn.addEventListener('click', () => toggleAllAccordions(false, daysContainer));
+            
             accordionControls.appendChild(expandAllBtn);
             accordionControls.appendChild(collapseAllBtn);
             daysContainer.prepend(accordionControls);
         }
 
         // 1. Calcular el LUNES de la semana de la fecha seleccionada por el usuario
+        console.log('[generateWeekDays] Calculando lunes de la semana seleccionada...');
         const actualMondayDate = getMondayOfGivenDate(selectedDateStrFromInput);
-        console.log('[generateWeekDays] Lunes de la semana calculado (actualMondayDate):', actualMondayDate.toLocaleDateString('es-ES'), actualMondayDate);
+        console.log('[generateWeekDays] Lunes calculado:', actualMondayDate.toLocaleDateString('es-ES'), actualMondayDate);
 
-        // 2. Actualizar el valor del input #week-start-date para que refleje este Lunes.
-        //    Esto es crucial si el usuario seleccionó, por ejemplo, un martes.
+        // 2. Actualizar el valor del input #week-start-date para que refleje este Lunes
+        console.log('[generateWeekDays] Actualizando input de fecha para reflejar el lunes calculado...');
         const weekStartDateInput = document.getElementById('week-start-date');
-        const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
-        if (weekStartDateInput.value !== formattedMondayForInput) {
-            console.log(`[generateWeekDays] Input original era ${weekStartDateInput.value}, actualizando a Lunes: ${formattedMondayForInput}`);
-            weekStartDateInput.value = formattedMondayForInput;
+        if (!weekStartDateInput) {
+            console.error('[generateWeekDays] ERROR: Input de fecha (#week-start-date) no encontrado.');
+        } else {
+            const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
+            if (weekStartDateInput.value !== formattedMondayForInput) {
+                console.log(`[generateWeekDays] Actualizando input: ${weekStartDateInput.value} → ${formattedMondayForInput}`);
+                weekStartDateInput.value = formattedMondayForInput;
+            }
         }
 
         // 3. Generar los 7 días de la semana a partir de 'actualMondayDate'
+        console.log('[generateWeekDays] Generando fechas para los 7 días de la semana...');
         let firstDaySection = null;
         
-        // Crear un array con las fechas de la semana para facilitar la depuración
+        // Crear un array con las fechas de la semana para facilitar la depuración y procesamiento
         const weekDates = [];
         for (let i = 0; i < 7; i++) {
+            // Crear una nueva fecha para cada día, clonando el lunes y sumando días
             const currentDate = new Date(actualMondayDate.getTime());
             currentDate.setDate(actualMondayDate.getDate() + i);
+            
+            // Guardar información completa de cada día
             weekDates.push({
                 index: i,
                 dayName: AppUtils.DAYS_OF_WEEK[i],
                 date: currentDate,
-                formattedDate: currentDate.toLocaleDateString('es-ES')
+                formattedDate: currentDate.toLocaleDateString('es-ES'),
+                isoDate: currentDate.toISOString(),
+                inputFormat: AppUtils.formatDateForInput(currentDate)
             });
         }
         
-        console.log('[generateWeekDays] Fechas de la semana calculadas:', JSON.stringify(weekDates.map(d => d.formattedDate)));
+        console.log('[generateWeekDays] Fechas calculadas:', JSON.stringify(weekDates.map(d => ({ 
+            day: d.dayName, 
+            date: d.formattedDate, 
+            inputFormat: d.inputFormat 
+        }))));
         
         // Crear las secciones de días con las fechas calculadas
+        console.log('[generateWeekDays] Creando secciones de días en el DOM...');
         weekDates.forEach(dayInfo => {
             console.log(`[generateWeekDays] Creando sección para: ${dayInfo.dayName} (${dayInfo.formattedDate})`);
             
+            // Crear la sección del día con todos sus componentes
             const daySection = createDaySection(dayInfo.index, dayInfo.dayName, dayInfo.date);
+            
+            // Verificar que la sección se creó correctamente
+            if (!daySection) {
+                console.error(`[generateWeekDays] ERROR: No se pudo crear la sección para ${dayInfo.dayName}`);
+                return;
+            }
+            
+            // Añadir la sección al contenedor
             daysContainer.appendChild(daySection);
-            if (dayInfo.index === 0) firstDaySection = daySection;
+            
+            // Guardar referencia al primer día (lunes) para expandirlo por defecto
+            if (dayInfo.index === 0) {
+                firstDaySection = daySection;
+            }
         });
 
+        // Expandir el primer día (lunes) por defecto si no estamos editando un menú existente
         if (firstDaySection && !currentEditingMenuId) {
+            console.log('[generateWeekDays] Expandiendo la sección del lunes por defecto...');
             const accordionHeader = firstDaySection.querySelector('.accordion-header');
             const accordionContent = firstDaySection.querySelector('.accordion-content');
+            
             if (accordionHeader && accordionContent && !accordionHeader.classList.contains('active')) {
-                accordionHeader.click(); // Simular clic para expandir
+                // Simular clic para expandir
+                accordionHeader.click();
+                console.log('[generateWeekDays] Sección del lunes expandida');
             }
         }
         
         // Notificar al usuario que los días se han actualizado correctamente
-        AppUtils.showNotification(`Días actualizados para la semana del ${new Intl.DateTimeFormat('es-ES', {
+        const formattedNotificationDate = new Intl.DateTimeFormat('es-ES', {
             day: 'numeric',
             month: 'long',
             year: 'numeric'
-        }).format(actualMondayDate)}`, "success");
+        }).format(actualMondayDate);
+        
+        AppUtils.showNotification(`Días actualizados para la semana del ${formattedNotificationDate}`, "success");
+        console.log('[generateWeekDays] Generación de días completada exitosamente');
         
     } catch (error) {
-        console.error('Error detallado en generateWeekDays:', error);
-        AppUtils.showNotification("Error al generar los días de la semana.", "error");
+        console.error('[generateWeekDays] ERROR CRÍTICO:', error);
+        AppUtils.showNotification("Error al generar los días de la semana. Consulta la consola para más detalles.", "error");
     }
 }
 
