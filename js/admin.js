@@ -667,6 +667,10 @@ async function loadSavedMenus() {
         menus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
         menus.forEach(menu => savedMenusContainer.appendChild(createMenuItemElement(menu)));
     } catch (error) {
+        console.error('Error al cargar menús guardados:', error);
+        savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar menús.</p>';
+    }
+}
 
 function createMenuItemElement(menu) {
     console.log('[createMenuItemElement] Mostrando menú guardado:', JSON.parse(JSON.stringify(menu)));
