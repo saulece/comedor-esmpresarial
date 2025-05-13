@@ -273,6 +273,147 @@ section { margin-bottom: var(--spacing-xl); }
 }
 .section-header h2 { margin-bottom: 0; } /* Quitar margen inferior del h2 aquí */
 
+/* Estilos para acordeón */
+.accordion-item {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden; /* Para que los bordes redondeados funcionen bien */
+}
+
+.accordion-header {
+    background-color: #f8f9fa;
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid transparent; /* Borde solo si está abierto */
+}
+
+.accordion-header.active {
+    border-bottom-color: var(--border-color);
+}
+
+.accordion-header:hover {
+    background-color: #f1f3f5;
+}
+
+.accordion-header .day-label {
+    margin-bottom: 0; /* Quitar margen del h4 */
+    color: var(--primary-color);
+}
+
+.accordion-header .day-date {
+    margin-bottom: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+}
+
+.accordion-icon {
+    color: var(--text-light);
+    transition: transform var(--transition-fast);
+}
+
+.accordion-header.active .accordion-icon {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color); /* Separador visual cuando está abierto */
+    animation: fadeIn 0.3s ease;
+}
+
+.accordion-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    justify-content: flex-end;
+}
+
+.accordion-controls button {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Estilos para las pestañas de categorías */
+.tabs-categories {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-md);
+    overflow-x: auto; /* Para móviles si hay muchas categorías */
+}
+
+.tab-btn-category {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-light);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tab-btn-category:hover {
+    color: var(--secondary-dark);
+}
+
+.tab-btn-category.active {
+    border-bottom-color: var(--secondary-color);
+    color: var(--secondary-dark);
+}
+
+.tab-content-category {
+    display: none;
+}
+
+.tab-content-category.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Estilos para los inputs de platillos */
+.dish-input-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+}
+
+.dish-input {
+    flex-grow: 1;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.remove-dish-btn {
+    padding: var(--spacing-xs) var(--spacing-xs);
+    min-width: auto;
+    width: 28px;
+    height: 28px;
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.remove-dish-btn i {
+    margin-right: 0;
+}
+
+.add-dish-btn {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+    width: 100%;
+}
+
+.add-dish-btn i {
+    font-size: 0.9em;
+}
+
 /* Formularios */
 form { margin-bottom: var(--spacing-lg); }
 .form-group { margin-bottom: var(--spacing-md); }
@@ -731,6 +872,52 @@ button .spinner { width: 14px; height: 14px; border-width: 2px; margin-right: 8p
 
 /* Móviles grandes y tablets pequeñas */
 @media (max-width: 768px) {
+    /* Estilos responsivos para el acordeón */
+    .accordion-header {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+    
+    .accordion-content {
+        padding: var(--spacing-sm);
+    }
+    
+    .accordion-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .accordion-controls button {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    /* Estilos responsivos para las pestañas de categorías */
+    .tabs-categories {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: var(--spacing-xs);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .tab-btn-category {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+    
+    .tab-content-category.active {
+        padding-top: var(--spacing-xs);
+    }
+    
+    /* Ajustes para los inputs de platillos en móvil */
+    .dish-input-group {
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .add-dish-btn {
+        margin-top: var(--spacing-xs);
+        padding: var(--spacing-xs);
+    }
     :root {
         --spacing-md: 0.75rem;
         --spacing-lg: 1rem;
@@ -766,6 +953,55 @@ button .spinner { width: 14px; height: 14px; border-width: 2px; margin-right: 8p
 
 /* Móviles pequeños */
 @media (max-width: 480px) {
+    /* Optimización adicional para acordeón en móviles pequeños */
+    .accordion-header {
+        padding: var(--spacing-xs);
+        font-size: var(--font-size-sm);
+    }
+    
+    .accordion-header .day-label {
+        font-size: var(--font-size-md);
+    }
+    
+    .accordion-content {
+        padding: var(--spacing-xs);
+    }
+    
+    .accordion-controls {
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .accordion-controls button {
+        padding: var(--spacing-xs);
+        font-size: var(--font-size-xs);
+        min-width: 100px;
+    }
+    
+    /* Optimización adicional para pestañas de categorías en móviles pequeños */
+    .tabs-categories {
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .tab-btn-category {
+        padding: var(--spacing-xs) var(--spacing-xs);
+        font-size: var(--font-size-xs);
+    }
+    
+    /* Optimización adicional para inputs de platillos en móviles pequeños */
+    .dish-input {
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs);
+    }
+    
+    .remove-dish-btn {
+        width: 24px;
+        height: 24px;
+        font-size: var(--font-size-xs);
+    }
+    
+    .add-dish-btn {
+        font-size: var(--font-size-xs);
+    }
     :root {
         --spacing-sm: 0.4rem;
         --spacing-md: 0.6rem;
@@ -790,4 +1026,10 @@ button .spinner { width: 14px; height: 14px; border-width: 2px; margin-right: 8p
 
     .login-modal-content { padding: var(--spacing-md); }
     .notification { top: 10px; right: 10px; left: 10px; width: auto; padding: var(--spacing-sm); }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

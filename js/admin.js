@@ -305,67 +305,250 @@ function initMenuForm() {
     setupAddDishButtons(); 
 }
 
-// ... (Aquí irían TODAS las demás funciones que ya tenías en admin.js:
-//      generateWeekDays, createDaySection, createCategorySection, 
-//      createDishInputGroup, setupAddDishButtons, saveMenu, 
-//      calculateEndDateForMenu, loadSavedMenus, createMenuItemElement, 
-//      editMenu, deleteMenu, resetMenuForm, 
-//      CoordinatorManagement (objeto completo), 
-//      ConfirmationReportManagement (objeto completo),
-//      DataBackupManagement (objeto completo) 
-//      ...)
-
-// Asegúrate de que todas las funciones necesarias estén definidas en este archivo.
-// He incluido las más relevantes para la inicialización y el login,
-// pero necesitas el resto del código que tenías para la funcionalidad completa.
-
-// --- INICIO DEL RESTO DEL CÓDIGO (COPIA Y PEGA EL TUYO AQUÍ) ---
-
-// Ejemplo de cómo incluir una función existente:
 function generateWeekDays(startDateStr) {
     try {
-        const startDate = new Date(startDateStr + 'T00:00:00');
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
-            console.error('Contenedor de días no encontrado');
+            console.error("Contenedor de días no encontrado.");
             return;
         }
-        daysContainer.innerHTML = '';
+        
+        daysContainer.innerHTML = ''; // Limpiar contenedor
+        
+        // Crear controles para expandir/colapsar todos los días
+        const accordionControls = document.createElement('div');
+        accordionControls.className = 'accordion-controls';
+        
+        const expandAllBtn = document.createElement('button');
+        expandAllBtn.type = 'button';
+        expandAllBtn.className = 'secondary-btn';
+        expandAllBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Expandir todos';
+        expandAllBtn.addEventListener('click', function() {
+            const accordionContents = daysContainer.querySelectorAll('.accordion-content');
+            const accordionHeaders = daysContainer.querySelectorAll('.accordion-header');
+            
+            accordionContents.forEach(content => {
+                content.style.display = 'block';
+            });
+            
+            accordionHeaders.forEach(header => {
+                header.classList.add('active');
+                const icon = header.querySelector('.accordion-icon');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            });
+        });
+        
+        const collapseAllBtn = document.createElement('button');
+        collapseAllBtn.type = 'button';
+        collapseAllBtn.className = 'secondary-btn';
+        collapseAllBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Colapsar todos';
+        collapseAllBtn.addEventListener('click', function() {
+            const accordionContents = daysContainer.querySelectorAll('.accordion-content');
+            const accordionHeaders = daysContainer.querySelectorAll('.accordion-header');
+            
+            accordionContents.forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            accordionHeaders.forEach(header => {
+                header.classList.remove('active');
+                const icon = header.querySelector('.accordion-icon');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            });
+        });
+        
+        accordionControls.appendChild(expandAllBtn);
+        accordionControls.appendChild(collapseAllBtn);
+        daysContainer.appendChild(accordionControls);
+        
+        const startDate = new Date(startDateStr + 'T00:00:00');
+        if (isNaN(startDate.getTime())) {
+            console.error("Fecha de inicio inválida:", startDateStr);
+            return;
+        }
+        
+        let firstDaySection = null;
         
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + i);
+            
             const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
+            
+            // Guardar referencia al primer día para expandirlo por defecto
+            if (i === 0) {
+                firstDaySection = daySection;
+            }
         }
-        setupAddDishButtons(); 
+        
+        // Expandir el primer día por defecto en un nuevo menú
+        if (firstDaySection && !currentEditingMenuId) {
+            const accordionHeader = firstDaySection.querySelector('.accordion-header');
+            const accordionContent = firstDaySection.querySelector('.accordion-content');
+            
+            if (accordionHeader && accordionContent) {
+                // Activar el header y mostrar el contenido
+                accordionHeader.classList.add('active');
+                accordionContent.style.display = 'block';
+                
+                // Cambiar el icono
+                const icon = accordionHeader.querySelector('.accordion-icon');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            }
+        }
+        
+        setupAddDishButtons();
     } catch (error) {
         console.error('Error al generar días de la semana:', error);
     }
 }
 
 function createDaySection(dayIndex, dayName, date) {
+    // Crear el contenedor principal del día (acordeón item)
     const daySection = document.createElement('div');
-    daySection.className = 'day-section card'; 
+    daySection.className = 'day-section accordion-item card'; 
     daySection.setAttribute('data-day', dayIndex);
     daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
     
+    // Crear el encabezado del acordeón (header)
+    const accordionHeader = document.createElement('div');
+    accordionHeader.className = 'accordion-header';
+    accordionHeader.setAttribute('data-day-index', dayIndex);
+    
+    // Crear el título del día
     const dayLabel = document.createElement('h4');
     dayLabel.className = 'day-label';
     dayLabel.textContent = dayName;
     
+    // Crear el display de la fecha
     const dayDateDisplay = document.createElement('div');
     dayDateDisplay.className = 'day-date';
     dayDateDisplay.textContent = AppUtils.formatDate(date);
     
-    daySection.appendChild(dayLabel);
-    daySection.appendChild(dayDateDisplay);
+    // Crear el icono del acordeón
+    const accordionIcon = document.createElement('i');
+    accordionIcon.className = 'fas fa-chevron-down accordion-icon';
     
-    Object.entries(CATEGORIES).forEach(([categoryKey, categoryName]) => {
+    // Añadir elementos al header
+    accordionHeader.appendChild(dayLabel);
+    accordionHeader.appendChild(dayDateDisplay);
+    accordionHeader.appendChild(accordionIcon);
+    
+    // Crear el contenido colapsable
+    const accordionContent = document.createElement('div');
+    accordionContent.className = 'accordion-content';
+    accordionContent.style.display = 'none'; // Inicialmente oculto
+    
+    // Crear estructura de pestañas para categorías
+    const tabsCategories = document.createElement('div');
+    tabsCategories.className = 'tabs-categories';
+    
+    // Crear contenedor para el contenido de las pestañas
+    const tabContentCategoriesContainer = document.createElement('div');
+    tabContentCategoriesContainer.className = 'tab-content-categories-container';
+    
+    // Añadir las categorías como pestañas y contenido
+    Object.entries(CATEGORIES).forEach(([categoryKey, categoryName], index) => {
+        // Crear botón de pestaña para esta categoría
+        const tabBtn = document.createElement('button');
+        tabBtn.type = 'button';
+        tabBtn.className = 'tab-btn-category' + (index === 0 ? ' active' : '');
+        tabBtn.textContent = categoryName;
+        tabBtn.setAttribute('data-category', categoryKey);
+        tabBtn.setAttribute('data-day-index', dayIndex);
+        
+        // Añadir el botón de pestaña al contenedor de pestañas
+        tabsCategories.appendChild(tabBtn);
+        
+        // Crear el contenido de la pestaña para esta categoría
+        const tabContent = document.createElement('div');
+        tabContent.className = 'tab-content-category' + (index === 0 ? ' active' : '');
+        tabContent.setAttribute('data-category', categoryKey);
+        
+        // Crear la sección de categoría y añadirla al contenido de la pestaña
         const categorySection = createCategorySection(dayIndex, dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, categoryName);
-        daySection.appendChild(categorySection);
+        tabContent.appendChild(categorySection);
+        
+        // Añadir el contenido de la pestaña al contenedor
+        tabContentCategoriesContainer.appendChild(tabContent);
     });
+    
+    // Añadir las pestañas y su contenido al contenido del acordeón
+    accordionContent.appendChild(tabsCategories);
+    accordionContent.appendChild(tabContentCategoriesContainer);
+    
+    // Añadir event listener para el toggle del acordeón
+    accordionHeader.addEventListener('click', function() {
+        // Toggle de la clase active en el header
+        this.classList.toggle('active');
+        
+        // Toggle del display del contenido
+        const content = this.nextElementSibling;
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'block';
+        } else {
+            content.style.display = 'none';
+        }
+        
+        // Toggle del icono
+        const icon = this.querySelector('.accordion-icon');
+        if (icon) {
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+    });
+    
+    // Añadir elementos al contenedor principal
+    daySection.appendChild(accordionHeader);
+    daySection.appendChild(accordionContent);
+    
+    // Configurar la navegación entre pestañas para este día
+    setupCategoryTabsNavigation(daySection);
+    
     return daySection;
+}
+
+/**
+ * Configura la navegación entre pestañas de categorías dentro de un día específico
+ * @param {HTMLElement} daySection - El elemento del día que contiene las pestañas
+ */
+function setupCategoryTabsNavigation(daySection) {
+    if (!daySection) return;
+    
+    // Obtener todos los botones de pestaña dentro de este día
+    const tabButtons = daySection.querySelectorAll('.tab-btn-category');
+    
+    // Añadir event listeners a cada botón de pestaña
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const categoryKey = this.getAttribute('data-category');
+            const dayIndex = this.getAttribute('data-day-index');
+            
+            // Desactivar todas las pestañas y contenidos activos en este día
+            const allTabButtons = daySection.querySelectorAll('.tab-btn-category');
+            const allTabContents = daySection.querySelectorAll('.tab-content-category');
+            
+            allTabButtons.forEach(btn => btn.classList.remove('active'));
+            allTabContents.forEach(content => content.classList.remove('active'));
+            
+            // Activar la pestaña y contenido seleccionados
+            this.classList.add('active');
+            const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+        });
+    });
 }
 
 function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categoryName) {
@@ -411,9 +594,7 @@ function createDishInputGroup(dayNameNormalized, categoryKey, index) {
     removeBtn.className = 'remove-dish-btn danger-btn icon-btn'; 
     removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
     removeBtn.title = 'Eliminar';
-    removeBtn.addEventListener('click', function() {
-        dishInputGroup.remove();
-    });
+    // Ya no añadimos event listener aquí, lo manejaremos con delegación de eventos
     
     dishInputGroup.appendChild(dishInput);
     dishInputGroup.appendChild(removeBtn);
@@ -421,19 +602,39 @@ function createDishInputGroup(dayNameNormalized, categoryKey, index) {
 }
 
 
+/**
+ * Configura la delegación de eventos para los botones de agregar y eliminar platillos
+ * Esta función reemplaza el enfoque anterior de añadir listeners individuales
+ */
 function setupAddDishButtons() {
-    // Remover listeners antiguos antes de añadir nuevos es crucial si esta función se llama múltiples veces
-    const oldButtons = document.querySelectorAll('.add-dish-btn');
-    oldButtons.forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-    });
-
-    // Añadir listeners a los botones clonados/nuevos
-    document.querySelectorAll('.add-dish-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const dayIndex = this.getAttribute('data-day-index');
-            const categoryKey = this.getAttribute('data-category');
+    // Obtener el contenedor principal del formulario de menú
+    const menuForm = document.getElementById('menu-form');
+    if (!menuForm) {
+        console.error("Formulario de menú no encontrado");
+        return;
+    }
+    
+    // Eliminar listener anterior si existe (para evitar duplicados)
+    const newMenuForm = menuForm.cloneNode(true);
+    menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+    
+    // Añadir un solo listener al formulario para manejar todos los clics
+    document.getElementById('menu-form').addEventListener('click', function(event) {
+        // Manejar botones de eliminar platillo
+        const removeButton = event.target.closest('.remove-dish-btn');
+        if (removeButton) {
+            const dishGroup = removeButton.closest('.dish-input-group');
+            if (dishGroup) {
+                dishGroup.remove();
+            }
+            return;
+        }
+        
+        // Manejar botones de agregar platillo
+        const addButton = event.target.closest('.add-dish-btn');
+        if (addButton) {
+            const dayIndex = addButton.getAttribute('data-day-index');
+            const categoryKey = addButton.getAttribute('data-category');
             const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
             if (!daySection) return;
 
@@ -445,7 +646,7 @@ function setupAddDishButtons() {
             const dishIndex = dishesContainer.children.length;
             const newDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, dishIndex);
             dishesContainer.appendChild(newDishInputGroup);
-        });
+        }
     });
 }
 
@@ -716,6 +917,45 @@ async function editMenu(menuId) {
 
                 const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
                 if (!daySection) return;
+                
+                // Expandir el acordeón si contiene platos
+                const accordionHeader = daySection.querySelector('.accordion-header');
+                const accordionContent = daySection.querySelector('.accordion-content');
+                
+                if (accordionHeader && accordionContent && dayData.dishes.length > 0) {
+                    // Activar el header y mostrar el contenido
+                    accordionHeader.classList.add('active');
+                    accordionContent.style.display = 'block';
+                    
+                    // Cambiar el icono
+                    const icon = accordionHeader.querySelector('.accordion-icon');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    }
+                    
+                    // Activar las pestañas correspondientes a las categorías que tienen platos
+                    const categoriesWithDishes = new Set(dayData.dishes.map(dish => dish.category));
+                    
+                    // Si hay platos, activar la primera pestaña que tenga platos
+                    if (categoriesWithDishes.size > 0) {
+                        const firstCategoryWithDishes = [...categoriesWithDishes][0];
+                        
+                        // Desactivar todas las pestañas y contenidos
+                        const allTabButtons = daySection.querySelectorAll('.tab-btn-category');
+                        const allTabContents = daySection.querySelectorAll('.tab-content-category');
+                        
+                        allTabButtons.forEach(btn => btn.classList.remove('active'));
+                        allTabContents.forEach(content => content.classList.remove('active'));
+                        
+                        // Activar la pestaña y contenido de la primera categoría con platos
+                        const tabButton = daySection.querySelector(`.tab-btn-category[data-category="${firstCategoryWithDishes}"]`);
+                        const tabContent = daySection.querySelector(`.tab-content-category[data-category="${firstCategoryWithDishes}"]`);
+                        
+                        if (tabButton) tabButton.classList.add('active');
+                        if (tabContent) tabContent.classList.add('active');
+                    }
+                }
 
                 // Limpiar inputs antes de añadir
                 Object.keys(CATEGORIES).forEach(categoryKey => {
