@@ -219,7 +219,7 @@ function getMondayOfGivenDate(dateInput) {
 
 function initMenuForm() {
     const menuForm = document.getElementById('menu-form');
-    const weekStartDateInput = document.getElementById('week-start-date');
+    let weekStartDateInput = document.getElementById('week-start-date'); // Usar let
     const resetFormBtn = document.getElementById('reset-form-btn');
     const daysContainer = document.getElementById('days-container');
 
@@ -228,41 +228,58 @@ function initMenuForm() {
         return;
     }
 
+    // Clonar el input de fecha UNA VEZ para limpiar listeners si es necesario
+    // y reasignar la variable al nuevo nodo.
+    const newWeekStartDateInputForListeners = weekStartDateInput.cloneNode(true);
+    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInputForListeners, weekStartDateInput);
+    weekStartDateInput = newWeekStartDateInputForListeners; // Actualizar la referencia
+
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek); // AppUtils.formatDateForInput debería usar getFullYear, getMonth, getDate
+    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
     
-    // Llamada inicial para generar los días con el lunes calculado
-    generateWeekDays(weekStartDateInput.value); 
+    generateWeekDays(weekStartDateInput.value); // Llamada inicial
 
-    // Limpiar y re-añadir listeners para evitar duplicados
-    const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
-    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
-    
-    const dateChangeHandler = function(event) { // Añadir event como parámetro
-        console.log(`Fecha cambiada/input a: ${this.value} por evento ${event.type}`);
+    // Función handler para reutilizar
+    const dateChangeHandler = function(event) { // event es pasado automáticamente
+        console.log(`[dateChangeHandler] Evento: ${event.type}, Nuevo valor de fecha: ${this.value}`);
         generateWeekDays(this.value);
     };
-    newWeekStartDateInput.addEventListener('change', dateChangeHandler);
-    newWeekStartDateInput.addEventListener('input', dateChangeHandler);
 
+    // Añadir listeners al input de fecha (que ahora es el clonado)
+    weekStartDateInput.addEventListener('change', dateChangeHandler);
+    weekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo para date pickers
 
+    // Para reset y submit, la clonación del formulario completo es más robusta
     const newResetFormBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
     newResetFormBtn.addEventListener('click', resetMenuForm);
 
-    const newMenuForm = menuForm.cloneNode(true);
-    menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+    // Clonar el formulario para limpiar su listener de submit
+    const newMenuForm = menuForm.cloneNode(true); // Clonar solo el formulario
+    
+    // Reemplazar el formulario antiguo
+    if (menuForm.parentNode) {
+        menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+    }
+    
+    // Re-obtener daysContainer del nuevo formulario si es necesario
+    const actualDaysContainer = document.getElementById('days-container'); // Siempre referirse al que está en el DOM
+    if (actualDaysContainer) {
+        // Limpiar listeners de daysContainer antes de añadir uno nuevo
+        const newActualDaysContainer = actualDaysContainer.cloneNode(true); // Clon profundo para copiar los controles
+        actualDaysContainer.parentNode.replaceChild(newActualDaysContainer, actualDaysContainer);
+        newActualDaysContainer.addEventListener('click', handleMenuFormClicks);
+    } else {
+        console.error("#days-container no encontrado en el DOM después de reemplazar el formulario.");
+    }
+
     newMenuForm.addEventListener('submit', function(event) {
         event.preventDefault();
         saveMenu();
     });
-
-    const newDaysContainer = daysContainer.cloneNode(false);
-    daysContainer.parentNode.replaceChild(newDaysContainer, daysContainer);
-    document.getElementById('days-container').addEventListener('click', handleMenuFormClicks);
     
-    console.log("Formulario de menú y delegación de eventos inicializados.");
+    console.log("Formulario de menú y delegación de eventos inicializados con manejo mejorado de listeners.");
 }
 
 function handleMenuFormClicks(event){
