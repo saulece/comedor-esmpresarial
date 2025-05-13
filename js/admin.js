@@ -216,7 +216,15 @@ function initMenuForm() {
     // Limpiar y re-añadir listeners para evitar duplicados
     const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
     weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
-    newWeekStartDateInput.addEventListener('change', function() { generateWeekDays(this.value); });
+    newWeekStartDateInput.addEventListener('change', function() { 
+        console.log('Fecha cambiada a:', this.value);
+        generateWeekDays(this.value); 
+    });
+    // También añadir listener para input para capturar cambios hechos con el selector de fecha
+    newWeekStartDateInput.addEventListener('input', function() { 
+        console.log('Input de fecha detectado:', this.value);
+        generateWeekDays(this.value); 
+    });
 
     const newResetFormBtn = resetFormBtn.cloneNode(true);
     resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
@@ -317,6 +325,7 @@ function handleMenuFormClicks(event){
 
 function generateWeekDays(selectedDateStr) {
     try {
+        console.log('Generando días de la semana para fecha:', selectedDateStr);
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
             console.error("Contenedor de días (#days-container) no encontrado.");
@@ -345,23 +354,49 @@ function generateWeekDays(selectedDateStr) {
             daysContainer.prepend(accordionControls); // Añadir al inicio del contenedor de días
         }
         
-        const userSelectedDate = new Date(selectedDateStr + 'T00:00:00Z'); // Forzar UTC para el parseo
-        if (isNaN(userSelectedDate.getTime())) {
-            AppUtils.showNotification("Fecha seleccionada inválida.", "error");
-            return;
-        }
-        const actualMondayDate = getMondayOfGivenDate(userSelectedDate);
+        // Validar y procesar la fecha seleccionada
+        console.log('Procesando fecha seleccionada:', selectedDateStr);
+        let userSelectedDate;
         
+        if (!selectedDateStr || selectedDateStr.trim() === '') {
+            console.warn('Fecha vacía, usando fecha actual');
+            userSelectedDate = new Date();
+        } else {
+            // Intentar parsear la fecha seleccionada
+            userSelectedDate = new Date(selectedDateStr);
+            if (isNaN(userSelectedDate.getTime())) {
+                console.error('Fecha inválida:', selectedDateStr);
+                AppUtils.showNotification("Fecha seleccionada inválida.", "error");
+                return;
+            }
+        }
+        
+        // Obtener el lunes de la semana seleccionada
+        const actualMondayDate = getMondayOfGivenDate(userSelectedDate);
+        console.log('Lunes calculado:', actualMondayDate);
+        
+        // Actualizar el input de fecha si es necesario
         const weekStartDateInput = document.getElementById('week-start-date');
         const formattedMonday = AppUtils.formatDateForInput(actualMondayDate);
+        console.log('Fecha formateada para input:', formattedMonday);
+        
         if (weekStartDateInput.value !== formattedMonday) {
-             weekStartDateInput.value = formattedMonday;
+            console.log('Actualizando valor del input a:', formattedMonday);
+            weekStartDateInput.value = formattedMonday;
         }
 
+        // Generar secciones para cada día de la semana
+        console.log('Generando secciones para los 7 días de la semana');
         let firstDaySection = null;
         for (let i = 0; i < 7; i++) {
+            // Crear una nueva fecha para cada día, sumando días al lunes
             const currentDate = new Date(actualMondayDate);
-            currentDate.setUTCDate(actualMondayDate.getUTCDate() + i);
+            currentDate.setDate(actualMondayDate.getDate() + i);
+            
+            console.log(`Día ${i} (${AppUtils.DAYS_OF_WEEK[i]}):`, 
+                        currentDate.toISOString().split('T')[0]);
+                        
+            // Crear la sección del día con la fecha calculada
             const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection); // Añadir después de los controles
             if (i === 0) firstDaySection = daySection;
