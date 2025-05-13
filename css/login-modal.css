@@ -34,6 +34,25 @@
     position: relative;
 }
 
+.close-modal-btn {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-md);
+    background: none;
+    border: none;
+    font-size: var(--font-size-xl);
+    color: var(--text-light);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    line-height: 1;
+    font-weight: bold;
+    transition: color var(--transition-fast);
+}
+
+.close-modal-btn:hover {
+    color: var(--text-color);
+}
+
 .login-modal-content h2 {
     margin-bottom: var(--spacing-lg);
     text-align: center;

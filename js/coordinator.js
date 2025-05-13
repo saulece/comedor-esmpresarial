@@ -79,11 +79,39 @@ async function checkSession() {
 function showLoginModal() {
     const loginModal = document.getElementById('login-modal');
     const loginForm = document.getElementById('login-form');
+    const closeModalBtn = loginModal ? loginModal.querySelector('.close-modal-btn') : null;
     
     if (loginModal) {
         // Asegurarse que el modal se muestre y esté visible
         loginModal.classList.add('active'); 
         loginModal.style.display = 'block';
+        
+        // Configurar el botón de cierre del modal
+        if (closeModalBtn) {
+            // Remover listener anterior para evitar duplicados
+            const newCloseBtn = closeModalBtn.cloneNode(true);
+            closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
+            
+            // Añadir nuevo listener
+            newCloseBtn.addEventListener('click', function() {
+                loginModal.classList.remove('active');
+                loginModal.style.display = 'none';
+                // Redirigir a la página de inicio para mejor experiencia de usuario
+                window.location.href = 'index.html';
+            });
+            console.log("Listener para botón de cierre de modal configurado.");
+        }
+        
+        // Añadir listener para cerrar el modal al hacer clic fuera de él
+        loginModal.addEventListener('click', function(event) {
+            // Si el clic fue directamente en el fondo del modal (no en su contenido)
+            if (event.target === loginModal) {
+                loginModal.classList.remove('active');
+                loginModal.style.display = 'none';
+                // Redirigir a la página de inicio para mejor experiencia de usuario
+                window.location.href = 'index.html';
+            }
+        });
         
         if (loginForm) {
             // Eliminar event listeners previos para evitar duplicados

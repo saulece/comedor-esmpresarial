@@ -10,11 +10,8 @@ const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO
 let currentEditingMenuId = null;
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const CATEGORIES = {
-    'plato_fuerte': 'Platos Fuertes',
-    'bebida': 'Bebidas',
-    'entrada': 'Entradas',
-    'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
+    'plato_fuerte': 'Plato Fuerte',
+    'bebida': 'Bebida'
 };
 
 // Flag para evitar inicialización múltiple
@@ -67,6 +64,33 @@ function checkAdminSession() {
 function setupAdminLoginForm() {
     const adminLoginForm = document.getElementById('admin-login-form');
     const adminLoginError = document.getElementById('admin-login-error');
+    const adminLoginModal = document.getElementById('admin-login-modal');
+    const closeModalBtn = adminLoginModal ? adminLoginModal.querySelector('.close-modal-btn') : null;
+    
+    // Configurar el botón de cierre del modal
+    if (closeModalBtn) {
+        // Remover listener anterior para evitar duplicados
+        const newCloseBtn = closeModalBtn.cloneNode(true);
+        closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
+        
+        // Añadir nuevo listener
+        newCloseBtn.addEventListener('click', function() {
+            adminLoginModal.style.display = 'none';
+        });
+        console.log("Listener para botón de cierre de modal configurado.");
+    }
+    
+    // Añadir listener para cerrar el modal al hacer clic fuera de él
+    if (adminLoginModal) {
+        adminLoginModal.addEventListener('click', function(event) {
+            // Si el clic fue directamente en el fondo del modal (no en su contenido)
+            if (event.target === adminLoginModal) {
+                adminLoginModal.style.display = 'none';
+            }
+        });
+        console.log("Listener para cerrar modal al hacer clic fuera configurado.");
+    }
+    
     // NO obtener el input aquí fuera
 
     console.log("Configurando formulario de login admin. Código esperado:", ADMIN_MASTER_ACCESS_CODE);
@@ -568,7 +592,7 @@ function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categor
     const addDishBtn = document.createElement('button');
     addDishBtn.type = 'button';
     addDishBtn.className = 'add-dish-btn secondary-btn';
-    addDishBtn.innerHTML = `<i class="fas fa-plus"></i> Agregar ${categoryKey === 'bebida' ? 'Bebida' : 'Platillo'}`;
+    addDishBtn.innerHTML = `<i class="fas fa-plus"></i> Agregar ${categoryKey === 'bebida' ? 'Bebida' : 'Plato'}`;
     addDishBtn.setAttribute('data-day-index', dayIndex);
     addDishBtn.setAttribute('data-category', categoryKey);
     
@@ -580,24 +604,36 @@ function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categor
 
 
 function createDishInputGroup(dayNameNormalized, categoryKey, index) {
+    console.log(`Creando grupo de input para ${categoryKey} con índice ${index}`);
+    
     const dishInputGroup = document.createElement('div');
     dishInputGroup.className = 'dish-input-group';
+    dishInputGroup.setAttribute('data-category', categoryKey);
+    dishInputGroup.setAttribute('data-index', index);
     
     const dishInput = document.createElement('input');
     dishInput.type = 'text';
     dishInput.className = 'dish-input form-control';
     dishInput.name = `dish-${dayNameNormalized}-${categoryKey}-${index}`;
-    dishInput.placeholder = 'Nombre del platillo/bebida';
+    
+    // Usar placeholder específico según la categoría
+    if (categoryKey === 'bebida') {
+        dishInput.placeholder = 'Nombre de la bebida';
+    } else {
+        dishInput.placeholder = 'Nombre del plato';
+    }
     
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-dish-btn danger-btn icon-btn'; 
     removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
     removeBtn.title = 'Eliminar';
-    // Ya no añadimos event listener aquí, lo manejaremos con delegación de eventos
+    // Ya no añadimos event listener aquí, lo manejamos con delegación de eventos
     
     dishInputGroup.appendChild(dishInput);
     dishInputGroup.appendChild(removeBtn);
+    
+    console.log('Grupo de input creado:', dishInputGroup);
     return dishInputGroup;
 }
 
@@ -607,6 +643,8 @@ function createDishInputGroup(dayNameNormalized, categoryKey, index) {
  * Esta función reemplaza el enfoque anterior de añadir listeners individuales
  */
 function setupAddDishButtons() {
+    console.log("Configurando delegación de eventos para botones de platillos...");
+    
     // Obtener el contenedor principal del formulario de menú
     const menuForm = document.getElementById('menu-form');
     if (!menuForm) {
@@ -623,9 +661,16 @@ function setupAddDishButtons() {
         // Manejar botones de eliminar platillo
         const removeButton = event.target.closest('.remove-dish-btn');
         if (removeButton) {
+            console.log('Botón Eliminar clickeado:', removeButton);
             const dishGroup = removeButton.closest('.dish-input-group');
+            console.log('Grupo de platillo encontrado:', dishGroup);
+            
             if (dishGroup) {
+                console.log('Eliminando grupo de platillo...');
                 dishGroup.remove();
+                console.log('Grupo de platillo eliminado con éxito');
+            } else {
+                console.error('No se pudo encontrar el grupo de platillo para eliminar');
             }
             return;
         }
@@ -633,21 +678,46 @@ function setupAddDishButtons() {
         // Manejar botones de agregar platillo
         const addButton = event.target.closest('.add-dish-btn');
         if (addButton) {
+            console.log('Botón Agregar clickeado:', addButton);
+            
             const dayIndex = addButton.getAttribute('data-day-index');
             const categoryKey = addButton.getAttribute('data-category');
+            console.log('Day Index:', dayIndex, 'Category Key:', categoryKey);
+            
+            // Buscar la sección del día usando el índice
             const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
-            if (!daySection) return;
+            console.log('Day Section encontrada:', daySection);
+            
+            if (!daySection) {
+                console.error(`No se encontró la sección para el día ${dayIndex}`);
+                return;
+            }
 
+            // Obtener el nombre del día normalizado
             const dayNameLabel = daySection.querySelector('.day-label').textContent;
             const dayNameNormalized = dayNameLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (!dishesContainer) return;
+            console.log('Nombre del día normalizado:', dayNameNormalized);
             
+            // Buscar el contenedor de platillos usando la categoría
+            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+            console.log('Contenedor de platillos encontrado:', dishesContainer);
+            
+            if (!dishesContainer) {
+                console.error(`No se encontró el contenedor para la categoría ${categoryKey} en el día ${dayIndex}`);
+                return;
+            }
+            
+            // Crear y añadir un nuevo grupo de input para platillo
             const dishIndex = dishesContainer.children.length;
+            console.log('Creando nuevo input group con índice:', dishIndex);
+            
             const newDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, dishIndex);
             dishesContainer.appendChild(newDishInputGroup);
+            console.log('Nuevo grupo de platillo añadido con éxito');
         }
     });
+    
+    console.log("Delegación de eventos configurada correctamente");
 }
 
 
