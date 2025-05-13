@@ -8,181 +8,120 @@ const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO
 
 // Variables globales
 let currentEditingMenuId = null;
-const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const CATEGORIES = {
-    'plato_fuerte': 'Plato Fuerte',
-    'bebida': 'Bebida'
-};
+// DAYS_OF_WEEK y CATEGORIES ahora se tomarán de AppUtils (asumiendo que utils.js se carga antes)
 
 // Flag para evitar inicialización múltiple
-let isAdminInitialized = false; 
+let isAdminInitialized = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Admin DOMContentLoaded");
-    checkAdminSession(); // Verificar sesión al cargar la página
+    checkAdminSession();
 });
 
 function checkAdminSession() {
-    console.log("Ejecutando checkAdminSession..."); // Log para confirmar ejecución
+    console.log("Ejecutando checkAdminSession...");
     const adminLoggedIn = sessionStorage.getItem('adminLoggedIn');
     const adminLoginModal = document.getElementById('admin-login-modal');
     const adminMainContent = document.getElementById('admin-main-content');
     const adminLogoutBtn = document.getElementById('admin-logout-btn');
 
-    // Verificar si los elementos existen ANTES de usarlos
-    if (!adminLoginModal) {
-        console.error("¡Elemento #admin-login-modal no encontrado en admin.html!");
-        return; // Detener si falta el modal
-    }
-    if (!adminMainContent) {
-        console.error("¡Elemento #admin-main-content no encontrado en admin.html!");
-        return; // Detener si falta el contenido principal
+    if (!adminLoginModal || !adminMainContent) {
+        console.error("Elementos críticos del DOM no encontrados (#admin-login-modal o #admin-main-content).");
+        return;
     }
 
     if (adminLoggedIn === 'true') {
-        console.log("Admin logueado. Mostrando contenido principal.");
         adminLoginModal.style.display = 'none';
-        adminMainContent.style.display = 'block'; // Mostrar contenido
-        if (adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block'; // Mostrar botón logout
-        
-        // Inicializar solo si no se ha hecho antes
+        adminMainContent.style.display = 'block';
+        if (adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block';
         if (!isAdminInitialized) {
             initializeAdminFeatures();
             isAdminInitialized = true;
         }
     } else {
-        console.log("Admin NO logueado. Mostrando modal.");
-        adminLoginModal.style.display = 'flex'; // Mostrar modal
-        adminMainContent.style.display = 'none'; // Asegurarse que el contenido está oculto
-        if (adminLogoutBtn) adminLogoutBtn.style.display = 'none'; // Ocultar botón logout
-        
-        // Configurar el listener del formulario de login (solo si no está logueado)
-        setupAdminLoginForm(); 
+        adminLoginModal.style.display = 'flex';
+        adminMainContent.style.display = 'none';
+        if (adminLogoutBtn) adminLogoutBtn.style.display = 'none';
+        setupAdminLoginForm();
     }
 }
 
 function setupAdminLoginForm() {
-    const adminLoginForm = document.getElementById('admin-login-form');
-    const adminLoginError = document.getElementById('admin-login-error');
     const adminLoginModal = document.getElementById('admin-login-modal');
-    const closeModalBtn = adminLoginModal ? adminLoginModal.querySelector('.close-modal-btn') : null;
-    
-    // Configurar el botón de cierre del modal
-    if (closeModalBtn) {
-        // Remover listener anterior para evitar duplicados
-        const newCloseBtn = closeModalBtn.cloneNode(true);
-        closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
-        
-        // Añadir nuevo listener
-        newCloseBtn.addEventListener('click', function() {
-            adminLoginModal.style.display = 'none';
-        });
-        console.log("Listener para botón de cierre de modal configurado.");
+    if (!adminLoginModal) {
+        console.error("Modal de login de admin no encontrado.");
+        return;
     }
-    
-    // Añadir listener para cerrar el modal al hacer clic fuera de él
-    if (adminLoginModal) {
-        adminLoginModal.addEventListener('click', function(event) {
-            // Si el clic fue directamente en el fondo del modal (no en su contenido)
-            if (event.target === adminLoginModal) {
-                adminLoginModal.style.display = 'none';
-            }
-        });
-        console.log("Listener para cerrar modal al hacer clic fuera configurado.");
+
+    const adminLoginForm = adminLoginModal.querySelector('#admin-login-form');
+    const adminLoginError = adminLoginModal.querySelector('#admin-login-error');
+    const closeModalBtn = adminLoginModal.querySelector('.close-modal-btn');
+
+    // Clonar el modal para limpiar listeners antiguos y volver a añadir los nuevos
+    const newAdminLoginModal = adminLoginModal.cloneNode(true);
+    adminLoginModal.parentNode.replaceChild(newAdminLoginModal, adminLoginModal);
+
+    // Re-obtener referencias del modal clonado
+    const currentModal = document.getElementById('admin-login-modal');
+    const currentForm = currentModal.querySelector('#admin-login-form');
+    const currentError = currentModal.querySelector('#admin-login-error');
+    const currentCloseBtn = currentModal.querySelector('.close-modal-btn');
+
+    if (currentCloseBtn) {
+        currentCloseBtn.addEventListener('click', () => { currentModal.style.display = 'none'; });
     }
-    
-    // NO obtener el input aquí fuera
 
-    console.log("Configurando formulario de login admin. Código esperado:", ADMIN_MASTER_ACCESS_CODE);
+    currentModal.addEventListener('click', function(event) {
+        if (event.target === this) {
+            this.style.display = 'none';
+        }
+    });
 
-    if (adminLoginForm) { // Solo necesitamos el formulario aquí
-        // Remover listener anterior para evitar duplicados si esta función se llama más de una vez
-        // En lugar de clonar, simplemente removemos el listener si ya existe (aunque con la lógica actual no debería)
-        // O más simple: asegurarnos que solo se añade una vez via checkAdminSession
-        
-        // Limpiar listener anterior por si acaso (opcional pero seguro)
-        const newForm = adminLoginForm.cloneNode(true);
-        adminLoginForm.parentNode.replaceChild(newForm, adminLoginForm);
-
-
-        newForm.addEventListener('submit', function(event) {
+    if (currentForm) {
+        currentForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            console.log("Admin login form submitted."); 
+            const accessCodeInput = currentModal.querySelector('#admin-access-code'); // Buscar dentro del modal actual
+            if (!accessCodeInput) return;
+            const enteredCode = accessCodeInput.value;
 
-            // **** OBTENER EL INPUT Y SU VALOR AQUÍ DENTRO ****
-            const currentInput = document.getElementById('admin-access-code'); 
-            if (!currentInput) {
-                console.error("Input #admin-access-code no encontrado DENTRO del listener!");
-                return; // Salir si no se encuentra el input
-            }
-            const enteredCode = currentInput.value; 
-            // *************************************************
-
-            // Logs detallados
-            console.log("Código ingresado:", `"${enteredCode}"`);
-            console.log("Código esperado:", `"${ADMIN_MASTER_ACCESS_CODE}"`);
-            console.log("Longitud código ingresado:", enteredCode.length);
-            console.log("Longitud código esperado:", ADMIN_MASTER_ACCESS_CODE.length);
-            console.log("¿Son iguales?", enteredCode === ADMIN_MASTER_ACCESS_CODE);
-            
-            // Comparación 
             if (enteredCode === ADMIN_MASTER_ACCESS_CODE) {
-                console.log("Comparación: ¡Éxito!");
                 sessionStorage.setItem('adminLoggedIn', 'true');
-                if (adminLoginError) adminLoginError.style.display = 'none';
+                if (currentError) currentError.style.display = 'none';
                 AppUtils.showNotification('Acceso de administrador concedido.', 'success');
-                checkAdminSession(); // Actualizar UI
+                checkAdminSession();
             } else {
-                console.log("Comparación: ¡Fallo!");
-                if (adminLoginError) {
-                    adminLoginError.textContent = "Código de acceso incorrecto. Inténtalo de nuevo.";
-                    adminLoginError.style.display = 'block';
+                if (currentError) {
+                    currentError.textContent = "Código de acceso incorrecto. Inténtalo de nuevo.";
+                    currentError.style.display = 'block';
                 }
-                currentInput.value = ''; // Limpiar el input actual
+                accessCodeInput.value = '';
                 AppUtils.showNotification('Código de acceso de administrador incorrecto.', 'error');
             }
         });
-        console.log("Listener para admin-login-form configurado.");
-    } else {
-        console.error("Formulario #admin-login-form no encontrado.");
     }
 }
 
+
 function initializeAdminFeatures() {
     console.log('Inicializando funcionalidades de administración...');
-    
     initAdminInterface();
-    initMenuForm();
-    
-    if (typeof CoordinatorManagement !== 'undefined' && typeof CoordinatorManagement.init === 'function') {
-        // Asegurarse que init no se llame múltiples veces si hay recargas parciales
-        if (!CoordinatorManagement.initialized) {
-             CoordinatorManagement.init();
-             CoordinatorManagement.initialized = true; // Añadir flag
-        }
-    } else {
-        console.warn("CoordinatorManagement no disponible.");
+    initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
+
+    // Inicializar módulos de gestión
+    if (typeof CoordinatorManagement?.init === 'function' && !CoordinatorManagement.initialized) {
+        CoordinatorManagement.init();
+        CoordinatorManagement.initialized = true;
     }
-    
-    if (typeof ConfirmationReportManagement !== 'undefined' && typeof ConfirmationReportManagement.init === 'function') {
-         if (!ConfirmationReportManagement.initialized) {
-            ConfirmationReportManagement.init();
-            ConfirmationReportManagement.initialized = true; // Añadir flag
-         }
-    } else {
-        console.warn("ConfirmationReportManagement no disponible.");
+    if (typeof ConfirmationReportManagement?.init === 'function' && !ConfirmationReportManagement.initialized) {
+        ConfirmationReportManagement.init();
+        ConfirmationReportManagement.initialized = true;
     }
-    
-    if (typeof DataBackupManagement !== 'undefined' && typeof DataBackupManagement.init === 'function') {
-        DataBackupManagement.init(); // Este puede no necesitar flag si solo añade listeners
-    } else {
-        console.warn("DataBackupManagement no disponible.");
+    if (typeof DataBackupManagement?.init === 'function') {
+        DataBackupManagement.init();
     }
-    
+
     if (typeof loadSavedMenus === 'function') {
-         loadSavedMenus().catch(error => console.error('Error loading menus:', error));
-    } else {
-        console.warn("loadSavedMenus no está definido.");
+        loadSavedMenus().catch(error => console.error('Error loading saved menus:', error));
     }
 
     // Configurar botón de logout
@@ -190,733 +129,463 @@ function initializeAdminFeatures() {
     if (adminLogoutBtn) {
         const newLogoutBtn = adminLogoutBtn.cloneNode(true);
         adminLogoutBtn.parentNode.replaceChild(newLogoutBtn, adminLogoutBtn);
-
-        newLogoutBtn.addEventListener('click', function() {
-            console.log("Admin logout button clicked.");
+        newLogoutBtn.addEventListener('click', () => {
             sessionStorage.removeItem('adminLoggedIn');
-            isAdminInitialized = false; // Resetear flag de inicialización
-             // Reiniciar flags de inicialización de módulos si los añadiste
-            if(CoordinatorManagement) CoordinatorManagement.initialized = false;
-            if(ConfirmationReportManagement) ConfirmationReportManagement.initialized = false;
+            isAdminInitialized = false;
+            if (CoordinatorManagement) CoordinatorManagement.initialized = false;
+            if (ConfirmationReportManagement) ConfirmationReportManagement.initialized = false;
             AppUtils.showNotification('Sesión de administrador cerrada.', 'info');
-            checkAdminSession(); // Llamar a checkAdminSession para mostrar modal y ocultar contenido
+            checkAdminSession();
         });
-        console.log("Listener para admin-logout-btn configurado.");
-    } else {
-         console.warn("Botón de logout de admin no encontrado.");
     }
 }
 
-// =============================================
-// == RESTO DE FUNCIONES DE ADMIN.JS ==========
-// == (initAdminInterface, initMenuForm,      ==
-// == generateWeekDays, createDaySection, etc.)==
-// == Deben estar aquí abajo.                 ==
-// =============================================
-
-// Incluyo las funciones principales de nuevo para asegurar que están presentes.
-// Si las tienes definidas más abajo, no necesitas duplicarlas.
-
-/**
- * Inicializa la interfaz de administración (navegación entre secciones)
- */
 function initAdminInterface() {
-    console.log("Ejecutando initAdminInterface..."); // Log
-    const menuManagementBtn = document.getElementById('menu-management-btn');
-    const userManagementBtn = document.getElementById('user-management-btn');
-    const reportsBtn = document.getElementById('reports-btn');
-    
-    const menuManagementSection = document.getElementById('menu-management-section');
-    const userManagementSection = document.getElementById('user-management-section');
-    const reportsSection = document.getElementById('reports-section');
-    
-    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
-    const backToDashboardFromUsersBtn = document.getElementById('back-to-dashboard-from-users-btn');
-    const backToDashboardFromReportsBtn = document.getElementById('back-to-dashboard-from-reports-btn');
-    
-    const dashboardSection = document.querySelector('.dashboard');
+    const buttons = {
+        menuManagementBtn: document.getElementById('menu-management-btn'),
+        userManagementBtn: document.getElementById('user-management-btn'),
+        reportsBtn: document.getElementById('reports-btn'),
+        backToDashboardBtn: document.getElementById('back-to-dashboard-btn'),
+        backToDashboardFromUsersBtn: document.getElementById('back-to-dashboard-from-users-btn'),
+        backToDashboardFromReportsBtn: document.getElementById('back-to-dashboard-from-reports-btn'),
+    };
+    const sections = {
+        menuManagementSection: document.getElementById('menu-management-section'),
+        userManagementSection: document.getElementById('user-management-section'),
+        reportsSection: document.getElementById('reports-section'),
+        dashboardSection: document.querySelector('.dashboard'),
+    };
 
-    // Verificar que todos los elementos necesarios existen
-    if (!menuManagementBtn || !userManagementBtn || !reportsBtn || !menuManagementSection || !userManagementSection || !reportsSection || !dashboardSection) {
+    if (Object.values(buttons).some(btn => !btn) || Object.values(sections).some(sec => !sec)) {
         console.error("Faltan elementos para la navegación del panel de admin.");
         return;
     }
 
-
     function showSection(sectionToShow) {
-        console.log("Mostrando sección:", sectionToShow ? sectionToShow.id : 'ninguna'); // Log
-        // Ocultar todas las secciones específicas primero
-         if(menuManagementSection) menuManagementSection.style.display = 'none';
-         if(userManagementSection) userManagementSection.style.display = 'none';
-         if(reportsSection) reportsSection.style.display = 'none';
-         if(dashboardSection) dashboardSection.style.display = 'none'; // Ocultar dashboard también
+        Object.values(sections).forEach(sec => sec.style.display = 'none');
+        if (sectionToShow) sectionToShow.style.display = 'block';
+    }
 
-         // Mostrar la sección deseada
-        if(sectionToShow) {
-             sectionToShow.style.display = 'block';
-        } else {
-             console.warn("Se intentó mostrar una sección nula.");
-        }
-    }
-    
-    function showDashboardView() { 
-        showSection(dashboardSection); // Mostrar solo el dashboard
-    }
-    
-    // Re-asignar listeners para evitar duplicados si se llama múltiples veces
     const setupListener = (button, action) => {
-        if (!button) return;
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);
         newButton.addEventListener('click', action);
     };
 
-    setupListener(menuManagementBtn, () => showSection(menuManagementSection));
-    setupListener(userManagementBtn, () => showSection(userManagementSection));
-    setupListener(reportsBtn, () => showSection(reportsSection));
-    
-    setupListener(backToDashboardBtn, showDashboardView);
-    setupListener(backToDashboardFromUsersBtn, showDashboardView);
-    setupListener(backToDashboardFromReportsBtn, showDashboardView);
-    
-    showDashboardView(); // Mostrar dashboard por defecto al inicializar
+    setupListener(buttons.menuManagementBtn, () => showSection(sections.menuManagementSection));
+    setupListener(buttons.userManagementBtn, () => showSection(sections.userManagementSection));
+    setupListener(buttons.reportsBtn, () => showSection(sections.reportsSection));
+    setupListener(buttons.backToDashboardBtn, () => showSection(sections.dashboardSection));
+    setupListener(buttons.backToDashboardFromUsersBtn, () => showSection(sections.dashboardSection));
+    setupListener(buttons.backToDashboardFromReportsBtn, () => showSection(sections.dashboardSection));
+
+    showSection(sections.dashboardSection); // Mostrar dashboard por defecto
 }
 
+function getMondayOfGivenDate(dateInput) {
+    const d = dateInput instanceof Date ? new Date(dateInput.getTime()) : new Date(dateInput);
+    if (isNaN(d.getTime())) {
+        console.error("Fecha inválida para getMondayOfGivenDate:", dateInput, "Se usará la fecha actual.");
+        const todayForFallback = new Date();
+        todayForFallback.setHours(0,0,0,0); // Normalizar
+        return getMondayOfGivenDate(todayForFallback); // Recursión segura con fallback
+    }
+    // Usar UTC para los cálculos de días para evitar problemas de zona horaria
+    d.setUTCHours(0, 0, 0, 0);
+    const day = d.getUTCDay(); // 0 (Domingo) a 6 (Sábado)
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // diff para llegar al Lunes
+    return new Date(d.setUTCDate(diff));
+}
 
-/**
- * Inicializa el formulario de menú
- */
 function initMenuForm() {
     const menuForm = document.getElementById('menu-form');
     const weekStartDateInput = document.getElementById('week-start-date');
     const resetFormBtn = document.getElementById('reset-form-btn');
-    
-    if (!menuForm || !weekStartDateInput || !resetFormBtn) {
-        console.error("Elementos del formulario de menú no encontrados.");
+    const daysContainer = document.getElementById('days-container'); // Necesario para delegación
+
+    if (!menuForm || !weekStartDateInput || !resetFormBtn || !daysContainer) {
+        console.error("Elementos del formulario de menú no encontrados (#menu-form, #week-start-date, #reset-form-btn, #days-container).");
         return;
     }
-    
-    // Establecer fecha de inicio por defecto (lunes de la semana actual)
+
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    mondayOfThisWeek.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
-    
-    // Formatear la fecha para el input
-    const formattedDate = AppUtils.formatDateForInput(mondayOfThisWeek);
-    weekStartDateInput.value = formattedDate;
-    console.log('Fecha inicial establecida al lunes de esta semana:', formattedDate);
-    
-    // Generar los días de la semana a partir del lunes
+    weekStartDateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
     generateWeekDays(weekStartDateInput.value);
-    
-    // Listener para cambio de fecha
-    const newWeekInput = weekStartDateInput.cloneNode(true);
-    weekStartDateInput.parentNode.replaceChild(newWeekInput, weekStartDateInput);
-    newWeekInput.addEventListener('change', function() {
-        generateWeekDays(this.value);
-    });
-    
-    // Listener para reset
-    const newResetBtn = resetFormBtn.cloneNode(true);
-    resetFormBtn.parentNode.replaceChild(newResetBtn, resetFormBtn);
-    newResetBtn.addEventListener('click', resetMenuForm);
-    
-    // Listener para submit
-    const newMenuForm = menuForm.cloneNode(true); // Clonar form podría perder referencias internas? Mejor solo el listener
-    // Remover listener anterior si existe para evitar duplicados
-    // (Asumiendo que no hay otros listeners importantes en el form)
-    menuForm.replaceWith(menuForm.cloneNode(true)); // Reemplazar con clon para limpiar listeners
-    document.getElementById('menu-form').addEventListener('submit', function(event) { // Añadir listener al nuevo form
+
+    // Limpiar y re-añadir listeners para evitar duplicados
+    const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
+    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
+    newWeekStartDateInput.addEventListener('change', function() { generateWeekDays(this.value); });
+
+    const newResetFormBtn = resetFormBtn.cloneNode(true);
+    resetFormBtn.parentNode.replaceChild(newResetFormBtn, resetFormBtn);
+    newResetFormBtn.addEventListener('click', resetMenuForm);
+
+    const newMenuForm = menuForm.cloneNode(true);
+    menuForm.parentNode.replaceChild(newMenuForm, menuForm);
+    newMenuForm.addEventListener('submit', function(event) {
         event.preventDefault();
         saveMenu();
     });
 
-    // Llamar a setupAddDishButtons después de generar los días iniciales
-    setupAddDishButtons(); 
+    // Delegación de eventos para acordeones, pestañas y botones de platillos
+    // Limpiar listener anterior del daysContainer si esta función se llama múltiples veces
+    const newDaysContainer = daysContainer.cloneNode(false); // Clonar sin hijos para limpiar listeners
+    daysContainer.parentNode.replaceChild(newDaysContainer, daysContainer);
+    // Re-obtener la referencia al nuevo daysContainer
+    document.getElementById('days-container').addEventListener('click', handleMenuFormClicks);
+    
+    console.log("Formulario de menú y delegación de eventos inicializados.");
 }
 
-/**
- * Obtiene el lunes de la semana para una fecha dada
- * @param {Date|string} date - Fecha para la que se quiere obtener el lunes
- * @returns {Date} - Objeto Date correspondiente al lunes de la semana
- */
-function getMondayOfGivenDate(date) {
-    // Si se pasa un string, convertirlo a objeto Date
-    const d = date instanceof Date ? new Date(date) : new Date(date);
-    
-    if (isNaN(d.getTime())) {
-        console.error("Fecha inválida para calcular el lunes:", date);
-        return new Date(); // Devolver la fecha actual como fallback
+function handleMenuFormClicks(event){
+    const target = event.target;
+
+    // Acordeones de día
+    const accordionHeader = target.closest('.accordion-header');
+    if (accordionHeader) {
+        event.stopPropagation();
+        const content = accordionHeader.nextElementSibling;
+        if (content && content.classList.contains('accordion-content')) {
+            const isActive = accordionHeader.classList.toggle('active');
+            content.style.display = isActive ? 'block' : 'none';
+            const icon = accordionHeader.querySelector('.accordion-icon');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-down', !isActive);
+                icon.classList.toggle('fa-chevron-up', isActive);
+            }
+        }
+        return;
     }
-    
-    const day = d.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-    
-    // Calcular la diferencia para llegar al lunes
-    // Si es domingo (0), restar 6 días
-    // Si es lunes (1), restar 0 días
-    // Si es martes (2), restar 1 día, etc.
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    
-    // Crear una nueva fecha con el lunes calculado
-    const monday = new Date(d);
-    monday.setDate(diff);
-    monday.setHours(0, 0, 0, 0); // Normalizar a medianoche
-    
-    return monday;
+
+    // Pestañas de categoría
+    const tabButton = target.closest('.tab-btn-category');
+    if (tabButton) {
+        event.stopPropagation();
+        const daySection = tabButton.closest('.day-section.accordion-item');
+        if (daySection) {
+            const categoryKey = tabButton.getAttribute('data-category');
+            daySection.querySelectorAll('.tab-btn-category').forEach(btn => btn.classList.remove('active'));
+            daySection.querySelectorAll('.tab-content-category').forEach(tc => tc.classList.remove('active'));
+            tabButton.classList.add('active');
+            const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+            if (selectedContent) selectedContent.classList.add('active');
+        }
+        return;
+    }
+
+    // Botones de eliminar platillo
+    const removeButton = target.closest('.remove-dish-btn');
+    if (removeButton) {
+        const dishGroup = removeButton.closest('.dish-input-group');
+        if (dishGroup) dishGroup.remove();
+        return;
+    }
+
+    // Botones de agregar platillo
+    const addButton = target.closest('.add-dish-btn');
+    if (addButton) {
+        const daySection = addButton.closest('.day-section.accordion-item');
+        const categoryKey = addButton.getAttribute('data-category');
+
+        if (daySection && categoryKey) {
+            const dayNameLabel = daySection.querySelector('.day-label').textContent;
+            const dayNameNormalized = dayNameLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            // El dishesContainer está dentro del tab-content-category (que podría no estar activo)
+            // pero el botón "add-dish-btn" está DENTRO del category-section-content que SÍ está visible
+            // porque su tab-content-category padre está activo.
+            const categorySectionContent = addButton.closest('.category-section-content');
+            if (!categorySectionContent) {
+                 console.error("No se encontró .category-section-content para el botón de agregar");
+                 return;
+            }
+            const dishesContainer = categorySectionContent.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+
+            if (dishesContainer) {
+                const dishIndex = dishesContainer.children.length;
+                const newDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, dishIndex);
+                dishesContainer.appendChild(newDishInputGroup);
+            } else {
+                console.error("Dishes container no encontrado para:", categoryKey, "en", daySection);
+            }
+        }
+    }
 }
 
-function generateWeekDays(startDateStr) {
+
+function generateWeekDays(selectedDateStr) {
     try {
         const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
-            console.error("Contenedor de días no encontrado.");
+            console.error("Contenedor de días (#days-container) no encontrado.");
             return;
         }
+        // Limpiar solo el contenido previo de días, no los controles si están fuera
+        const existingDaySections = daysContainer.querySelectorAll('.accordion-item');
+        existingDaySections.forEach(ds => ds.remove());
+        let accordionControls = daysContainer.querySelector('.accordion-controls');
+
+        if (!accordionControls) { // Crear controles solo si no existen
+            accordionControls = document.createElement('div');
+            accordionControls.className = 'accordion-controls';
+            const expandAllBtn = document.createElement('button');
+            expandAllBtn.type = 'button';
+            expandAllBtn.className = 'secondary-btn';
+            expandAllBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Expandir todos';
+            expandAllBtn.addEventListener('click', () => toggleAllAccordions(true, daysContainer));
+            const collapseAllBtn = document.createElement('button');
+            collapseAllBtn.type = 'button';
+            collapseAllBtn.className = 'secondary-btn';
+            collapseAllBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Colapsar todos';
+            collapseAllBtn.addEventListener('click', () => toggleAllAccordions(false, daysContainer));
+            accordionControls.appendChild(expandAllBtn);
+            accordionControls.appendChild(collapseAllBtn);
+            daysContainer.prepend(accordionControls); // Añadir al inicio del contenedor de días
+        }
         
-        daysContainer.innerHTML = ''; // Limpiar contenedor
-        
-        // Crear controles para expandir/colapsar todos los días
-        const accordionControls = document.createElement('div');
-        accordionControls.className = 'accordion-controls';
-        
-        const expandAllBtn = document.createElement('button');
-        expandAllBtn.type = 'button';
-        expandAllBtn.className = 'secondary-btn';
-        expandAllBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Expandir todos';
-        expandAllBtn.addEventListener('click', function() {
-            const accordionContents = daysContainer.querySelectorAll('.accordion-content');
-            const accordionHeaders = daysContainer.querySelectorAll('.accordion-header');
-            
-            accordionContents.forEach(content => {
-                content.style.display = 'block';
-            });
-            
-            accordionHeaders.forEach(header => {
-                header.classList.add('active');
-                const icon = header.querySelector('.accordion-icon');
-                if (icon) {
-                    icon.classList.remove('fa-chevron-down');
-                    icon.classList.add('fa-chevron-up');
-                }
-            });
-        });
-        
-        const collapseAllBtn = document.createElement('button');
-        collapseAllBtn.type = 'button';
-        collapseAllBtn.className = 'secondary-btn';
-        collapseAllBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Colapsar todos';
-        collapseAllBtn.addEventListener('click', function() {
-            const accordionContents = daysContainer.querySelectorAll('.accordion-content');
-            const accordionHeaders = daysContainer.querySelectorAll('.accordion-header');
-            
-            accordionContents.forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            accordionHeaders.forEach(header => {
-                header.classList.remove('active');
-                const icon = header.querySelector('.accordion-icon');
-                if (icon) {
-                    icon.classList.remove('fa-chevron-up');
-                    icon.classList.add('fa-chevron-down');
-                }
-            });
-        });
-        
-        accordionControls.appendChild(expandAllBtn);
-        accordionControls.appendChild(collapseAllBtn);
-        daysContainer.appendChild(accordionControls);
-        
-        // 1. Tomar la fecha seleccionada por el usuario
-        const userSelectedDate = new Date(startDateStr + 'T00:00:00Z'); // Usar Z para UTC
+        const userSelectedDate = new Date(selectedDateStr + 'T00:00:00Z'); // Forzar UTC para el parseo
         if (isNaN(userSelectedDate.getTime())) {
-            console.error("Fecha de inicio inválida desde el input:", startDateStr);
-            AppUtils.showNotification("Fecha seleccionada inválida. Por favor, elija otra.", "error");
+            AppUtils.showNotification("Fecha seleccionada inválida.", "error");
             return;
         }
+        const actualMondayDate = getMondayOfGivenDate(userSelectedDate);
         
-        // 2. Calcular el LUNES de la semana de la fecha seleccionada
-        const mondayDate = getMondayOfGivenDate(userSelectedDate);
-        mondayDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
-        
-        // 3. Actualizar el valor del input para mostrar claramente el lunes de la semana
         const weekStartDateInput = document.getElementById('week-start-date');
-        if (weekStartDateInput) {
-            weekStartDateInput.value = AppUtils.formatDateForInput(mondayDate);
+        const formattedMonday = AppUtils.formatDateForInput(actualMondayDate);
+        if (weekStartDateInput.value !== formattedMonday) {
+             weekStartDateInput.value = formattedMonday;
         }
-        
-        console.log('Generando semana a partir del lunes:', mondayDate);
-        
+
         let firstDaySection = null;
-        
-        // 4. Generar los 7 días de la semana a partir del lunes calculado
         for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(mondayDate);
-            currentDate.setUTCDate(mondayDate.getUTCDate() + i); // Sumar días en UTC
-            
-            const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
-            daysContainer.appendChild(daySection);
-            
-            // Guardar referencia al primer día para expandirlo por defecto
-            if (i === 0) {
-                firstDaySection = daySection;
-            }
+            const currentDate = new Date(actualMondayDate);
+            currentDate.setUTCDate(actualMondayDate.getUTCDate() + i);
+            const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
+            daysContainer.appendChild(daySection); // Añadir después de los controles
+            if (i === 0) firstDaySection = daySection;
         }
-        
-        // Expandir el primer día por defecto en un nuevo menú
-        if (firstDaySection && !currentEditingMenuId) {
+
+        if (firstDaySection && !currentEditingMenuId) { // Expandir solo si es nuevo menú
             const accordionHeader = firstDaySection.querySelector('.accordion-header');
             const accordionContent = firstDaySection.querySelector('.accordion-content');
-            
             if (accordionHeader && accordionContent) {
-                // Activar el header y mostrar el contenido
                 accordionHeader.classList.add('active');
                 accordionContent.style.display = 'block';
-                
-                // Cambiar el icono
                 const icon = accordionHeader.querySelector('.accordion-icon');
-                if (icon) {
-                    icon.classList.remove('fa-chevron-down');
-                    icon.classList.add('fa-chevron-up');
-                }
+                if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
             }
         }
-        
-        setupAddDishButtons();
     } catch (error) {
         console.error('Error al generar días de la semana:', error);
     }
 }
 
+function toggleAllAccordions(expand, container) {
+    const accordionItems = container.querySelectorAll('.accordion-item'); // Iterar sobre los items
+    accordionItems.forEach(item => {
+        const header = item.querySelector('.accordion-header');
+        const content = item.querySelector('.accordion-content');
+        const icon = header ? header.querySelector('.accordion-icon') : null;
+        if (header && content) {
+            if (expand) {
+                header.classList.add('active');
+                content.style.display = 'block';
+                if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+            } else {
+                header.classList.remove('active');
+                content.style.display = 'none';
+                if (icon) { icon.classList.remove('fa-chevron-up'); icon.classList.add('fa-chevron-down'); }
+            }
+        }
+    });
+}
+
 function createDaySection(dayIndex, dayName, date) {
-    // Crear el contenedor principal del día (acordeón item)
     const daySection = document.createElement('div');
-    daySection.className = 'day-section accordion-item card'; 
-    daySection.setAttribute('data-day', dayIndex);
+    daySection.className = 'day-section accordion-item card';
+    daySection.setAttribute('data-day-index', dayIndex);
     daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
-    
-    // Crear el encabezado del acordeón (header)
+
     const accordionHeader = document.createElement('div');
     accordionHeader.className = 'accordion-header';
-    accordionHeader.setAttribute('data-day-index', dayIndex);
     
-    // Crear el título del día
     const dayLabel = document.createElement('h4');
     dayLabel.className = 'day-label';
     dayLabel.textContent = dayName;
-    
-    // Crear el display de la fecha
     const dayDateDisplay = document.createElement('div');
     dayDateDisplay.className = 'day-date';
-    dayDateDisplay.textContent = AppUtils.formatDate(date);
-    
-    // Crear el icono del acordeón
+    dayDateDisplay.textContent = AppUtils.formatDate(date); // Usar la fecha UTC formateada
     const accordionIcon = document.createElement('i');
     accordionIcon.className = 'fas fa-chevron-down accordion-icon';
-    
-    // Añadir elementos al header
     accordionHeader.appendChild(dayLabel);
     accordionHeader.appendChild(dayDateDisplay);
     accordionHeader.appendChild(accordionIcon);
-    
-    // Crear el contenido colapsable
+
     const accordionContent = document.createElement('div');
     accordionContent.className = 'accordion-content';
-    accordionContent.style.display = 'none'; // Inicialmente oculto
-    
-    // Crear estructura de pestañas para categorías
+    accordionContent.style.display = 'none';
+
     const tabsCategories = document.createElement('div');
     tabsCategories.className = 'tabs-categories';
-    
-    // Crear contenedor para el contenido de las pestañas
     const tabContentCategoriesContainer = document.createElement('div');
     tabContentCategoriesContainer.className = 'tab-content-categories-container';
-    
-    // Añadir las categorías como pestañas y contenido
-    Object.entries(CATEGORIES).forEach(([categoryKey, categoryName], index) => {
-        // Crear botón de pestaña para esta categoría
+
+    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
         const tabBtn = document.createElement('button');
         tabBtn.type = 'button';
         tabBtn.className = 'tab-btn-category' + (index === 0 ? ' active' : '');
         tabBtn.textContent = categoryName;
         tabBtn.setAttribute('data-category', categoryKey);
-        tabBtn.setAttribute('data-day-index', dayIndex);
-        
-        // Añadir el botón de pestaña al contenedor de pestañas
         tabsCategories.appendChild(tabBtn);
-        
-        // Crear el contenido de la pestaña para esta categoría
+
         const tabContent = document.createElement('div');
         tabContent.className = 'tab-content-category' + (index === 0 ? ' active' : '');
         tabContent.setAttribute('data-category', categoryKey);
-        
-        // Crear la sección de categoría y añadirla al contenido de la pestaña
-        const categorySection = createCategorySection(dayIndex, dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, categoryName);
-        tabContent.appendChild(categorySection);
-        
-        // Añadir el contenido de la pestaña al contenedor
+        const categorySectionDiv = createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName);
+        tabContent.appendChild(categorySectionDiv);
         tabContentCategoriesContainer.appendChild(tabContent);
     });
-    
-    // Añadir las pestañas y su contenido al contenido del acordeón
+
     accordionContent.appendChild(tabsCategories);
     accordionContent.appendChild(tabContentCategoriesContainer);
-    
-    // Añadir event listener para el toggle del acordeón
-    accordionHeader.addEventListener('click', function(event) {
-        event.stopPropagation(); // Prevenir que el evento se propague a listeners padres
-        console.log('Clic en Accordion Header:', this); // Depurar: ¿Es el elemento correcto?
-
-        const content = this.nextElementSibling; // El .accordion-content
-        console.log('Contenido del Acordeón a mostrar/ocultar:', content); // Depurar
-
-        if (!content || !content.classList.contains('accordion-content')) {
-            console.error('No se encontró el contenido del acordeón adyacente.');
-            return;
-        }
-        
-        // Toggle de la clase active en el header
-        this.classList.toggle('active');
-        
-        // Toggle del display del contenido
-        if (content.style.display === 'none' || content.style.display === '') {
-            content.style.display = 'block';
-        } else {
-            content.style.display = 'none';
-        }
-        
-        // Toggle del icono
-        const icon = this.querySelector('.accordion-icon');
-        if (icon) {
-            icon.classList.toggle('fa-chevron-down');
-            icon.classList.toggle('fa-chevron-up');
-        }
-    });
-    
-    // Añadir elementos al contenedor principal
     daySection.appendChild(accordionHeader);
     daySection.appendChild(accordionContent);
-    
-    // Configurar la navegación entre pestañas para este día
-    setupCategoryTabsNavigation(daySection);
-    
     return daySection;
 }
 
-/**
- * Configura la navegación entre pestañas de categorías dentro de un día específico
- * @param {HTMLElement} daySection - El elemento del día que contiene las pestañas
- */
-function setupCategoryTabsNavigation(daySection) {
-    if (!daySection) {
-        console.error('setupCategoryTabsNavigation: daySection es null o undefined');
-        return;
-    }
-    
-    console.log('Configurando navegación de pestañas para:', daySection);
-    
-    // Obtener todos los botones de pestaña dentro de este día
-    const tabButtons = daySection.querySelectorAll('.tab-btn-category');
-    console.log('Botones de pestaña encontrados:', tabButtons.length);
-    
-    // Añadir event listeners a cada botón de pestaña
-    tabButtons.forEach((button, index) => {
-        console.log(`Configurando botón de pestaña ${index}:`, button.textContent, 
-                   'data-category:', button.getAttribute('data-category'));
-        
-        // Remover cualquier listener previo (aunque no debería haber ninguno si setupCategoryTabsNavigation 
-        // solo se llama una vez por daySection)
-        button.removeEventListener('click', handleTabClick);
-        
-        // Añadir el listener directamente al botón original
-        button.addEventListener('click', handleTabClick);
-    });
-    
-    // Función de manejo de clics en las pestañas
-    function handleTabClick(event) {
-        // Prevenir comportamiento predeterminado y propagación
-        event.preventDefault();
-        event.stopPropagation();
-        
-        console.log('Clic en pestaña de categoría:', this.textContent);
-        
-        // Obtener la categoría de este botón
-        const categoryKey = this.getAttribute('data-category');
-        console.log('Categoría seleccionada:', categoryKey);
-        
-        // Buscar elementos RELATIVOS a daySection
-        const allTabButtonsInDay = daySection.querySelectorAll('.tab-btn-category');
-        const allTabContentsInDay = daySection.querySelectorAll('.tab-content-category');
-        
-        console.log('Desactivando', allTabButtonsInDay.length, 'botones y', 
-                   allTabContentsInDay.length, 'contenidos en este día');
-        
-        // Desactivar todas las pestañas y contenidos
-        allTabButtonsInDay.forEach(btn => btn.classList.remove('active'));
-        allTabContentsInDay.forEach(content => content.classList.remove('active'));
-        
-        // Activar esta pestaña
-        this.classList.add('active');
-        
-        // Buscar y activar el contenido correspondiente
-        const selectedContent = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
-        console.log('Contenido seleccionado:', selectedContent);
-        
-        if (selectedContent) {
-            selectedContent.classList.add('active');
-            console.log('Contenido activado correctamente');
-        } else {
-            console.error(`No se encontró contenido para la categoría ${categoryKey} en este día`);
-        }
-    }
-}
+function createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName) {
+    const categorySectionDiv = document.createElement('div');
+    categorySectionDiv.className = 'category-section-content';
 
-function createCategorySection(dayIndex, dayNameNormalized, categoryKey, categoryName) {
-    const categorySection = document.createElement('div');
-    categorySection.className = 'category-section';
-    
     const categoryTitle = document.createElement('h5');
-    categoryTitle.textContent = categoryName;
-    
+    categoryTitle.textContent = categoryName; 
+    // categorySectionDiv.appendChild(categoryTitle); // Comentado por ahora, la pestaña ya lo indica
+
     const dishesContainer = document.createElement('div');
     dishesContainer.className = 'dishes-container';
     dishesContainer.setAttribute('data-category', categoryKey);
-    
-    const firstDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, 0);
+    const firstDishInputGroup = createDishInputGroup(dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, 0);
     dishesContainer.appendChild(firstDishInputGroup);
-    
+    categorySectionDiv.appendChild(dishesContainer);
+
     const addDishBtn = document.createElement('button');
     addDishBtn.type = 'button';
     addDishBtn.className = 'add-dish-btn secondary-btn';
-    addDishBtn.innerHTML = `<i class="fas fa-plus"></i> Agregar ${categoryKey === 'bebida' ? 'Bebida' : 'Plato'}`;
+    addDishBtn.innerHTML = `<i class="fas fa-plus"></i> Agregar Opción`;
     addDishBtn.setAttribute('data-day-index', dayIndex);
     addDishBtn.setAttribute('data-category', categoryKey);
-    
-    categorySection.appendChild(categoryTitle);
-    categorySection.appendChild(dishesContainer);
-    categorySection.appendChild(addDishBtn);
-    return categorySection;
+    categorySectionDiv.appendChild(addDishBtn);
+
+    return categorySectionDiv;
 }
 
-
 function createDishInputGroup(dayNameNormalized, categoryKey, index) {
-    console.log(`Creando grupo de input para ${categoryKey} con índice ${index}`);
-    
     const dishInputGroup = document.createElement('div');
     dishInputGroup.className = 'dish-input-group';
-    dishInputGroup.setAttribute('data-category', categoryKey);
-    dishInputGroup.setAttribute('data-index', index);
     
     const dishInput = document.createElement('input');
     dishInput.type = 'text';
     dishInput.className = 'dish-input form-control';
     dishInput.name = `dish-${dayNameNormalized}-${categoryKey}-${index}`;
-    
-    // Usar placeholder específico según la categoría
-    if (categoryKey === 'bebida') {
-        dishInput.placeholder = 'Nombre de la bebida';
-    } else {
-        dishInput.placeholder = 'Nombre del plato';
-    }
+    dishInput.placeholder = categoryKey === 'bebida' ? 'Nombre de la bebida' : 'Nombre del plato';
     
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.className = 'remove-dish-btn danger-btn icon-btn'; 
+    removeBtn.className = 'remove-dish-btn danger-btn icon-btn';
     removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
     removeBtn.title = 'Eliminar';
-    // Ya no añadimos event listener aquí, lo manejamos con delegación de eventos
     
     dishInputGroup.appendChild(dishInput);
     dishInputGroup.appendChild(removeBtn);
-    
-    console.log('Grupo de input creado:', dishInputGroup);
     return dishInputGroup;
 }
 
 
-/**
- * Configura la delegación de eventos para los botones de agregar y eliminar platillos
- * Esta función reemplaza el enfoque anterior de añadir listeners individuales
- */
-function setupAddDishButtons() {
-    console.log("Configurando delegación de eventos para botones de platillos...");
-    
-    // Obtener el contenedor principal del formulario de menú
-    const menuForm = document.getElementById('menu-form');
-    if (!menuForm) {
-        console.error("Formulario de menú no encontrado");
-        return;
-    }
-    
-    // Eliminar listener anterior si existe (para evitar duplicados)
-    const newMenuForm = menuForm.cloneNode(true);
-    menuForm.parentNode.replaceChild(newMenuForm, menuForm);
-    
-    // Añadir un solo listener al formulario para manejar todos los clics
-    document.getElementById('menu-form').addEventListener('click', function(event) {
-        // Manejar botones de eliminar platillo
-        const removeButton = event.target.closest('.remove-dish-btn');
-        if (removeButton) {
-            console.log('Botón Eliminar clickeado:', removeButton);
-            const dishGroup = removeButton.closest('.dish-input-group');
-            console.log('Grupo de platillo encontrado:', dishGroup);
-            
-            if (dishGroup) {
-                console.log('Eliminando grupo de platillo...');
-                dishGroup.remove();
-                console.log('Grupo de platillo eliminado con éxito');
-            } else {
-                console.error('No se pudo encontrar el grupo de platillo para eliminar');
-            }
-            return;
-        }
-        
-        // Manejar botones de agregar platillo
-        const addButton = event.target.closest('.add-dish-btn');
-        if (addButton) {
-            console.log('Botón Agregar clickeado:', addButton);
-            
-            const dayIndex = addButton.getAttribute('data-day-index');
-            const categoryKey = addButton.getAttribute('data-category');
-            console.log('Day Index:', dayIndex, 'Category Key:', categoryKey);
-            
-            // Buscar la sección del día usando el índice
-            const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
-            console.log('Day Section encontrada:', daySection);
-            
-            if (!daySection) {
-                console.error(`No se encontró la sección para el día ${dayIndex}`);
-                return;
-            }
-
-            // Obtener el nombre del día normalizado
-            const dayNameLabel = daySection.querySelector('.day-label').textContent;
-            const dayNameNormalized = dayNameLabel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            console.log('Nombre del día normalizado:', dayNameNormalized);
-            
-            // Primero encontrar la pestaña de categoría activa
-            const activeTabContent = daySection.querySelector('.tab-content-category.active');
-            console.log('Pestaña de categoría activa:', activeTabContent);
-            
-            if (!activeTabContent) {
-                console.error("No hay pestaña de categoría activa para añadir el platillo.");
-                // Intentar activar la pestaña correspondiente a la categoría del botón
-                const tabButton = daySection.querySelector(`.tab-btn-category[data-category="${categoryKey}"]`);
-                if (tabButton) {
-                    console.log('Activando la pestaña correspondiente a la categoría del botón...');
-                    tabButton.click(); // Simular clic en la pestaña
-                }
-            }
-            
-            // Buscar el contenedor de platillos dentro de la pestaña activa
-            const activeTab = daySection.querySelector('.tab-content-category.active');
-            if (!activeTab) {
-                console.error("No se pudo activar ninguna pestaña de categoría.");
-                return;
-            }
-            
-            const dishesContainer = activeTab.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            console.log('Contenedor de platillos encontrado:', dishesContainer);
-            
-            if (!dishesContainer) {
-                console.error(`No se encontró el contenedor para la categoría ${categoryKey} en la pestaña activa.`);
-                return;
-            }
-            
-            // Crear y añadir un nuevo grupo de input para platillo
-            const dishIndex = dishesContainer.children.length;
-            console.log('Creando nuevo input group con índice:', dishIndex);
-            
-            const newDishInputGroup = createDishInputGroup(dayNameNormalized, categoryKey, dishIndex);
-            dishesContainer.appendChild(newDishInputGroup);
-            console.log('Nuevo grupo de platillo añadido con éxito');
-        }
-    });
-    
-    console.log("Delegación de eventos configurada correctamente");
-}
-
-
+// --- Funciones de guardado, carga y edición de Menús ---
 async function saveMenu() {
     const menuName = document.getElementById('menu-name').value;
-    const weekStartDate = document.getElementById('week-start-date').value;
-    
+    const weekStartDate = document.getElementById('week-start-date').value; // Ya es Lunes
+
     if (!menuName || !weekStartDate) {
         AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
         return;
     }
-    
+
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
-        active: true, 
+        active: true,
+        days: []
     };
-     if (currentEditingMenuId) {
-        menuData.id = currentEditingMenuId; // Pasar ID solo si estamos editando
-    }
-    
-    const days = [];
-    const daySections = document.querySelectorAll('.day-section');
-    
+
+    const daySections = document.querySelectorAll('#days-container .day-section.accordion-item');
     daySections.forEach(daySection => {
-        const dayIndex = parseInt(daySection.getAttribute('data-day'));
+        const dayIndex = parseInt(daySection.getAttribute('data-day-index'));
         const dayDate = daySection.getAttribute('data-date');
-        const dayName = DAYS_OF_WEEK[dayIndex];
-        
-        const dayData = {
+        const dayName = AppUtils.DAYS_OF_WEEK[dayIndex];
+
+        const dayDataObject = {
             id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
             name: dayName,
             date: dayDate,
             dishes: []
         };
-        
-        Object.keys(CATEGORIES).forEach(categoryKey => {
-            const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-            if (dishesContainer) {
-                const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
-                dishGroups.forEach(dishGroup => {
-                    const dishNameInput = dishGroup.querySelector('.dish-input');
-                    if (dishNameInput && dishNameInput.value.trim()) {
-                        dayData.dishes.push({
-                            id: 'dish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + categoryKey + dayIndex,
-                            name: dishNameInput.value.trim(),
-                            category: categoryKey,
-                            description: '', 
-                            price: 0.00      
-                        });
-                    }
-                });
+
+        Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+            const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+            if (tabContentForCategory) {
+                const dishesContainer = tabContentForCategory.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
+                if (dishesContainer) {
+                    dishesContainer.querySelectorAll('.dish-input-group .dish-input').forEach(dishInput => {
+                        if (dishInput.value.trim()) {
+                            dayDataObject.dishes.push({
+                                id: `dish_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${categoryKey}_${dayIndex}`,
+                                name: dishInput.value.trim(),
+                                category: categoryKey,
+                                description: '',
+                                price: 0.00
+                            });
+                        }
+                    });
+                }
             }
         });
-        
-        if (dayData.dishes.length > 0) {
-            days.push(dayData);
-        }
+        // Guardar el día incluso si no tiene platillos (para que el coordinador sepa que está activo)
+        menuData.days.push(dayDataObject);
     });
-    
-    if (days.length === 0 && !currentEditingMenuId) {
-        AppUtils.showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
+
+    // Validar si hay al menos un platillo si es un menú nuevo
+    const totalDishes = menuData.days.reduce((acc, day) => acc + day.dishes.length, 0);
+    if (totalDishes === 0 && !currentEditingMenuId) {
+        AppUtils.showNotification('Por favor, agregue al menos un platillo a algún día del menú.', 'error');
         return;
     }
-    
-    menuData.days = days;
-    
+
     const saveButton = document.getElementById('save-menu-btn');
     const originalButtonHtml = saveButton.innerHTML;
     saveButton.disabled = true;
     saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
-    
+
     try {
-        let success = false;
+        let success;
         if (currentEditingMenuId) {
-            // Para actualizar, pasamos el ID y los datos
+            menuData.id = currentEditingMenuId; // Añadir ID para la actualización
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         } else {
-             // Para añadir, no pasamos ID, Firebase lo genera
-            success = await FirebaseMenuModel.add(menuData);
+            // Para un nuevo menú, FirebaseMenuModel.add se encarga de generar el ID
+            const newMenuId = await FirebaseMenuModel.addAndGetId(menuData); // Asumimos que addAndGetId existe y devuelve el ID
+            if (newMenuId) {
+                 success = true;
+                 // No necesitamos hacer nada más con newMenuId aquí a menos que
+                 // la lógica de subida de imagen se reintroduzca y necesite este ID.
+            } else {
+                success = false;
+            }
         }
-        
+
         if (success) {
             AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú guardado.', 'success');
             loadSavedMenus();
@@ -933,126 +602,99 @@ async function saveMenu() {
     }
 }
 
+
 function calculateEndDateForMenu(startDateStr) {
-    const startDate = new Date(startDateStr + 'T00:00:00');
+    const startDate = new Date(startDateStr + 'T00:00:00Z');
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
+    endDate.setUTCDate(startDate.getUTCDate() + 6);
     return AppUtils.formatDateForInput(endDate);
 }
 
 async function loadSavedMenus() {
     const savedMenusContainer = document.getElementById('saved-menus-container');
     if (!savedMenusContainer) return;
-
-    savedMenusContainer.innerHTML = '<p class="empty-state"><span class="spinner"></span> Cargando...</p>';
-    
+    savedMenusContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menús...</p>';
     try {
         const menus = await FirebaseMenuModel.getAll();
-        savedMenusContainer.innerHTML = ''; 
-        
+        savedMenusContainer.innerHTML = '';
         if (menus.length === 0) {
             savedMenusContainer.innerHTML = '<p class="empty-state">No hay menús guardados.</p>';
             return;
         }
-        
-        menus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-        
-        menus.forEach(menu => {
-            const menuItem = createMenuItemElement(menu);
-            savedMenusContainer.appendChild(menuItem);
-        });
+        menus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
+        menus.forEach(menu => savedMenusContainer.appendChild(createMenuItemElement(menu)));
     } catch (error) {
         console.error('Error al cargar menús guardados:', error);
         savedMenusContainer.innerHTML = '<p class="error-state">Error al cargar menús.</p>';
     }
 }
 
-
 function createMenuItemElement(menu) {
     const menuItem = document.createElement('div');
-    menuItem.className = 'menu-item card'; 
+    menuItem.className = 'menu-item card';
     menuItem.setAttribute('data-id', menu.id);
-    
+
     const menuHeader = document.createElement('div');
     menuHeader.className = 'menu-header';
-    
     const menuInfo = document.createElement('div');
     menuInfo.className = 'menu-info';
-    
     const menuTitle = document.createElement('h4');
     menuTitle.className = 'menu-title';
     menuTitle.textContent = menu.name;
-    
     const menuDateRange = document.createElement('div');
     menuDateRange.className = 'menu-date';
-    const startDateObj = menu.startDate ? new Date(menu.startDate + 'T00:00:00') : null;
-    const endDateObj = menu.endDate ? new Date(menu.endDate + 'T00:00:00') : null;
-    const startDate = startDateObj ? AppUtils.formatDate(startDateObj) : 'N/A';
-    const endDate = endDateObj ? AppUtils.formatDate(endDateObj) : 'N/A';
-    menuDateRange.textContent = `Vigente: ${startDate} - ${endDate}`;
-    
+    const startDateObj = menu.startDate ? new Date(menu.startDate + 'T00:00:00Z') : null;
+    const endDateObj = menu.endDate ? new Date(menu.endDate + 'T00:00:00Z') : null;
+    menuDateRange.textContent = `Vigente: ${startDateObj ? AppUtils.formatDate(startDateObj) : 'N/A'} - ${endDateObj ? AppUtils.formatDate(endDateObj) : 'N/A'}`;
     menuInfo.appendChild(menuTitle);
     menuInfo.appendChild(menuDateRange);
-    
+
     const menuActions = document.createElement('div');
     menuActions.className = 'menu-actions';
-    
     const editBtn = document.createElement('button');
     editBtn.className = 'secondary-btn icon-btn';
     editBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
     editBtn.title = "Editar Menú";
     editBtn.addEventListener('click', (e) => { e.stopPropagation(); editMenu(menu.id); });
-    
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'danger-btn icon-btn';
     deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
     deleteBtn.title = "Eliminar Menú";
     deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); await deleteMenu(menu.id); });
-    
     menuActions.appendChild(editBtn);
     menuActions.appendChild(deleteBtn);
-    
+
     const chevron = document.createElement('i');
-    chevron.className = 'fas fa-chevron-down collapser-icon'; 
-    
+    chevron.className = 'fas fa-chevron-down collapser-icon';
     menuHeader.appendChild(menuInfo);
     menuHeader.appendChild(menuActions);
-    menuHeader.appendChild(chevron); 
-    
-    const menuContent = document.createElement('div');
-    menuContent.className = 'menu-content'; 
-    
-    if (menu.days && Array.isArray(menu.days) && menu.days.length > 0) {
-        const dayOrder = { 'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6, 'domingo': 7 };
-        const sortedDays = [...menu.days].sort((a,b) => {
-            const aKey = a.id || a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const bKey = b.id || b.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return (dayOrder[aKey] || 99) - (dayOrder[bKey] || 99);
-        });
+    menuHeader.appendChild(chevron);
 
+    const menuContent = document.createElement('div');
+    menuContent.className = 'menu-content';
+    if (menu.days && menu.days.some(day => day.dishes && day.dishes.length > 0)) {
+        const dayOrder = { 'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6, 'domingo': 7 };
+        const sortedDays = [...menu.days].sort((a,b) => (dayOrder[a.id] || 99) - (dayOrder[b.id] || 99));
+        
         sortedDays.forEach(day => {
             if (!day.dishes || day.dishes.length === 0) return;
-
             const dayDiv = document.createElement('div');
             dayDiv.className = 'menu-day-details';
-            
-            const dayTitleElement = document.createElement('h5'); // Renombrado
+            const dayTitleElement = document.createElement('h5');
             dayTitleElement.className = 'menu-day-title';
-            const dayDate = day.date ? AppUtils.formatDate(new Date(day.date + 'T00:00:00')) : '';
+            const dayDate = day.date ? AppUtils.formatDate(new Date(day.date + 'T00:00:00Z')) : '';
             dayTitleElement.textContent = `${day.name} (${dayDate})`;
             dayDiv.appendChild(dayTitleElement);
 
-            Object.keys(CATEGORIES).forEach(categoryKey => {
+            Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName]) => {
                 const dishesInCategory = day.dishes.filter(d => d.category === categoryKey);
                 if (dishesInCategory.length > 0) {
                     const categoryDiv = document.createElement('div');
                     categoryDiv.className = 'menu-category-details';
-                    
                     const categoryTitleElement = document.createElement('h6');
                     categoryTitleElement.className = 'menu-category-title';
-                    categoryTitleElement.textContent = CATEGORIES[categoryKey] || categoryKey.replace('_',' ').replace(/\b\w/g, l => l.toUpperCase());
+                    categoryTitleElement.textContent = categoryName;
                     categoryDiv.appendChild(categoryTitleElement);
-
                     const ul = document.createElement('ul');
                     dishesInCategory.forEach(dish => {
                         const li = document.createElement('li');
@@ -1067,13 +709,13 @@ function createMenuItemElement(menu) {
             menuContent.appendChild(dayDiv);
         });
     } else {
-        menuContent.innerHTML = '<p class="empty-state-small">No hay platillos detallados.</p>';
+        menuContent.innerHTML = '<p class="empty-state-small">No hay platillos detallados para este menú.</p>';
     }
-    
+
     menuHeader.addEventListener('click', function() {
-        menuContent.classList.toggle('active');
-        chevron.classList.toggle('fa-chevron-down');
-        chevron.classList.toggle('fa-chevron-up');
+        const isActive = menuContent.classList.toggle('active');
+        chevron.classList.toggle('fa-chevron-down', !isActive);
+        chevron.classList.toggle('fa-chevron-up', isActive);
     });
 
     menuItem.appendChild(menuHeader);
@@ -1087,101 +729,102 @@ async function editMenu(menuId) {
         AppUtils.showNotification('Menú no encontrado.', 'error');
         return;
     }
-    
+
     currentEditingMenuId = menuId;
     document.getElementById('menu-name').value = menu.name;
-    document.getElementById('week-start-date').value = menu.startDate;
-    
-    generateWeekDays(menu.startDate); 
-    
-    if (menu.days && Array.isArray(menu.days)) {
-        // Esperar un ciclo para asegurar que los días se hayan renderizado por generateWeekDays
-        setTimeout(() => {
+    document.getElementById('week-start-date').value = menu.startDate; // Ya debería ser un Lunes
+
+    generateWeekDays(menu.startDate); // Esto regenera la estructura
+
+    setTimeout(() => { // Delay para asegurar que el DOM esté listo
+        if (menu.days && Array.isArray(menu.days)) {
             menu.days.forEach(dayData => {
-                const dayIndex = DAYS_OF_WEEK.indexOf(dayData.name);
+                const dayIndex = AppUtils.DAYS_OF_WEEK.indexOf(dayData.name);
                 if (dayIndex === -1) return;
 
-                const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
+                const daySection = document.querySelector(`#days-container .day-section[data-day-index="${dayIndex}"]`);
                 if (!daySection) return;
-                
-                // Expandir el acordeón si contiene platos
-                const accordionHeader = daySection.querySelector('.accordion-header');
-                const accordionContent = daySection.querySelector('.accordion-content');
-                
-                if (accordionHeader && accordionContent && dayData.dishes.length > 0) {
-                    // Activar el header y mostrar el contenido
-                    accordionHeader.classList.add('active');
-                    accordionContent.style.display = 'block';
-                    
-                    // Cambiar el icono
-                    const icon = accordionHeader.querySelector('.accordion-icon');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-up');
+
+                let firstCategoryWithDishesThisDay = null;
+
+                // Limpiar contenedores de platillos para este día antes de llenarlos
+                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                    const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+                    if (tabContentForCategory) {
+                        const dishesContainer = tabContentForCategory.querySelector('.dishes-container');
+                        if (dishesContainer) dishesContainer.innerHTML = ''; // Limpiar
                     }
-                    
-                    // Activar las pestañas correspondientes a las categorías que tienen platos
-                    const categoriesWithDishes = new Set(dayData.dishes.map(dish => dish.category));
-                    
-                    // Si hay platos, activar la primera pestaña que tenga platos
-                    if (categoriesWithDishes.size > 0) {
-                        const firstCategoryWithDishes = [...categoriesWithDishes][0];
-                        
-                        // Desactivar todas las pestañas y contenidos
-                        const allTabButtons = daySection.querySelectorAll('.tab-btn-category');
-                        const allTabContents = daySection.querySelectorAll('.tab-content-category');
-                        
-                        allTabButtons.forEach(btn => btn.classList.remove('active'));
-                        allTabContents.forEach(content => content.classList.remove('active'));
-                        
-                        // Activar la pestaña y contenido de la primera categoría con platos
-                        const tabButton = daySection.querySelector(`.tab-btn-category[data-category="${firstCategoryWithDishes}"]`);
-                        const tabContent = daySection.querySelector(`.tab-content-category[data-category="${firstCategoryWithDishes}"]`);
-                        
-                        if (tabButton) tabButton.classList.add('active');
-                        if (tabContent) tabContent.classList.add('active');
-                    }
+                });
+                
+                // Llenar platillos
+                if (dayData.dishes && dayData.dishes.length > 0) {
+                    dayData.dishes.forEach(dish => {
+                        const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${dish.category}"]`);
+                        if (tabContentForCategory) {
+                            const dishesContainer = tabContentForCategory.querySelector('.dishes-container');
+                            if (dishesContainer) {
+                                const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                const newDishGroup = createDishInputGroup(dayNameNormalized, dish.category, dishesContainer.children.length);
+                                newDishGroup.querySelector('.dish-input').value = dish.name;
+                                dishesContainer.appendChild(newDishGroup);
+                                if (!firstCategoryWithDishesThisDay) {
+                                    firstCategoryWithDishesThisDay = dish.category;
+                                }
+                            }
+                        }
+                    });
                 }
 
-                // Limpiar inputs antes de añadir
-                Object.keys(CATEGORIES).forEach(categoryKey => {
-                    const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-                    if(dishesContainer) dishesContainer.innerHTML = ''; 
+                // Añadir input vacío si una categoría quedó vacía después de llenarla
+                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                     const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
+                     if(tabContentForCategory){
+                        const dishesContainer = tabContentForCategory.querySelector('.dishes-container');
+                        if (dishesContainer && dishesContainer.children.length === 0) {
+                            const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            dishesContainer.appendChild(createDishInputGroup(dayNameNormalized, categoryKey, 0));
+                        }
+                     }
                 });
 
-                dayData.dishes.forEach(dish => {
-                    const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${dish.category}"]`);
-                    if (dishesContainer) {
-                        const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        const newDishGroup = createDishInputGroup(dayNameNormalized, dish.category, dishesContainer.children.length);
-                        newDishGroup.querySelector('.dish-input').value = dish.name;
-                        dishesContainer.appendChild(newDishGroup);
+                // Expandir acordeón y activar la primera pestaña con contenido
+                if (firstCategoryWithDishesThisDay) {
+                    const accordionHeader = daySection.querySelector('.accordion-header');
+                    if (accordionHeader && !accordionHeader.classList.contains('active')) {
+                        accordionHeader.click(); // Simula clic para expandir
                     }
-                });
-                 // Añadir input vacío si la categoría quedó vacía
-                Object.keys(CATEGORIES).forEach(categoryKey => {
-                    const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
-                    if (dishesContainer && dishesContainer.children.length === 0) {
-                         const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                         dishesContainer.appendChild(createDishInputGroup(dayNameNormalized, categoryKey, 0));
+                    const tabButtonToActivate = daySection.querySelector(`.tab-btn-category[data-category="${firstCategoryWithDishesThisDay}"]`);
+                    if (tabButtonToActivate && !tabButtonToActivate.classList.contains('active')) {
+                         // Esperar a que el acordeón se expanda antes de clickear la pestaña
+                        setTimeout(() => tabButtonToActivate.click(), 50); 
                     }
-                });
+                }
             });
-             document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-             AppUtils.showNotification('Menú cargado para edición.', 'info');
-        }, 0); // Ejecutar después del render actual
-    } else {
-         document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-         AppUtils.showNotification('Menú cargado (sin platillos detallados).', 'info');
-    }
+        }
+        document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
+        AppUtils.showNotification('Menú cargado para edición.', 'info');
+    }, 150); // Aumentar un poco el delay general para el renderizado de todos los días
 }
 
-
 async function deleteMenu(menuId) {
-    if (!confirm('¿Está seguro de que desea eliminar este menú?')) {
-        return false;
-    }
+    if (!confirm('¿Está seguro de que desea eliminar este menú?')) return false;
     try {
+        const menuToDelete = await FirebaseMenuModel.get(menuId); // Obtener el menú para su imageUrl
+
+        // Lógica para borrar la imagen de Firebase Storage si existe
+        if (menuToDelete && menuToDelete.imageUrl) {
+            try {
+                const imageRef = firebase.storage().refFromURL(menuToDelete.imageUrl);
+                await imageRef.delete();
+                console.log("Imagen del menú eliminada de Storage:", menuToDelete.imageUrl);
+            } catch (storageError) {
+                console.error("Error al eliminar imagen del menú de Storage:", storageError);
+                // No detener la eliminación del menú de Firestore si falla el borrado de la imagen,
+                // pero sí notificar o loguear.
+                AppUtils.showNotification('Error al eliminar imagen asociada. Contacte soporte.', 'warning');
+            }
+        }
+
         const success = await FirebaseMenuModel.delete(menuId);
         if (success) {
             AppUtils.showNotification('Menú eliminado.', 'success');
@@ -1189,37 +832,48 @@ async function deleteMenu(menuId) {
             if (currentEditingMenuId === menuId) resetMenuForm();
             return true;
         } else {
-            AppUtils.showNotification('Error al eliminar menú.', 'error');
+            AppUtils.showNotification('Error al eliminar menú de Firestore.', 'error');
             return false;
         }
     } catch (error) {
-        console.error('Error al eliminar menú:', error);
+        console.error('Error general al eliminar menú:', error);
         AppUtils.showNotification('Error al eliminar menú.', 'error');
         return false;
     }
 }
 
-function resetMenuForm() { 
+function resetMenuForm() {
     currentEditingMenuId = null;
+    originalMenuImageUrl = null; // Resetear imagen original rastreada
     const form = document.getElementById('menu-form');
-    if(form) form.reset();
+    if (form) form.reset();
+
+    // Resetear vista previa de imagen
+    const menuImagePreview = document.getElementById('menu-image-preview');
+    const imagePreviewContainer = document.querySelector('.image-preview-container');
+    const menuImageInput = document.getElementById('menu-image-input');
+    if (menuImagePreview) menuImagePreview.src = '';
+    if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
+    if (menuImageInput) menuImageInput.value = '';
+    
     const today = new Date();
+    const mondayOfThisWeek = getMondayOfGivenDate(today);
     const dateInput = document.getElementById('week-start-date');
-    if(dateInput) dateInput.value = AppUtils.formatDateForInput(today);
-    generateWeekDays(AppUtils.formatDateForInput(today)); // Regenerar días vacíos
+    if (dateInput) dateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
+    
+    generateWeekDays(dateInput.value); // Regenerar con el primer día expandido
     AppUtils.showNotification('Formulario limpiado.', 'info');
 }
 
 
-const CoordinatorManagement = {
+const CoordinatorManagement = { /* Tu código existente, sin cambios directos por estos prompts */ 
     currentEditingCoordinatorId: null,
-    initialized: false, // Flag para evitar doble inicialización
-    
+    initialized: false,
     init: function() {
-        if (this.initialized) return; // Evitar re-inicializar
-        console.log("Inicializando CoordinatorManagement...");
-
-        const coordinatorForm = document.getElementById('coordinator-form');
+        if (this.initialized) return;
+        this.initialized = true;
+        // ... tu código ...
+         const coordinatorForm = document.getElementById('coordinator-form');
         const resetFormBtn = document.getElementById('reset-coordinator-form-btn');
         
         if (!coordinatorForm || !resetFormBtn) {
@@ -1227,7 +881,6 @@ const CoordinatorManagement = {
             return;
         }
 
-        // Limpiar listeners previos antes de añadir nuevos
         const newForm = coordinatorForm.cloneNode(true);
         coordinatorForm.parentNode.replaceChild(newForm, coordinatorForm);
         newForm.addEventListener('submit', async (event) => {
@@ -1254,14 +907,11 @@ const CoordinatorManagement = {
         }
         
         this.loadCoordinators().catch(error => console.error('Error loading coordinators:', error));
-        this.initialized = true; // Marcar como inicializado
     },
-    
     generateAccessCode: function() {
         return Array(6).fill(0).map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36))).join('');
     },
-    
-    saveCoordinator: async function() {
+    saveCoordinator: async function() { /* ... Tu código ... */ 
         const nameInput = document.getElementById('coordinator-name');
         const emailInput = document.getElementById('coordinator-email');
         const phoneInput = document.getElementById('coordinator-phone');
@@ -1294,7 +944,6 @@ const CoordinatorManagement = {
         }
 
         const coordinatorData = { name, email, phone, department, accessCode, active: true };
-        // NO incluir ID aquí para añadir, SÍ incluirlo para actualizar
         
         const saveButton = document.getElementById('save-coordinator-btn');
         const originalButtonHtml = saveButton.innerHTML;
@@ -1304,10 +953,8 @@ const CoordinatorManagement = {
         try {
             let success = false;
             if (this.currentEditingCoordinatorId) {
-                // El modelo de update necesita el ID y los datos
                 success = await FirebaseCoordinatorModel.update(this.currentEditingCoordinatorId, coordinatorData);
             } else {
-                 // El modelo add maneja la creación del ID si no se pasa
                 success = await FirebaseCoordinatorModel.add(coordinatorData);
             }
             
@@ -1325,20 +972,19 @@ const CoordinatorManagement = {
             saveButton.disabled = false;
             saveButton.innerHTML = originalButtonHtml;
         }
-        return true; 
+        return true;
     },
-    
-    loadCoordinators: async function() {
+    loadCoordinators: async function() { /* ... Tu código ... */ 
         const list = document.getElementById('coordinators-list');
         const msg = document.getElementById('no-coordinators-message');
         const table = document.getElementById('coordinators-table');
 
         if (!list || !msg || !table) return;
-        list.innerHTML = '<td colspan="5" class="empty-state"><span class="spinner"></span> Cargando...</td>';
+        list.innerHTML = '<tr><td colspan="5" class="loading-state"><span class="spinner"></span> Cargando...</td></tr>'; // Mejor feedback
         
         try {
             const coordinators = await FirebaseCoordinatorModel.getAll();
-            list.innerHTML = ''; // Limpiar después de cargar
+            list.innerHTML = ''; 
 
             if (coordinators.length === 0) {
                 msg.style.display = 'block';
@@ -1391,9 +1037,7 @@ const CoordinatorManagement = {
             table.style.display = 'none';
         }
     },
-        
-    editCoordinator: async function(coordinatorId) {
-        console.log("Intentando editar coordinador:", coordinatorId);
+    editCoordinator: async function(coordinatorId) { /* ... Tu código ... */ 
         const coordinator = await FirebaseCoordinatorModel.get(coordinatorId);
         if (!coordinator) {
             AppUtils.showNotification('Coordinador no encontrado.', 'error');
@@ -1401,29 +1045,17 @@ const CoordinatorManagement = {
         }
         
         this.currentEditingCoordinatorId = coordinatorId;
-        // Asignar valores a los elementos del formulario
-        const nameInput = document.getElementById('coordinator-name');
-        const emailInput = document.getElementById('coordinator-email');
-        const phoneInput = document.getElementById('coordinator-phone');
-        const departmentSelect = document.getElementById('coordinator-department');
-        const accessCodeInput = document.getElementById('coordinator-access-code');
-        const accessCodeContainer = document.getElementById('access-code-container');
-        const saveBtn = document.getElementById('save-coordinator-btn');
-        const form = document.getElementById('coordinator-form');
-        
-        if(nameInput) nameInput.value = coordinator.name;
-        if(emailInput) emailInput.value = coordinator.email;
-        if(phoneInput) phoneInput.value = coordinator.phone || '';
-        if(departmentSelect) departmentSelect.value = coordinator.department;
-        if(accessCodeInput) accessCodeInput.value = coordinator.accessCode;
-        if(accessCodeContainer) accessCodeContainer.style.display = 'block';
-        if(saveBtn) saveBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Coordinador';
-        if(form) form.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('coordinator-name').value = coordinator.name;
+        document.getElementById('coordinator-email').value = coordinator.email;
+        document.getElementById('coordinator-phone').value = coordinator.phone || '';
+        document.getElementById('coordinator-department').value = coordinator.department;
+        document.getElementById('coordinator-access-code').value = coordinator.accessCode;
+        document.getElementById('access-code-container').style.display = 'block';
+        document.getElementById('save-coordinator-btn').innerHTML = '<i class="fas fa-save"></i> Actualizar Coordinador';
+        document.getElementById('coordinator-form').scrollIntoView({ behavior: 'smooth' });
     },
-    
-    deleteCoordinator: async function(coordinatorId) {
-        if (!confirm('¿Está seguro de que desea eliminar este coordinador?')) return;
-        
+    deleteCoordinator: async function(coordinatorId) { /* ... Tu código ... */ 
+         if (!confirm('¿Está seguro de que desea eliminar este coordinador?')) return;
         try {
             const success = await FirebaseCoordinatorModel.delete(coordinatorId);
             if (success) {
@@ -1438,24 +1070,15 @@ const CoordinatorManagement = {
             AppUtils.showNotification('Error al eliminar coordinador.', 'error');
         }
     },
-    
-    copyAccessCode: function() {
+    copyAccessCode: function() { /* ... Tu código ... */ 
         const codeInput = document.getElementById('coordinator-access-code');
-        if(codeInput && navigator.clipboard) { // Usar API Clipboard si está disponible
+        if(codeInput && navigator.clipboard) { 
             navigator.clipboard.writeText(codeInput.value)
                 .then(() => AppUtils.showNotification('Código copiado.', 'success'))
                 .catch(err => {
-                     console.error('Error al copiar con API Clipboard:', err);
-                     // Fallback a execCommand si falla o no está disponible
-                     try {
-                        codeInput.select();
-                        document.execCommand('copy');
-                        AppUtils.showNotification('Código copiado (fallback).', 'success');
-                     } catch(execErr) {
-                        AppUtils.showNotification('Error al copiar código.', 'error');
-                     }
+                     AppUtils.showNotification('Error al copiar código.', 'error');
                 });
-        } else if (codeInput) { // Fallback para navegadores antiguos
+        } else if (codeInput) { 
              try {
                 codeInput.select();
                 document.execCommand('copy');
@@ -1465,35 +1088,26 @@ const CoordinatorManagement = {
              }
         }
     },
-    
-    regenerateAccessCode: function() {
+    regenerateAccessCode: function() { /* ... Tu código ... */ 
         const newCode = this.generateAccessCode();
-        const codeInput = document.getElementById('coordinator-access-code');
-        if(codeInput) codeInput.value = newCode;
+        document.getElementById('coordinator-access-code').value = newCode;
         AppUtils.showNotification('Nuevo código generado. Guarde los cambios.', 'info');
     },
-    
-    resetCoordinatorForm: function() {
+    resetCoordinatorForm: function() { /* ... Tu código ... */ 
         this.currentEditingCoordinatorId = null;
-        const form = document.getElementById('coordinator-form');
-        if(form) form.reset();
-        const accessCodeContainer = document.getElementById('access-code-container');
-        if(accessCodeContainer) accessCodeContainer.style.display = 'none';
-        const saveBtn = document.getElementById('save-coordinator-btn');
-        if(saveBtn) saveBtn.innerHTML = '<i class="fas fa-save"></i> Agregar Coordinador';
-        // AppUtils.showNotification('Formulario de coordinador limpiado.', 'info'); // Puede ser molesto
+        document.getElementById('coordinator-form').reset();
+        document.getElementById('access-code-container').style.display = 'none';
+        document.getElementById('save-coordinator-btn').innerHTML = '<i class="fas fa-save"></i> Agregar Coordinador';
     }
 };
-
-const ConfirmationReportManagement = {
+const ConfirmationReportManagement = { /* Tu código existente, asegurando uso de AppUtils.DAYS_OF_WEEK */ 
     currentWeekStartDate: null,
-    daysOfWeek: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-    initialized: false, // Flag
-
+    // daysOfWeek: AppUtils.DAYS_OF_WEEK, // Referenciar desde AppUtils
+    initialized: false,
     init: function() {
-        if(this.initialized) return;
-        console.log("Inicializando ConfirmationReportManagement...");
-
+        if (this.initialized) return;
+        this.initialized = true;
+        
         this.weekSelector = document.getElementById('week-selector');
         this.prevWeekBtn = document.getElementById('prev-week-btn');
         this.nextWeekBtn = document.getElementById('next-week-btn');
@@ -1506,19 +1120,16 @@ const ConfirmationReportManagement = {
             return;
         }
         
-        this.setCurrentWeek(this.getMonday(new Date()));
+        this.setCurrentWeek(this.getMonday(new Date())); 
         this.setupEventListeners();
         this.loadConfirmationData().catch(error => console.error('Error loading initial report data:', error));
-        this.initialized = true;
     },
-    
-    setupEventListeners: function() {
-        // Remover listeners viejos antes de añadir nuevos
+    setupEventListeners: function() { 
         const newWeekSel = this.weekSelector.cloneNode(true);
         this.weekSelector.parentNode.replaceChild(newWeekSel, this.weekSelector);
         this.weekSelector = newWeekSel;
         this.weekSelector.addEventListener('change', () => {
-            this.setCurrentWeek(this.getMonday(new Date(this.weekSelector.value + 'T00:00:00')));
+            this.setCurrentWeek(this.getMonday(new Date(this.weekSelector.value + 'T00:00:00Z')));
             this.loadConfirmationData();
         });
 
@@ -1532,58 +1143,46 @@ const ConfirmationReportManagement = {
         this.nextWeekBtn = newNextBtn;
         this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
     },
-
-    changeWeek: function(dayOffset) {
+    changeWeek: function(dayOffset) { 
         const newDate = new Date(this.currentWeekStartDate);
-        newDate.setDate(newDate.getDate() + dayOffset);
+        newDate.setUTCDate(newDate.getUTCDate() + dayOffset); 
         this.setCurrentWeek(this.getMonday(newDate)); 
         this.loadConfirmationData();
     },
-    
-    setCurrentWeek: function(monday) {
-        this.currentWeekStartDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+    setCurrentWeek: function(monday) { 
+        this.currentWeekStartDate = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate()));
         this.weekSelector.value = AppUtils.formatDateForInput(this.currentWeekStartDate);
         this.updateDaysHeader();
     },
-    
-    getMonday: function(dParam) {
-        const d = new Date(dParam); 
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
-        d.setDate(diff);
-        d.setHours(0,0,0,0);
-        return d;
+    getMonday: function(dParam) { 
+        return getMondayOfGivenDate(dParam); 
     },
-    
     formatDateForDisplayInReport: function(date) { 
-        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`; 
     },
-    
-    updateDaysHeader: function() {
-         if (!this.daysHeader) return;
-        // Limpiar manteniendo 'Departamento' y 'Total'
-        const fixedHeaders = [this.daysHeader.firstElementChild, this.daysHeader.lastElementChild];
-        this.daysHeader.innerHTML = ''; // Limpiar todo
-        this.daysHeader.appendChild(fixedHeaders[0]); // Añadir 'Departamento' de nuevo
+    updateDaysHeader: function() { 
+        if (!this.daysHeader) return;
+        const fixedHeaders = [this.daysHeader.firstElementChild.cloneNode(true), this.daysHeader.lastElementChild.cloneNode(true)]; // Clonar para evitar problemas al limpiar innerHTML
+        this.daysHeader.innerHTML = ''; 
+        this.daysHeader.appendChild(fixedHeaders[0]); 
 
         for (let i = 0; i < 7; i++) {
             const dayDate = new Date(this.currentWeekStartDate);
-            dayDate.setDate(dayDate.getDate() + i);
+            dayDate.setUTCDate(dayDate.getUTCDate() + i); 
             const th = document.createElement('th');
-            th.innerHTML = `${this.daysOfWeek[i]}<br><small>${this.formatDateForDisplayInReport(dayDate)}</small>`;
-            this.daysHeader.appendChild(th); // Añadir día
+            th.innerHTML = `${AppUtils.DAYS_OF_WEEK[i]}<br><small>${this.formatDateForDisplayInReport(dayDate)}</small>`;
+            this.daysHeader.appendChild(th);
         }
-        this.daysHeader.appendChild(fixedHeaders[1]); // Añadir 'Total' de nuevo
+        this.daysHeader.appendChild(fixedHeaders[1]);
     },
-    
-    loadConfirmationData: async function() {
+    loadConfirmationData: async function() { 
         if (!this.confirmationsBody) return;
-        this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="empty-state"><span class="spinner"></span> Cargando...</td></tr>`;
+        this.confirmationsBody.innerHTML = `<tr><td colspan="${AppUtils.DAYS_OF_WEEK.length + 2}" class="empty-state"><span class="spinner"></span> Cargando...</td></tr>`;
 
         try {
             const coordinators = await FirebaseCoordinatorModel.getAll();
             if (coordinators.length === 0) {
-                 this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="empty-state">No hay coordinadores.</td></tr>`;
+                 this.confirmationsBody.innerHTML = `<tr><td colspan="${AppUtils.DAYS_OF_WEEK.length + 2}" class="empty-state">No hay coordinadores.</td></tr>`;
                  this.updateTotalsFooter(Array(7).fill(0),0); 
                  return;
             }
@@ -1592,7 +1191,6 @@ const ConfirmationReportManagement = {
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
             
             const departmentData = {};
-            // Inicializar todos los departamentos de los coordinadores existentes
             coordinators.forEach(coord => {
                  if (!departmentData[coord.department]) {
                     departmentData[coord.department] = {
@@ -1602,33 +1200,28 @@ const ConfirmationReportManagement = {
                 }
             });
 
-
             allConfirmations.forEach(conf => {
                 let confWeekStartStr = conf.weekStartDate;
-                // Normalizar fecha de confirmación
                 if (conf.weekStartDate && typeof conf.weekStartDate.toDate === 'function') {
                     confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate.toDate());
                 } else if (conf.weekStartDate instanceof Date) {
                      confWeekStartStr = AppUtils.formatDateForInput(conf.weekStartDate);
                 } else if (typeof conf.weekStartDate === 'string' && conf.weekStartDate.includes('T')) {
                     confWeekStartStr = conf.weekStartDate.split('T')[0];
-                } // Asumir que si es string sin T, ya está en YYYY-MM-DD
+                }
 
-                // Procesar si la confirmación es de la semana actual
                 if (confWeekStartStr === weekStartStr) {
                     const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
-                    // Sumar solo si el coordinador existe y pertenece a un departamento conocido
                     if (coordinator && departmentData[coordinator.department]) {
                         const dept = departmentData[coordinator.department];
-                        this.daysOfWeek.forEach((dayName, index) => {
+                        AppUtils.DAYS_OF_WEEK.forEach((dayName, index) => {
                             const dayId = dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                            // Usar hasOwnProperty para distinguir 0 de undefined
                             if (conf.attendanceCounts && conf.attendanceCounts.hasOwnProperty(dayId)) { 
                                 const count = parseInt(conf.attendanceCounts[dayId], 10);
                                 const validCount = isNaN(count) ? 0 : count;
                                 dept.days[index] += validCount;
                                 dept.total += validCount;
-                                dept.pendingDays[index] = false; // Marcar como no pendiente si hay datos
+                                dept.pendingDays[index] = false; 
                             }
                         });
                     }
@@ -1637,20 +1230,22 @@ const ConfirmationReportManagement = {
             this.updateConfirmationsTable(departmentData);
         } catch (error) {
             console.error('Error al cargar datos de confirmación:', error);
-            this.confirmationsBody.innerHTML = `<tr><td colspan="${this.daysOfWeek.length + 2}" class="error-state">Error al cargar reportes.</td></tr>`;
+            this.confirmationsBody.innerHTML = `<tr><td colspan="${AppUtils.DAYS_OF_WEEK.length + 2}" class="error-state">Error al cargar reportes.</td></tr>`;
         }
     },
-    
-    updateConfirmationsTable: function(departmentData) {
+    updateConfirmationsTable: function(departmentData) { 
         this.confirmationsBody.innerHTML = '';
         const dayTotals = Array(7).fill(0);
         let grandTotal = 0;
         
         const sortedDepartments = Object.keys(departmentData).sort();
 
-        if (sortedDepartments.length === 0) {
-             // Caso manejado en loadConfirmationData
-             this.updateTotalsFooter(dayTotals, grandTotal); // Asegurar footer vacío
+        if (sortedDepartments.length === 0 && Object.keys(departmentData).length > 0) { 
+             this.confirmationsBody.innerHTML = `<tr><td colspan="${AppUtils.DAYS_OF_WEEK.length + 2}" class="empty-state">No hay datos de confirmación para esta semana.</td></tr>`;
+             this.updateTotalsFooter(dayTotals, grandTotal);
+             return;
+        } else if (Object.keys(departmentData).length === 0){
+             this.updateTotalsFooter(dayTotals, grandTotal);
              return;
         }
 
@@ -1663,7 +1258,7 @@ const ConfirmationReportManagement = {
                 const cell = row.insertCell();
                 cell.textContent = data.pendingDays[i] ? '—' : data.days[i]; 
                 cell.className = data.pendingDays[i] ? 'pending' : (data.days[i] > 0 ? 'confirmed' : 'zero-confirmed');
-                if (!data.pendingDays[i]) { // Solo sumar si no está pendiente
+                if (!data.pendingDays[i]) { 
                      dayTotals[i] += data.days[i];
                 }
             }
@@ -1675,8 +1270,7 @@ const ConfirmationReportManagement = {
         });
         this.updateTotalsFooter(dayTotals, grandTotal);
     },
-    
-    updateTotalsFooter: function(dayTotals, grandTotal) {
+    updateTotalsFooter: function(dayTotals, grandTotal) { 
         if (!this.totalsFooter) return;
         this.totalsFooter.innerHTML = ''; 
         const firstCell = this.totalsFooter.insertCell();
@@ -1692,21 +1286,18 @@ const ConfirmationReportManagement = {
         grandTotalCell.className = 'report-grand-total';
     }
 };
-
-const DataBackupManagement = {
+const DataBackupManagement = { /* Tu código existente */ 
     exportBtn: null, importBtn: null, fileInput: null, selectedFileName: null,
     importActions: null, confirmImportBtn: null, cancelImportBtn: null, selectedFile: null,
-    
     init: function() {
         this.exportBtn = document.getElementById('export-data-btn');
         this.importBtn = document.getElementById('import-data-btn');
         this.fileInput = document.getElementById('import-file-input');
         this.selectedFileName = document.getElementById('selected-file-name');
-        this.importActions = document.querySelector('.import-actions');
+        this.importActions = document.querySelector('.import-actions'); // Asegurar que se seleccione este elemento
         this.confirmImportBtn = document.getElementById('confirm-import-btn');
         this.cancelImportBtn = document.getElementById('cancel-import-btn');
 
-        // Deshabilitar botones y añadir listeners informativos
         if(this.exportBtn) {
              this.exportBtn.disabled = true;
              this.exportBtn.onclick = () => AppUtils.showNotification('Exportación no aplicable con Firebase.', 'warning');
@@ -1715,9 +1306,7 @@ const DataBackupManagement = {
             this.importBtn.disabled = true;
              this.importBtn.onclick = () => AppUtils.showNotification('Importación no aplicable con Firebase.', 'warning');
         }
-       // No configurar listeners de importación real
     },
-    // Dejar las funciones vacías o con notificaciones
     exportData: function() { AppUtils.showNotification('No implementado para Firebase.', 'info'); },
     handleFileSelection: function(file) { AppUtils.showNotification('No implementado para Firebase.', 'info'); this.resetImportUI(); },
     importData: function() { AppUtils.showNotification('No implementado para Firebase.', 'info'); this.resetImportUI();},
@@ -1726,6 +1315,6 @@ const DataBackupManagement = {
         this.selectedFile = null;
         if(this.fileInput) this.fileInput.value = '';
         if(this.selectedFileName) this.selectedFileName.textContent = '';
-        if(this.importActions) this.importActions.style.display = 'none';
+        if(this.importActions) this.importActions.style.display = 'none'; // this.importActions debería estar bien si se asignó en init
     }
 };

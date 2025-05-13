@@ -69,46 +69,48 @@
             </section>
 
             <!-- Sección de Gestión de Menús -->
-            <section id="menu-management-section" class="admin-section" style="display: none;"> <!-- Oculta por defecto -->
-                <div class="section-header">
-                    <h2><i class="fas fa-utensils"></i> Publicación de Menú Semanal</h2>
-                    <button id="back-to-dashboard-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
-                </div>
-                
-                <div class="card">
-                    <h3>Crear Nuevo Menú</h3>
-                    <form id="menu-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="menu-name">Nombre del Menú:</label>
-                                <input type="text" id="menu-name" name="menu-name" required placeholder="Ej: Menú Semana 18">
+                        <!-- Sección de Gestión de Menús -->
+                        <section id="menu-management-section" class="admin-section" style="display: none;">
+                            <div class="section-header">
+                                <h2><i class="fas fa-utensils"></i> Publicación de Menú Semanal</h2>
+                                <button id="back-to-dashboard-btn" class="secondary-btn"><i class="fas fa-arrow-left"></i> Volver al Panel</button>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="week-start-date">Fecha de inicio (Lunes):</label>
-                                <input type="date" id="week-start-date" name="week-start-date" required>
+                            <div class="card">
+                                <h3>Crear Nuevo Menú</h3>
+                                <form id="menu-form">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="menu-name">Nombre del Menú:</label>
+                                            <input type="text" id="menu-name" name="menu-name" required placeholder="Ej: Menú Semana 18">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="week-start-date">Fecha de inicio (Lunes):</label>
+                                            <input type="date" id="week-start-date" name="week-start-date" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Contenedor para los acordeones de días y controles expandir/colapsar -->
+                                    <div id="days-container">
+                                        <!-- Los botones Expandir/Colapsar y los días se generarán aquí por JS -->
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="submit" id="save-menu-btn" class="primary-btn"><i class="fas fa-save"></i> Guardar Menú</button>
+                                        <button type="button" id="reset-form-btn" class="secondary-btn"><i class="fas fa-undo"></i> Limpiar Formulario</button>
+                                    </div>
+                                </form>
                             </div>
-                        </div>
-                        
-                        <div id="days-container">
-                            <!-- Los días de la semana se generarán dinámicamente con JavaScript -->
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" id="save-menu-btn" class="primary-btn"><i class="fas fa-save"></i> Guardar Menú</button>
-                            <button type="button" id="reset-form-btn" class="secondary-btn"><i class="fas fa-undo"></i> Limpiar Formulario</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="card">
-                    <h3>Menús Guardados</h3>
-                    <div id="saved-menus-container">
-                        <!-- Los menús guardados se mostrarán aquí dinámicamente -->
-                        <p class="empty-state">No hay menús guardados aún.</p>
-                    </div>
-                </div>
-            </section>
+                            
+                            <div class="card">
+                                <h3>Menús Guardados</h3>
+                                <div id="saved-menus-container">
+                                    <!-- Los menús guardados se mostrarán aquí dinámicamente -->
+                                    <p class="empty-state">No hay menús guardados aún.</p>
+                                </div>
+                            </div>
+                        </section>
             
             <!-- Sección de Gestión de Usuarios -->
             <section id="user-management-section" class="admin-section" style="display: none;">

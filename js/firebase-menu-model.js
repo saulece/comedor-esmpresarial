@@ -4,100 +4,15 @@
  */
 
 const FirebaseMenuModel = {
-    // ... (las funciones getAll, get, add, update, delete, listenToAllMenus permanecen igual que en la versión anterior que te di) ...
-
     /**
-     * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado)
-     * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null si no existe
-     */
-    getActive: async function() {
-        try {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const snapshot = await firebase.firestore()
-                .collection('menus')
-                // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
-                .where('endDate', '>=', todayStr)
-                // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
-                .orderBy('endDate', 'asc') // Ordenar por fecha de finalización ascendente (los que terminan antes primero)
-                                           // o 'desc' si quieres los que terminan más tarde primero,
-                                           // pero luego el filtro de cliente es más importante.
-                .get();
-
-            if (snapshot.empty) {
-                return null;
-            }
-
-            // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
-            // Como ordenamos por endDate, necesitamos filtrar los que ya comenzaron y luego
-            // podríamos querer el que comenzó más recientemente de ese subconjunto.
-            const validMenus = snapshot.docs
-                .map(doc => ({ ...doc.data(), id: doc.id }))
-                .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
-
-            if (validMenus.length === 0) {
-                return null;
-            }
-
-            // De los menús válidos (que ya comenzaron y no han terminado),
-            // tomar el que tiene la fecha de inicio más reciente.
-            validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-            
-            return validMenus[0];
-
-        } catch (error) {
-            console.error('Error al obtener menú activo de Firestore:', error);
-            return null;
-        }
-    },
-
-    /**
-     * Escucha cambios en tiempo real en el menú activo
-     * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
-     * @returns {Function} - Función para cancelar la suscripción
-     */
-    listenToActiveMenu: function(callback) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const unsubscribe = firebase.firestore()
-            .collection('menus')
-            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
-            .where('endDate', '>=', todayStr)
-            // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
-            .orderBy('endDate', 'asc') // Opcionalmente, puedes añadir un segundo orderBy aquí
-                                       // .orderBy('startDate', 'desc') si necesitas que la BD ayude más en el orden
-            .onSnapshot(snapshot => {
-                let activeMenu = null;
-                
-                // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
-                const validMenus = snapshot.docs
-                    .map(doc => ({ ...doc.data(), id: doc.id }))
-                    .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
-
-                if (validMenus.length > 0) {
-                    // De los menús válidos, tomar el que tiene la fecha de inicio más reciente.
-                    validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-                    activeMenu = validMenus[0];
-                }
-                
-                callback(activeMenu, null); // Llamar con el menú encontrado o null
-            }, error => {
-                console.error('Error al escuchar cambios en menú activo:', error);
-                callback(null, error);
-            });
-
-        return unsubscribe;
-    },
-
-    // ... (las demás funciones como getAll, get, add, update, delete, listenToAllMenus permanecen igual) ...
-    // Asegúrate de incluir las demás funciones que te pasé en la respuesta anterior si no están aquí.
-    // Esta es solo la parte modificada.
-
-    /**
-     * Obtiene todos los menús de Firestore
-     * @returns {Promise<Array>} - Promesa que resuelve a un array de menús
+     * Obtiene todos los menús de Firestore, ordenados por fecha de inicio descendente.
+     * @returns {Promise<Array>} - Promesa que resuelve a un array de menús.
      */
     getAll: async function() {
         try {
-            const snapshot = await firebase.firestore().collection('menus').orderBy('startDate', 'desc').get();
+            const snapshot = await firebase.firestore().collection('menus')
+                .orderBy('startDate', 'desc')
+                .get();
             return snapshot.docs.map(doc => ({
                 ...doc.data(),
                 id: doc.id
@@ -109,9 +24,9 @@ const FirebaseMenuModel = {
     },
 
     /**
-     * Obtiene un menú específico por su ID
-     * @param {string} menuId - ID del menú a obtener
-     * @returns {Promise<Object|null>} - Promesa que resuelve al menú o null si no existe
+     * Obtiene un menú específico por su ID.
+     * @param {string} menuId - ID del menú a obtener.
+     * @returns {Promise<Object|null>} - Promesa que resuelve al menú o null si no existe.
      */
     get: async function(menuId) {
         try {
@@ -128,44 +43,77 @@ const FirebaseMenuModel = {
             return null;
         }
     },
-     /**
-     * Agrega un nuevo menú a Firestore
-     * @param {Object} menu - Menú a agregar
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
+
+    /**
+     * Agrega un nuevo menú a Firestore y devuelve su ID.
+     * @param {Object} menu - Menú a agregar.
+     * @returns {Promise<string|null>} - Promesa que resuelve al ID del nuevo menú o null si falla.
      */
-    add: async function(menu) {
+    add: async function(menu) { // Modificado para devolver ID o null
         try {
             const menuWithTimestamps = {
                 ...menu,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            // Si menuData ya tiene un ID (por ejemplo, de currentEditingMenuId),
+            // Firestore usará ese ID. Si no, generará uno nuevo.
+            // Para asegurar que siempre se genere uno nuevo si no se provee,
+            // podríamos hacer:
+            // const docRef = menu.id 
+            //    ? firebase.firestore().collection('menus').doc(menu.id)
+            //    : firebase.firestore().collection('menus').doc();
+            // await docRef.set(menuWithTimestamps);
+            // Por ahora, la lógica de add() original es mejor si queremos que Firestore genere el ID.
+            // El ID se asigna en admin.js antes de llamar a add si es una edición.
 
             const docRef = await firebase.firestore().collection('menus').add(menuWithTimestamps);
             console.log(`Menú agregado con ID: ${docRef.id}`);
-            return true;
-        } catch (error)
-        {
+            return docRef.id; // Devuelve el ID del nuevo documento
+        } catch (error) {
             console.error('Error al agregar menú a Firestore:', error);
-            return false;
+            return null; // Devuelve null en caso de error
+        }
+    },
+    
+    /**
+     * (Alternativa) Agrega un nuevo menú a Firestore y devuelve su ID.
+     * Este es el que admin.js ahora espera para nuevos menús.
+     * @param {Object} menuData - Datos del menú a agregar (sin ID).
+     * @returns {Promise<string|null>} - Promesa que resuelve al ID del nuevo menú o null si falla.
+     */
+    addAndGetId: async function(menuData) {
+        try {
+            const menuWithTimestamps = {
+                ...menuData, // menuData no debería tener 'id' aquí
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            const docRef = await firebase.firestore().collection('menus').add(menuWithTimestamps);
+            console.log(`Menú agregado (addAndGetId) con ID: ${docRef.id}`);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error en addAndGetId:', error);
+            return null;
         }
     },
 
+
     /**
-     * Actualiza un menú existente en Firestore
-     * @param {string} menuId - ID del menú a actualizar
-     * @param {Object} menuData - Datos actualizados del menú
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se actualizó correctamente
+     * Actualiza un menú existente en Firestore.
+     * @param {string} menuId - ID del menú a actualizar.
+     * @param {Object} menuData - Datos actualizados del menú.
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se actualizó correctamente.
      */
     update: async function(menuId, menuData) {
         try {
+            const menuToUpdate = { ...menuData }; // Clonar para no modificar el objeto original
+            delete menuToUpdate.id; // No se debe intentar actualizar el campo 'id' dentro del documento
+
             const menuWithTimestamp = {
-                ...menuData,
+                ...menuToUpdate,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            // Eliminar el id del objeto de datos si se pasó accidentalmente, ya que es el ID del documento
-            delete menuWithTimestamp.id;
-
 
             await firebase.firestore().collection('menus').doc(menuId).update(menuWithTimestamp);
             console.log(`Menú ${menuId} actualizado correctamente`);
@@ -177,9 +125,9 @@ const FirebaseMenuModel = {
     },
 
     /**
-     * Elimina un menú de Firestore
-     * @param {string} menuId - ID del menú a eliminar
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
+     * Elimina un menú de Firestore.
+     * @param {string} menuId - ID del menú a eliminar.
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente.
      */
     delete: async function(menuId) {
         try {
@@ -191,29 +139,83 @@ const FirebaseMenuModel = {
             return false;
         }
     },
+
     /**
-     * Escucha cambios en tiempo real en todos los menús
-     * @param {Function} callback - Función a llamar cuando hay cambios (menus, error)
-     * @returns {Function} - Función para cancelar la suscripción
+     * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado).
+     * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null.
+     */
+    getActive: async function() {
+        try {
+            const todayStr = AppUtils.formatDateForInput(new Date()); // Usar AppUtils para consistencia
+            const snapshot = await firebase.firestore()
+                .collection('menus')
+                .where('endDate', '>=', todayStr)
+                .orderBy('endDate', 'asc')
+                .get();
+
+            if (snapshot.empty) return null;
+
+            const validMenus = snapshot.docs
+                .map(doc => ({ ...doc.data(), id: doc.id }))
+                .filter(menu => menu.startDate <= todayStr);
+
+            if (validMenus.length === 0) return null;
+
+            validMenus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
+            return validMenus[0];
+        } catch (error) {
+            console.error('Error al obtener menú activo de Firestore:', error);
+            return null;
+        }
+    },
+
+    /**
+     * Escucha cambios en tiempo real en el menú activo.
+     * @param {Function} callback - Función a llamar con (menu, error).
+     * @returns {Function} - Función para cancelar la suscripción.
+     */
+    listenToActiveMenu: function(callback) {
+        const todayStr = AppUtils.formatDateForInput(new Date());
+        const unsubscribe = firebase.firestore()
+            .collection('menus')
+            .where('endDate', '>=', todayStr)
+            .orderBy('endDate', 'asc')
+            .onSnapshot(snapshot => {
+                let activeMenu = null;
+                const validMenus = snapshot.docs
+                    .map(doc => ({ ...doc.data(), id: doc.id }))
+                    .filter(menu => menu.startDate <= todayStr);
+
+                if (validMenus.length > 0) {
+                    validMenus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
+                    activeMenu = validMenus[0];
+                }
+                callback(activeMenu, null);
+            }, error => {
+                console.error('Error al escuchar cambios en menú activo:', error);
+                callback(null, error);
+            });
+        return unsubscribe;
+    },
+
+    /**
+     * Escucha cambios en tiempo real en todos los menús.
+     * @param {Function} callback - Función a llamar con (menus, error).
+     * @returns {Function} - Función para cancelar la suscripción.
      */
     listenToAllMenus: function(callback) {
         const unsubscribe = firebase.firestore()
             .collection('menus')
             .orderBy('startDate', 'desc')
             .onSnapshot(snapshot => {
-                const menus = snapshot.docs.map(doc => ({
-                    ...doc.data(),
-                    id: doc.id
-                }));
+                const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 callback(menus, null);
             }, error => {
                 console.error('Error al escuchar cambios en todos los menús:', error);
                 callback([], error);
             });
-
         return unsubscribe;
     }
-
 };
 
 // Exportar para su uso en otros módulos
