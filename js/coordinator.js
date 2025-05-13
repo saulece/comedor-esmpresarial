@@ -307,23 +307,6 @@ function displayMenuForCoordinator(menu, container) {
         return;
     }
 
-    // Verificar si el menú tiene una imagen
-    if (menu.imageUrl) {
-        // Si hay imagen, mostrar la imagen como presentación principal
-        let html = `
-            <div class="menu-header">
-                <h4>${menu.name || 'Menú Semanal'}</h4>
-                <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
-            </div>
-            <div class="menu-image-container" style="text-align: center; margin: 20px 0;">
-                <img src="${menu.imageUrl}" alt="${menu.name || 'Menú Semanal'}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            </div>
-        `;
-        container.innerHTML = html;
-        return;
-    }
-
-    // Si no hay imagen, mostrar el menú detallado como antes
     let html = `
         <div class="menu-header">
             <h4>${menu.name || 'Menú Semanal'}</h4>
@@ -360,7 +343,7 @@ function displayMenuForCoordinator(menu, container) {
 
                 Object.keys(dishesByCategory).forEach(categoryKey => {
                     html += `<div class="menu-category-display">
-                                <h6>${AppUtils.CATEGORIES[categoryKey] || categoryKey}</h6>
+                                <h6>${CATEGORIES[categoryKey] || categoryKey}</h6>
                                 <ul class="dishes-list">`;
                     dishesByCategory[categoryKey].forEach(dish => {
                         html += `
@@ -387,15 +370,22 @@ function displayMenuForCoordinator(menu, container) {
     html += '</div>';
     container.innerHTML = html;
 }
-// Usando las categorías centralizadas desde AppUtils
+// Mapeo global de categorías para ser usado por displayMenuForCoordinator
+const CATEGORIES = {
+    'plato_fuerte': 'Platos Fuertes',
+    'bebida': 'Bebidas',
+    // ... puedes añadir más categorías aquí si las usas en admin.js
+    'entrada': 'Entradas',
+    'postre': 'Postres',
+    'guarnicion': 'Guarniciones'
+};
 
 
 /**
  * Gestión de asistencia para coordinadores
  */
 const AttendanceManager = {
-    currentWeekStartDate: null,    // La semana que se está viendo actualmente
-    actualCurrentWeekStartDate: null, // El lunes de la semana real actual
+    currentWeekStartDate: null,
     currentMenu: null,
     currentConfirmation: null, // Almacena la confirmación actual para la semana y coordinador
     
@@ -432,11 +422,7 @@ const AttendanceManager = {
         }
         if(resetBtn) resetBtn.addEventListener('click', () => this.resetForm());
         
-        // Calcular y guardar el lunes de la semana actual real
-        this.actualCurrentWeekStartDate = this.getStartOfWeek(new Date());
-        
-        // Inicializar la vista en la semana actual
-        this.setCurrentWeek(this.actualCurrentWeekStartDate);
+        this.setCurrentWeek(this.getStartOfWeek(new Date()));
     },
     
     getStartOfWeek: function(date) {
@@ -461,46 +447,12 @@ const AttendanceManager = {
             if(menuContainer) menuContainer.innerHTML = '<p class="error-state">Error al cargar datos de la semana.</p>';
             this.generateAttendanceInputs(null); // Generar inputs vacíos o mensaje
         }
-        
-        // Actualizar el estado de los botones de navegación
-        this.updateNavigationButtonsState();
     },
     
     changeWeek: async function(offsetWeeks) {
-        // Asegurar que offsetWeeks sea solo 1 o -1 para la navegación de una semana
-        offsetWeeks = offsetWeeks > 0 ? 1 : -1;
-        
         const newDate = new Date(this.currentWeekStartDate);
         newDate.setDate(newDate.getDate() + (offsetWeeks * 7));
         await this.setCurrentWeek(newDate);
-    },
-    
-    /**
-     * Actualiza el estado de los botones de navegación según la semana que se está viendo
-     * - Deshabilita el botón de semana anterior si estamos en la semana actual
-     * - Deshabilita el botón de semana siguiente si estamos en la próxima semana
-     */
-    updateNavigationButtonsState: function() {
-        const prevWeekBtn = document.getElementById('prev-week-btn');
-        const nextWeekBtn = document.getElementById('next-week-btn');
-        
-        if (!prevWeekBtn || !nextWeekBtn || !this.currentWeekStartDate || !this.actualCurrentWeekStartDate) {
-            return;
-        }
-        
-        // Calcular el inicio de la próxima semana real
-        const nextActualWeek = new Date(this.actualCurrentWeekStartDate);
-        nextActualWeek.setDate(nextActualWeek.getDate() + 7);
-        
-        // Deshabilitar botón de semana anterior si estamos viendo la semana actual o una anterior
-        prevWeekBtn.disabled = (this.currentWeekStartDate.getTime() <= this.actualCurrentWeekStartDate.getTime());
-        
-        // Deshabilitar botón de semana siguiente si estamos viendo la próxima semana o una posterior
-        nextWeekBtn.disabled = (this.currentWeekStartDate.getTime() >= nextActualWeek.getTime());
-        
-        // Actualizar estilos visuales de los botones
-        prevWeekBtn.classList.toggle('disabled', prevWeekBtn.disabled);
-        nextWeekBtn.classList.toggle('disabled', nextWeekBtn.disabled);
     },
     
     updateWeekDisplay: function() {
@@ -512,25 +464,7 @@ const AttendanceManager = {
         
         const startStr = AppUtils.formatDate(this.currentWeekStartDate);
         const endStr = AppUtils.formatDate(endDate);
-        
-        // Determinar si estamos viendo la semana actual o la próxima
-        let weekLabel = "Semana del";
-        
-        if (this.actualCurrentWeekStartDate) {
-            if (this.currentWeekStartDate.getTime() === this.actualCurrentWeekStartDate.getTime()) {
-                weekLabel = "Semana actual:";
-            } else {
-                // Calcular la próxima semana
-                const nextWeekStart = new Date(this.actualCurrentWeekStartDate);
-                nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-                
-                if (this.currentWeekStartDate.getTime() === nextWeekStart.getTime()) {
-                    weekLabel = "Próxima semana:";
-                }
-            }
-        }
-        
-        weekDisplay.textContent = `${weekLabel} ${startStr} al ${endStr}`;
+        weekDisplay.textContent = `Semana del ${startStr} al ${endStr}`;
     },
     
     loadMenuForWeek: async function() {
@@ -539,7 +473,6 @@ const AttendanceManager = {
         menuContainer.innerHTML = '<p class="empty-state"><span class="spinner"></span> Cargando menú...</p>';
 
         try {
-            // Usar this.currentWeekStartDate (la semana que se está viendo) para buscar el menú
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
             const weekEnd = new Date(this.currentWeekStartDate);
             weekEnd.setDate(weekEnd.getDate() + 6); // Hasta Domingo
@@ -588,29 +521,6 @@ const AttendanceManager = {
         if (!inputsContainer) return;
         inputsContainer.innerHTML = '';
 
-        // Actualizar el contenedor de menú para mostrar la imagen si existe
-        const menuContainer = document.getElementById('confirmation-menu-display');
-        if (menuContainer && menu) {
-            if (menu.imageUrl) {
-                // Si hay una imagen de menú, mostrar una versión más compacta
-                menuContainer.innerHTML = `
-                    <div class="menu-header">
-                        <h4>${menu.name || 'Menú Semanal'}</h4>
-                        <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
-                    </div>
-                    <div class="menu-image-container" style="text-align: center; margin: 10px 0;">
-                        <a href="#menu-tab" onclick="document.querySelector('.tab-btn[data-tab=\'menu-tab\']').click();" style="display: inline-block;">
-                            <img src="${menu.imageUrl}" alt="${menu.name || 'Menú Semanal'}" style="max-width: 100%; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                            <p style="margin-top: 5px; font-size: 0.9em;">Ver menú completo</p>
-                        </a>
-                    </div>
-                `;
-            } else {
-                // Si no hay imagen, dejar el contenedor vacío como estaba antes
-                menuContainer.innerHTML = '';
-            }
-        }
-
         const daysToDisplay = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
         daysToDisplay.forEach((dayName, index) => {
@@ -643,15 +553,7 @@ const AttendanceManager = {
             input.required = true;
 
             // Verificar si este día está en el menú actual
-            // Importante: Esto funciona igual para menús con imagen o sin imagen
-            // ya que los días activos se definen en menu.days independientemente
-            const dayInMenu = menu && menu.days && menu.days.find(d => {
-                // Normalizar el nombre del día para comparación
-                const normalizedDayName = d.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const normalizedCurrentDay = dayName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                return normalizedDayName.toLowerCase() === normalizedCurrentDay.toLowerCase();
-            });
-            
+            const dayInMenu = menu && menu.days && menu.days.find(d => d.name === dayName);
             if (!dayInMenu) {
                 input.disabled = true;
                 input.value = '';
@@ -684,7 +586,6 @@ const AttendanceManager = {
         if(lastUpdateInfo) lastUpdateInfo.style.display = 'none';
 
         try {
-            // Usar this.currentWeekStartDate (la semana que se está viendo) para buscar la confirmación
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
             this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(coordinatorId, weekStartStr);
             
@@ -743,7 +644,6 @@ const AttendanceManager = {
         //     return false;
         // }
 
-        // Usar this.currentWeekStartDate (la semana que se está viendo) para guardar la confirmación
         const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
         const confirmationData = {
             coordinatorId,

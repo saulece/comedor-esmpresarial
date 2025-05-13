@@ -3,10 +3,19 @@
  * Funcionalidades específicas para la vista de administración
  */
 
+// Define tu código de acceso de administrador aquí. (CAMBIA ESTO)
+const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
+
 // Variables globales
 let currentEditingMenuId = null;
-let originalMenuImageUrl = null; // Variable para rastrear la URL de la imagen original
-const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
+const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const CATEGORIES = {
+    'plato_fuerte': 'Platos Fuertes',
+    'bebida': 'Bebidas',
+    'entrada': 'Entradas',
+    'postre': 'Postres',
+    'guarnicion': 'Guarniciones'
+};
 
 // Flag para evitar inicialización múltiple
 let isAdminInitialized = false; 
@@ -254,66 +263,43 @@ function initAdminInterface() {
  * Inicializa el formulario de menú
  */
 function initMenuForm() {
-    console.log("Ejecutando initMenuForm..."); // Log
+     console.log("Ejecutando initMenuForm..."); // Log
     const weekStartDateInput = document.getElementById('week-start-date');
-    const resetFormBtn = document.getElementById('reset-form-btn');
     const menuForm = document.getElementById('menu-form');
-    const menuImageInput = document.getElementById('menu-image-input');
-    const menuImagePreview = document.getElementById('menu-image-preview');
-    const imagePreviewContainer = document.querySelector('.image-preview-container');
-    const removeImageBtn = document.getElementById('remove-image-btn');
-    
-    if (!weekStartDateInput || !resetFormBtn || !menuForm) {
+    const resetFormBtn = document.getElementById('reset-form-btn');
+
+    if (!weekStartDateInput || !menuForm || !resetFormBtn) {
         console.error("Elementos del formulario de menú no encontrados.");
         return;
     }
     
-    // Establecer fecha actual como fecha de inicio por defecto
     const today = new Date();
-    weekStartDateInput.value = AppUtils.formatDateForInput(today);
+    const formattedDate = AppUtils.formatDateForInput(today);
+    weekStartDateInput.value = formattedDate;
     
-    // Generar los días de la semana basados en la fecha de inicio
     generateWeekDays(weekStartDateInput.value);
     
-    // Configurar listener para cambios en la fecha de inicio
-    weekStartDateInput.addEventListener('change', function() {
+    // Listener para cambio de fecha
+    const newWeekInput = weekStartDateInput.cloneNode(true);
+    weekStartDateInput.parentNode.replaceChild(newWeekInput, weekStartDateInput);
+    newWeekInput.addEventListener('change', function() {
         generateWeekDays(this.value);
     });
     
-    // Configurar listener para el botón de reset
-    resetFormBtn.addEventListener('click', resetMenuForm);
+    // Listener para reset
+    const newResetBtn = resetFormBtn.cloneNode(true);
+    resetFormBtn.parentNode.replaceChild(newResetBtn, resetFormBtn);
+    newResetBtn.addEventListener('click', resetMenuForm);
     
-    // Configurar listener para el formulario
-    menuForm.addEventListener('submit', function(event) {
+    // Listener para submit
+    const newMenuForm = menuForm.cloneNode(true); // Clonar form podría perder referencias internas? Mejor solo el listener
+    // Remover listener anterior si existe para evitar duplicados
+    // (Asumiendo que no hay otros listeners importantes en el form)
+    menuForm.replaceWith(menuForm.cloneNode(true)); // Reemplazar con clon para limpiar listeners
+    document.getElementById('menu-form').addEventListener('submit', function(event) { // Añadir listener al nuevo form
         event.preventDefault();
         saveMenu();
     });
-
-    // Configurar vista previa de imagen
-    if (menuImageInput && menuImagePreview && imagePreviewContainer) {
-        menuImageInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    menuImagePreview.src = e.target.result;
-                    imagePreviewContainer.style.display = 'block';
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-    
-    // Configurar botón para eliminar imagen
-    if (removeImageBtn && imagePreviewContainer && menuImageInput) {
-        removeImageBtn.addEventListener('click', function() {
-            menuImagePreview.src = '';
-            imagePreviewContainer.style.display = 'none';
-            menuImageInput.value = ''; // Limpiar el input de archivo
-        });
-    }
 
     // Llamar a setupAddDishButtons después de generar los días iniciales
     setupAddDishButtons(); 
@@ -349,7 +335,7 @@ function generateWeekDays(startDateStr) {
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + i);
-            const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
+            const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
         }
         setupAddDishButtons(); 
@@ -375,7 +361,7 @@ function createDaySection(dayIndex, dayName, date) {
     daySection.appendChild(dayLabel);
     daySection.appendChild(dayDateDisplay);
     
-    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName]) => {
+    Object.entries(CATEGORIES).forEach(([categoryKey, categoryName]) => {
         const categorySection = createCategorySection(dayIndex, dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, categoryName);
         daySection.appendChild(categorySection);
     });
@@ -467,29 +453,29 @@ function setupAddDishButtons() {
 async function saveMenu() {
     const menuName = document.getElementById('menu-name').value;
     const weekStartDate = document.getElementById('week-start-date').value;
-    const menuImageInput = document.getElementById('menu-image-input');
     
     if (!menuName || !weekStartDate) {
         AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
         return;
     }
     
-    // Obtener los datos básicos del menú
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
-        active: true
+        active: true, 
     };
+     if (currentEditingMenuId) {
+        menuData.id = currentEditingMenuId; // Pasar ID solo si estamos editando
+    }
     
-    // Preparar los días del menú
     const days = [];
     const daySections = document.querySelectorAll('.day-section');
     
     daySections.forEach(daySection => {
         const dayIndex = parseInt(daySection.getAttribute('data-day'));
         const dayDate = daySection.getAttribute('data-date');
-        const dayName = AppUtils.DAYS_OF_WEEK[dayIndex];
+        const dayName = DAYS_OF_WEEK[dayIndex];
         
         const dayData = {
             id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
@@ -498,7 +484,7 @@ async function saveMenu() {
             dishes: []
         };
         
-        Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+        Object.keys(CATEGORIES).forEach(categoryKey => {
             const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
             if (dishesContainer) {
                 const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
@@ -517,10 +503,15 @@ async function saveMenu() {
             }
         });
         
-        // Siempre agregar el día, incluso si no tiene platillos
-        // Esto es importante para que el coordinador sepa qué días están activos
-        days.push(dayData);
+        if (dayData.dishes.length > 0) {
+            days.push(dayData);
+        }
     });
+    
+    if (days.length === 0 && !currentEditingMenuId) {
+        AppUtils.showNotification('Por favor, agregue al menos un platillo al menú.', 'error');
+        return;
+    }
     
     menuData.days = days;
     
@@ -530,107 +521,19 @@ async function saveMenu() {
     saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
     
     try {
-        // Variable para rastrear el ID del menú a usar para la imagen
-        let menuIdToUseForImage = currentEditingMenuId;
-        
-        // Verificar si hay una imagen para eliminar
-        const removeImageBtn = document.getElementById('remove-image-btn');
-        const imagePreviewContainer = document.querySelector('.image-preview-container');
-        
-        // Variable para almacenar la URL de la imagen a guardar
-        let imageUrlToSave = originalMenuImageUrl; // Usar la variable global que rastreamos en editMenu
-        
-        // Si es un menú nuevo, primero crear el documento sin imagen
-        if (!currentEditingMenuId) {
-            // Para un menú nuevo, no incluir imageUrl inicialmente
-            delete menuData.imageUrl;
-            
-            // Crear el documento del menú en Firestore
-            const newMenuId = await FirebaseMenuModel.add(menuData);
-            
-            if (!newMenuId) {
-                AppUtils.showNotification('Error al crear el menú base.', 'error');
-                saveButton.disabled = false;
-                saveButton.innerHTML = originalButtonHtml;
-                return;
-            }
-            
-            // Asignar el ID del menú recién creado
-            menuIdToUseForImage = newMenuId;
-            console.log(`Menú base creado con ID: ${newMenuId}`);
-        }
-        
-        // Manejar la carga de la imagen si hay una seleccionada
-        if (menuImageInput && menuImageInput.files && menuImageInput.files[0]) {
-            const file = menuImageInput.files[0];
-            const storageRef = firebase.storage().ref();
-            const imageRef = storageRef.child(`menus_images/${menuIdToUseForImage}_${file.name}`);
-            
-            // Mostrar mensaje de carga
-            saveButton.innerHTML = '<span class="spinner"></span> Subiendo imagen...';
-            
-            // Subir la imagen a Firebase Storage
-            const uploadTask = await imageRef.put(file);
-            
-            // Obtener la URL de descarga
-            const newImageUrlToSave = await uploadTask.ref.getDownloadURL();
-            
-            // Si había una imagen original diferente, borrarla
-            if (originalMenuImageUrl && originalMenuImageUrl !== newImageUrlToSave) {
-                try {
-                    console.log(`Intentando borrar imagen antigua: ${originalMenuImageUrl}`);
-                    const oldImageRef = firebase.storage().refFromURL(originalMenuImageUrl);
-                    await oldImageRef.delete();
-                    console.log("Imagen antigua borrada de Storage.");
-                } catch (deleteError) {
-                    console.error("Error al borrar imagen antigua de Storage:", deleteError);
-                    // Continuar a pesar del error en la eliminación
-                }
-            }
-            
-            // Actualizar la URL de la imagen a guardar
-            imageUrlToSave = newImageUrlToSave;
-            
-            saveButton.innerHTML = '<span class="spinner"></span> Guardando menú...';
-        } else if (removeImageBtn && imagePreviewContainer && 
-                  imagePreviewContainer.style.display === 'none' && 
-                  currentEditingMenuId && originalMenuImageUrl) {
-            // Si estamos editando y la imagen fue eliminada, eliminar la URL y el archivo
-            try {
-                console.log(`Intentando borrar imagen eliminada por usuario: ${originalMenuImageUrl}`);
-                const oldImageRef = firebase.storage().refFromURL(originalMenuImageUrl);
-                await oldImageRef.delete();
-                console.log("Imagen eliminada por usuario borrada de Storage.");
-            } catch (deleteError) {
-                console.error("Error al borrar imagen de Storage:", deleteError);
-                // Continuar a pesar del error en la eliminación
-            }
-            
-            // Establecer la URL de la imagen a null
-            imageUrlToSave = null;
-        }
-        
-        // Actualización final o creación del campo imagen
         let success = false;
-        
-        if (!currentEditingMenuId) {
-            // Para un menú nuevo, actualizar el documento con la URL de la imagen
-            if (imageUrlToSave !== null) {
-                success = await FirebaseMenuModel.update(menuIdToUseForImage, { imageUrl: imageUrlToSave });
-            } else {
-                // Si no hay imagen, ya tenemos éxito porque el menú base ya se creó
-                success = true;
-            }
-        } else {
-            // Para un menú existente, actualizar con todos los datos incluyendo la URL de la imagen
-            menuData.imageUrl = imageUrlToSave; // Puede ser null si se eliminó la imagen
+        if (currentEditingMenuId) {
+            // Para actualizar, pasamos el ID y los datos
             success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
+        } else {
+             // Para añadir, no pasamos ID, Firebase lo genera
+            success = await FirebaseMenuModel.add(menuData);
         }
         
         if (success) {
             AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú guardado.', 'success');
             loadSavedMenus();
-            resetMenuForm(); // Esto ya resetea originalMenuImageUrl
+            resetMenuForm();
         } else {
             AppUtils.showNotification('Error al guardar menú.', 'error');
         }
@@ -732,25 +635,6 @@ function createMenuItemElement(menu) {
     const menuContent = document.createElement('div');
     menuContent.className = 'menu-content'; 
     
-    // Mostrar la imagen del menú si existe
-    if (menu.imageUrl) {
-        const menuImageContainer = document.createElement('div');
-        menuImageContainer.className = 'menu-image-container';
-        menuImageContainer.style.textAlign = 'center';
-        menuImageContainer.style.marginBottom = '15px';
-        
-        const menuImage = document.createElement('img');
-        menuImage.src = menu.imageUrl;
-        menuImage.alt = menu.name;
-        menuImage.style.maxWidth = '100%';
-        menuImage.style.maxHeight = '300px';
-        menuImage.style.borderRadius = '5px';
-        menuImage.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-        
-        menuImageContainer.appendChild(menuImage);
-        menuContent.appendChild(menuImageContainer);
-    }
-    
     if (menu.days && Array.isArray(menu.days) && menu.days.length > 0) {
         const dayOrder = { 'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6, 'domingo': 7 };
         const sortedDays = [...menu.days].sort((a,b) => {
@@ -771,7 +655,7 @@ function createMenuItemElement(menu) {
             dayTitleElement.textContent = `${day.name} (${dayDate})`;
             dayDiv.appendChild(dayTitleElement);
 
-            Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+            Object.keys(CATEGORIES).forEach(categoryKey => {
                 const dishesInCategory = day.dishes.filter(d => d.category === categoryKey);
                 if (dishesInCategory.length > 0) {
                     const categoryDiv = document.createElement('div');
@@ -779,7 +663,7 @@ function createMenuItemElement(menu) {
                     
                     const categoryTitleElement = document.createElement('h6');
                     categoryTitleElement.className = 'menu-category-title';
-                    categoryTitleElement.textContent = AppUtils.CATEGORIES[categoryKey] || categoryKey.replace('_',' ').replace(/\b\w/g, l => l.toUpperCase());
+                    categoryTitleElement.textContent = CATEGORIES[categoryKey] || categoryKey.replace('_',' ').replace(/\b\w/g, l => l.toUpperCase());
                     categoryDiv.appendChild(categoryTitleElement);
 
                     const ul = document.createElement('ul');
@@ -821,68 +705,48 @@ async function editMenu(menuId) {
     document.getElementById('menu-name').value = menu.name;
     document.getElementById('week-start-date').value = menu.startDate;
     
-    // Manejar la imagen del menú si existe
-    const menuImagePreview = document.getElementById('menu-image-preview');
-    const imagePreviewContainer = document.querySelector('.image-preview-container');
-    
-    if (menu.imageUrl && menuImagePreview && imagePreviewContainer) {
-        menuImagePreview.src = menu.imageUrl;
-        imagePreviewContainer.style.display = 'block';
-        originalMenuImageUrl = menu.imageUrl; // Guardar la URL original para comparar al guardar
-        console.log(`URL de imagen original guardada: ${originalMenuImageUrl}`);
-    } else if (imagePreviewContainer) {
-        imagePreviewContainer.style.display = 'none';
-        menuImagePreview.src = '';
-        originalMenuImageUrl = null; // No hay imagen original
-        console.log('No hay imagen original para este menú');
-    }
-    
     generateWeekDays(menu.startDate); 
     
     if (menu.days && Array.isArray(menu.days)) {
         // Esperar un ciclo para asegurar que los días se hayan renderizado por generateWeekDays
         setTimeout(() => {
             menu.days.forEach(dayData => {
-                const dayIndex = AppUtils.DAYS_OF_WEEK.indexOf(dayData.name);
+                const dayIndex = DAYS_OF_WEEK.indexOf(dayData.name);
                 if (dayIndex === -1) return;
 
                 const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
                 if (!daySection) return;
 
                 // Limpiar inputs antes de añadir
-                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                Object.keys(CATEGORIES).forEach(categoryKey => {
                     const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
                     if(dishesContainer) dishesContainer.innerHTML = ''; 
                 });
 
-                // Solo procesar los platillos si existen
-                if (dayData.dishes && dayData.dishes.length > 0) {
-                    dayData.dishes.forEach(dish => {
-                        const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${dish.category}"]`);
-                        if (dishesContainer) {
-                            const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                            const newDishGroup = createDishInputGroup(dayNameNormalized, dish.category, dishesContainer.children.length);
-                            newDishGroup.querySelector('.dish-input').value = dish.name;
-                            dishesContainer.appendChild(newDishGroup);
-                        }
-                    });
-                }
-                
-                // Añadir input vacío si la categoría quedó vacía
-                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                dayData.dishes.forEach(dish => {
+                    const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${dish.category}"]`);
+                    if (dishesContainer) {
+                        const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const newDishGroup = createDishInputGroup(dayNameNormalized, dish.category, dishesContainer.children.length);
+                        newDishGroup.querySelector('.dish-input').value = dish.name;
+                        dishesContainer.appendChild(newDishGroup);
+                    }
+                });
+                 // Añadir input vacío si la categoría quedó vacía
+                Object.keys(CATEGORIES).forEach(categoryKey => {
                     const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
                     if (dishesContainer && dishesContainer.children.length === 0) {
-                        const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        dishesContainer.appendChild(createDishInputGroup(dayNameNormalized, categoryKey, 0));
+                         const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                         dishesContainer.appendChild(createDishInputGroup(dayNameNormalized, categoryKey, 0));
                     }
                 });
             });
-            document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-            AppUtils.showNotification('Menú cargado para edición.', 'info');
+             document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
+             AppUtils.showNotification('Menú cargado para edición.', 'info');
         }, 0); // Ejecutar después del render actual
     } else {
-        document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
-        AppUtils.showNotification('Menú cargado (sin platillos detallados).', 'info');
+         document.getElementById('menu-form').scrollIntoView({ behavior: 'smooth' });
+         AppUtils.showNotification('Menú cargado (sin platillos detallados).', 'info');
     }
 }
 
@@ -911,25 +775,13 @@ async function deleteMenu(menuId) {
 
 function resetMenuForm() { 
     currentEditingMenuId = null;
-    originalMenuImageUrl = null; // Resetear la URL de la imagen original
     const form = document.getElementById('menu-form');
     if(form) form.reset();
-    
-    // Resetear la imagen
-    const menuImageInput = document.getElementById('menu-image-input');
-    const menuImagePreview = document.getElementById('menu-image-preview');
-    const imagePreviewContainer = document.querySelector('.image-preview-container');
-    
-    if (menuImageInput) menuImageInput.value = '';
-    if (menuImagePreview) menuImagePreview.src = '';
-    if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
-    
     const today = new Date();
     const dateInput = document.getElementById('week-start-date');
     if(dateInput) dateInput.value = AppUtils.formatDateForInput(today);
     generateWeekDays(AppUtils.formatDateForInput(today)); // Regenerar días vacíos
     AppUtils.showNotification('Formulario limpiado.', 'info');
-    console.log('Formulario y variables de estado reseteados');
 }
 
 

@@ -129,27 +129,27 @@ const FirebaseMenuModel = {
         }
     },
      /**
-      * Agrega un nuevo menú a Firestore
-      * @param {Object} menu - Menú a agregar
-      * @returns {Promise<string|null>} - Promesa que resuelve al ID del documento creado o null si falló
-      */
-     add: async function(menu) {
-         try {
-             const menuWithTimestamps = {
-                 ...menu,
-                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-             };
+     * Agrega un nuevo menú a Firestore
+     * @param {Object} menu - Menú a agregar
+     * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
+     */
+    add: async function(menu) {
+        try {
+            const menuWithTimestamps = {
+                ...menu,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
 
-             const docRef = await firebase.firestore().collection('menus').add(menuWithTimestamps);
-             console.log(`Menú agregado con ID: ${docRef.id}`);
-             return docRef.id;
-         } catch (error)
-         {
-             console.error('Error al agregar menú a Firestore:', error);
-             return null;
-         }
-     },
+            const docRef = await firebase.firestore().collection('menus').add(menuWithTimestamps);
+            console.log(`Menú agregado con ID: ${docRef.id}`);
+            return true;
+        } catch (error)
+        {
+            console.error('Error al agregar menú a Firestore:', error);
+            return false;
+        }
+    },
 
     /**
      * Actualiza un menú existente en Firestore

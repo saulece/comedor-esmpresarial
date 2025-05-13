@@ -5,19 +5,6 @@
 
 const AppUtils = {
     /**
-     * Constantes globales para categorias y dias de la semana
-     */
-    CATEGORIES: {
-        'plato_fuerte': 'Platos Fuertes',
-        'bebida': 'Bebidas',
-        'entrada': 'Entradas',
-        'postre': 'Postres',
-        'guarnicion': 'Guarniciones'
-    },
-    
-    DAYS_OF_WEEK: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-    
-    /**
      * Muestra una notificación temporal
      * @param {string} message - Mensaje a mostrar
      * @param {string} type - Tipo de notificación ('success' o 'error')

@@ -89,19 +89,6 @@
                             </div>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="menu-image-input">Imagen del Menú (Opcional):</label>
-                                <input type="file" id="menu-image-input" accept="image/*">
-                                <div class="image-preview-container" style="margin-top: 10px; display: none;">
-                                    <img id="menu-image-preview" src="" alt="Vista previa" style="max-width: 300px; max-height: 200px;">
-                                    <button type="button" id="remove-image-btn" class="secondary-btn" style="margin-top: 5px;">
-                                        <i class="fas fa-trash"></i> Eliminar imagen
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div id="days-container">
                             <!-- Los días de la semana se generarán dinámicamente con JavaScript -->
                         </div>
@@ -322,7 +309,6 @@
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <!-- No se usa firebase-auth.js aquí para el login simple de admin -->
     
     <!-- Firebase Configuration & Models -->
