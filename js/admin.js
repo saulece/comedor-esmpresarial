@@ -287,20 +287,26 @@ function initAdminInterface() {
  * Inicializa el formulario de menú
  */
 function initMenuForm() {
-     console.log("Ejecutando initMenuForm..."); // Log
-    const weekStartDateInput = document.getElementById('week-start-date');
     const menuForm = document.getElementById('menu-form');
+    const weekStartDateInput = document.getElementById('week-start-date');
     const resetFormBtn = document.getElementById('reset-form-btn');
-
-    if (!weekStartDateInput || !menuForm || !resetFormBtn) {
+    
+    if (!menuForm || !weekStartDateInput || !resetFormBtn) {
         console.error("Elementos del formulario de menú no encontrados.");
         return;
     }
     
+    // Establecer fecha de inicio por defecto (lunes de la semana actual)
     const today = new Date();
-    const formattedDate = AppUtils.formatDateForInput(today);
-    weekStartDateInput.value = formattedDate;
+    const mondayOfThisWeek = getMondayOfGivenDate(today);
+    mondayOfThisWeek.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
     
+    // Formatear la fecha para el input
+    const formattedDate = AppUtils.formatDateForInput(mondayOfThisWeek);
+    weekStartDateInput.value = formattedDate;
+    console.log('Fecha inicial establecida al lunes de esta semana:', formattedDate);
+    
+    // Generar los días de la semana a partir del lunes
     generateWeekDays(weekStartDateInput.value);
     
     // Listener para cambio de fecha
@@ -327,6 +333,36 @@ function initMenuForm() {
 
     // Llamar a setupAddDishButtons después de generar los días iniciales
     setupAddDishButtons(); 
+}
+
+/**
+ * Obtiene el lunes de la semana para una fecha dada
+ * @param {Date|string} date - Fecha para la que se quiere obtener el lunes
+ * @returns {Date} - Objeto Date correspondiente al lunes de la semana
+ */
+function getMondayOfGivenDate(date) {
+    // Si se pasa un string, convertirlo a objeto Date
+    const d = date instanceof Date ? new Date(date) : new Date(date);
+    
+    if (isNaN(d.getTime())) {
+        console.error("Fecha inválida para calcular el lunes:", date);
+        return new Date(); // Devolver la fecha actual como fallback
+    }
+    
+    const day = d.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    
+    // Calcular la diferencia para llegar al lunes
+    // Si es domingo (0), restar 6 días
+    // Si es lunes (1), restar 0 días
+    // Si es martes (2), restar 1 día, etc.
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    
+    // Crear una nueva fecha con el lunes calculado
+    const monday = new Date(d);
+    monday.setDate(diff);
+    monday.setHours(0, 0, 0, 0); // Normalizar a medianoche
+    
+    return monday;
 }
 
 function generateWeekDays(startDateStr) {
@@ -391,17 +427,32 @@ function generateWeekDays(startDateStr) {
         accordionControls.appendChild(collapseAllBtn);
         daysContainer.appendChild(accordionControls);
         
-        const startDate = new Date(startDateStr + 'T00:00:00');
-        if (isNaN(startDate.getTime())) {
-            console.error("Fecha de inicio inválida:", startDateStr);
+        // 1. Tomar la fecha seleccionada por el usuario
+        const userSelectedDate = new Date(startDateStr + 'T00:00:00Z'); // Usar Z para UTC
+        if (isNaN(userSelectedDate.getTime())) {
+            console.error("Fecha de inicio inválida desde el input:", startDateStr);
+            AppUtils.showNotification("Fecha seleccionada inválida. Por favor, elija otra.", "error");
             return;
         }
         
+        // 2. Calcular el LUNES de la semana de la fecha seleccionada
+        const mondayDate = getMondayOfGivenDate(userSelectedDate);
+        mondayDate.setUTCHours(0, 0, 0, 0); // Normalizar a medianoche UTC
+        
+        // 3. Actualizar el valor del input para mostrar claramente el lunes de la semana
+        const weekStartDateInput = document.getElementById('week-start-date');
+        if (weekStartDateInput) {
+            weekStartDateInput.value = AppUtils.formatDateForInput(mondayDate);
+        }
+        
+        console.log('Generando semana a partir del lunes:', mondayDate);
+        
         let firstDaySection = null;
         
+        // 4. Generar los 7 días de la semana a partir del lunes calculado
         for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + i);
+            const currentDate = new Date(mondayDate);
+            currentDate.setUTCDate(mondayDate.getUTCDate() + i); // Sumar días en UTC
             
             const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
