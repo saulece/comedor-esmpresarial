@@ -492,13 +492,15 @@ tbody tr:hover { background-color: #f5f5f5; }
 
 .menu-image-display {
     width: 100%;
-    max-width: 600px; /* Ancho máximo para la imagen */
+    max-width: 700px; /* Ancho máximo para la imagen */
     height: auto;
     border-radius: var(--border-radius-md);
-    margin-top: var(--spacing-sm);
+    margin: var(--spacing-md) auto; /* Centrar y dar espacio */
+    display: block; /* Para que el margin auto funcione */
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    object-fit: contain; /* Asegurar que la imagen se muestre completa */
 }
 
 .menu-image-display:hover {
@@ -508,8 +510,12 @@ tbody tr:hover { background-color: #f5f5f5; }
 
 /* Vista previa de imagen en el formulario de administrador */
 .image-preview-container {
-    margin-top: var(--spacing-sm);
+    margin-top: var(--spacing-md);
     text-align: center;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    background-color: #f8f9fa;
+    transition: opacity var(--transition-fast);
 }
 
 #menu-image-preview {
@@ -518,11 +524,23 @@ tbody tr:hover { background-color: #f5f5f5; }
     border-radius: var(--border-radius-md);
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
+    object-fit: cover; /* Para que la imagen se ajuste mejor */
+    display: block;
+    margin: 0 auto var(--spacing-sm);
+    transition: transform var(--transition-fast);
+}
+
+#menu-image-preview:hover {
+    transform: scale(1.02);
 }
 
 #remove-image-btn {
     margin-top: var(--spacing-sm);
     font-size: var(--font-size-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 /* Estilos para input de archivo */
@@ -535,12 +553,25 @@ input[type="file"] {
     font-family: inherit;
     font-size: var(--font-size-md);
     line-height: 1.4;
+    cursor: pointer; /* Mejorar la indicación de que es clickeable */
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input[type="file"]:hover {
+    border-color: var(--primary-dark);
+    background-color: #f8f9fa; /* Sutil cambio de fondo al hover */
 }
 
 input[type="file"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Clase que se puede añadir con JS cuando hay un archivo seleccionado */
+input[type="file"].has-file {
+    border-color: var(--success-color);
+    background-color: rgba(46, 204, 113, 0.05);
 }
 
 /* Estilos para imágenes en la vista de coordinador */

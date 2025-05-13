@@ -360,7 +360,7 @@ function displayMenuForCoordinator(menu, container) {
 
                 Object.keys(dishesByCategory).forEach(categoryKey => {
                     html += `<div class="menu-category-display">
-                                <h6>${CATEGORIES[categoryKey] || categoryKey}</h6>
+                                <h6>${AppUtils.CATEGORIES[categoryKey] || categoryKey}</h6>
                                 <ul class="dishes-list">`;
                     dishesByCategory[categoryKey].forEach(dish => {
                         html += `
@@ -387,15 +387,7 @@ function displayMenuForCoordinator(menu, container) {
     html += '</div>';
     container.innerHTML = html;
 }
-// Mapeo global de categorías para ser usado por displayMenuForCoordinator
-const CATEGORIES = {
-    'plato_fuerte': 'Platos Fuertes',
-    'bebida': 'Bebidas',
-    // ... puedes añadir más categorías aquí si las usas en admin.js
-    'entrada': 'Entradas',
-    'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
-};
+// Usando las categorías centralizadas desde AppUtils
 
 
 /**

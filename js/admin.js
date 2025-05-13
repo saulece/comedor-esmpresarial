@@ -3,19 +3,10 @@
  * Funcionalidades específicas para la vista de administración
  */
 
-// Define tu código de acceso de administrador aquí. (CAMBIA ESTO)
-const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
-
 // Variables globales
 let currentEditingMenuId = null;
-const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const CATEGORIES = {
-    'plato_fuerte': 'Platos Fuertes',
-    'bebida': 'Bebidas',
-    'entrada': 'Entradas',
-    'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
-};
+let originalMenuImageUrl = null; // Variable para rastrear la URL de la imagen original
+const ADMIN_MASTER_ACCESS_CODE = "ADMIN728532"; // ¡CAMBIA ESTO POR ALGO SEGURO Y ÚNICO!
 
 // Flag para evitar inicialización múltiple
 let isAdminInitialized = false; 
@@ -358,7 +349,7 @@ function generateWeekDays(startDateStr) {
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + i);
-            const daySection = createDaySection(i, DAYS_OF_WEEK[i], currentDate);
+            const daySection = createDaySection(i, AppUtils.DAYS_OF_WEEK[i], currentDate);
             daysContainer.appendChild(daySection);
         }
         setupAddDishButtons(); 
@@ -384,7 +375,7 @@ function createDaySection(dayIndex, dayName, date) {
     daySection.appendChild(dayLabel);
     daySection.appendChild(dayDateDisplay);
     
-    Object.entries(CATEGORIES).forEach(([categoryKey, categoryName]) => {
+    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName]) => {
         const categorySection = createCategorySection(dayIndex, dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), categoryKey, categoryName);
         daySection.appendChild(categorySection);
     });
@@ -483,35 +474,22 @@ async function saveMenu() {
         return;
     }
     
+    // Obtener los datos básicos del menú
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
-        active: true, 
+        active: true
     };
     
-    if (currentEditingMenuId) {
-        menuData.id = currentEditingMenuId; // Pasar ID solo si estamos editando
-    }
-    
-    // Verificar si hay una imagen para eliminar
-    const removeImageBtn = document.getElementById('remove-image-btn');
-    const imagePreviewContainer = document.querySelector('.image-preview-container');
-    
-    if (removeImageBtn && imagePreviewContainer && 
-        imagePreviewContainer.style.display === 'none' && 
-        currentEditingMenuId) {
-        // Si estamos editando y la imagen fue eliminada, eliminar la URL de la imagen
-        menuData.imageUrl = null;
-    }
-    
+    // Preparar los días del menú
     const days = [];
     const daySections = document.querySelectorAll('.day-section');
     
     daySections.forEach(daySection => {
         const dayIndex = parseInt(daySection.getAttribute('data-day'));
         const dayDate = daySection.getAttribute('data-date');
-        const dayName = DAYS_OF_WEEK[dayIndex];
+        const dayName = AppUtils.DAYS_OF_WEEK[dayIndex];
         
         const dayData = {
             id: dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
@@ -520,7 +498,7 @@ async function saveMenu() {
             dishes: []
         };
         
-        Object.keys(CATEGORIES).forEach(categoryKey => {
+        Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
             const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
             if (dishesContainer) {
                 const dishGroups = dishesContainer.querySelectorAll('.dish-input-group');
@@ -552,12 +530,41 @@ async function saveMenu() {
     saveButton.innerHTML = '<span class="spinner"></span> Guardando...';
     
     try {
+        // Variable para rastrear el ID del menú a usar para la imagen
+        let menuIdToUseForImage = currentEditingMenuId;
+        
+        // Verificar si hay una imagen para eliminar
+        const removeImageBtn = document.getElementById('remove-image-btn');
+        const imagePreviewContainer = document.querySelector('.image-preview-container');
+        
+        // Variable para almacenar la URL de la imagen a guardar
+        let imageUrlToSave = originalMenuImageUrl; // Usar la variable global que rastreamos en editMenu
+        
+        // Si es un menú nuevo, primero crear el documento sin imagen
+        if (!currentEditingMenuId) {
+            // Para un menú nuevo, no incluir imageUrl inicialmente
+            delete menuData.imageUrl;
+            
+            // Crear el documento del menú en Firestore
+            const newMenuId = await FirebaseMenuModel.add(menuData);
+            
+            if (!newMenuId) {
+                AppUtils.showNotification('Error al crear el menú base.', 'error');
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalButtonHtml;
+                return;
+            }
+            
+            // Asignar el ID del menú recién creado
+            menuIdToUseForImage = newMenuId;
+            console.log(`Menú base creado con ID: ${newMenuId}`);
+        }
+        
         // Manejar la carga de la imagen si hay una seleccionada
         if (menuImageInput && menuImageInput.files && menuImageInput.files[0]) {
             const file = menuImageInput.files[0];
-            const menuId = currentEditingMenuId || `new_menu_${Date.now()}`;
             const storageRef = firebase.storage().ref();
-            const imageRef = storageRef.child(`menus_images/${menuId}_${file.name}`);
+            const imageRef = storageRef.child(`menus_images/${menuIdToUseForImage}_${file.name}`);
             
             // Mostrar mensaje de carga
             saveButton.innerHTML = '<span class="spinner"></span> Subiendo imagen...';
@@ -566,27 +573,64 @@ async function saveMenu() {
             const uploadTask = await imageRef.put(file);
             
             // Obtener la URL de descarga
-            const imageUrl = await uploadTask.ref.getDownloadURL();
+            const newImageUrlToSave = await uploadTask.ref.getDownloadURL();
             
-            // Agregar la URL de la imagen al objeto menuData
-            menuData.imageUrl = imageUrl;
+            // Si había una imagen original diferente, borrarla
+            if (originalMenuImageUrl && originalMenuImageUrl !== newImageUrlToSave) {
+                try {
+                    console.log(`Intentando borrar imagen antigua: ${originalMenuImageUrl}`);
+                    const oldImageRef = firebase.storage().refFromURL(originalMenuImageUrl);
+                    await oldImageRef.delete();
+                    console.log("Imagen antigua borrada de Storage.");
+                } catch (deleteError) {
+                    console.error("Error al borrar imagen antigua de Storage:", deleteError);
+                    // Continuar a pesar del error en la eliminación
+                }
+            }
+            
+            // Actualizar la URL de la imagen a guardar
+            imageUrlToSave = newImageUrlToSave;
             
             saveButton.innerHTML = '<span class="spinner"></span> Guardando menú...';
+        } else if (removeImageBtn && imagePreviewContainer && 
+                  imagePreviewContainer.style.display === 'none' && 
+                  currentEditingMenuId && originalMenuImageUrl) {
+            // Si estamos editando y la imagen fue eliminada, eliminar la URL y el archivo
+            try {
+                console.log(`Intentando borrar imagen eliminada por usuario: ${originalMenuImageUrl}`);
+                const oldImageRef = firebase.storage().refFromURL(originalMenuImageUrl);
+                await oldImageRef.delete();
+                console.log("Imagen eliminada por usuario borrada de Storage.");
+            } catch (deleteError) {
+                console.error("Error al borrar imagen de Storage:", deleteError);
+                // Continuar a pesar del error en la eliminación
+            }
+            
+            // Establecer la URL de la imagen a null
+            imageUrlToSave = null;
         }
         
+        // Actualización final o creación del campo imagen
         let success = false;
-        if (currentEditingMenuId) {
-            // Para actualizar, pasamos el ID y los datos
-            success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
+        
+        if (!currentEditingMenuId) {
+            // Para un menú nuevo, actualizar el documento con la URL de la imagen
+            if (imageUrlToSave !== null) {
+                success = await FirebaseMenuModel.update(menuIdToUseForImage, { imageUrl: imageUrlToSave });
+            } else {
+                // Si no hay imagen, ya tenemos éxito porque el menú base ya se creó
+                success = true;
+            }
         } else {
-            // Para añadir, no pasamos ID, Firebase lo genera
-            success = await FirebaseMenuModel.add(menuData);
+            // Para un menú existente, actualizar con todos los datos incluyendo la URL de la imagen
+            menuData.imageUrl = imageUrlToSave; // Puede ser null si se eliminó la imagen
+            success = await FirebaseMenuModel.update(currentEditingMenuId, menuData);
         }
         
         if (success) {
             AppUtils.showNotification(currentEditingMenuId ? 'Menú actualizado.' : 'Menú guardado.', 'success');
             loadSavedMenus();
-            resetMenuForm();
+            resetMenuForm(); // Esto ya resetea originalMenuImageUrl
         } else {
             AppUtils.showNotification('Error al guardar menú.', 'error');
         }
@@ -727,7 +771,7 @@ function createMenuItemElement(menu) {
             dayTitleElement.textContent = `${day.name} (${dayDate})`;
             dayDiv.appendChild(dayTitleElement);
 
-            Object.keys(CATEGORIES).forEach(categoryKey => {
+            Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
                 const dishesInCategory = day.dishes.filter(d => d.category === categoryKey);
                 if (dishesInCategory.length > 0) {
                     const categoryDiv = document.createElement('div');
@@ -735,7 +779,7 @@ function createMenuItemElement(menu) {
                     
                     const categoryTitleElement = document.createElement('h6');
                     categoryTitleElement.className = 'menu-category-title';
-                    categoryTitleElement.textContent = CATEGORIES[categoryKey] || categoryKey.replace('_',' ').replace(/\b\w/g, l => l.toUpperCase());
+                    categoryTitleElement.textContent = AppUtils.CATEGORIES[categoryKey] || categoryKey.replace('_',' ').replace(/\b\w/g, l => l.toUpperCase());
                     categoryDiv.appendChild(categoryTitleElement);
 
                     const ul = document.createElement('ul');
@@ -784,8 +828,13 @@ async function editMenu(menuId) {
     if (menu.imageUrl && menuImagePreview && imagePreviewContainer) {
         menuImagePreview.src = menu.imageUrl;
         imagePreviewContainer.style.display = 'block';
+        originalMenuImageUrl = menu.imageUrl; // Guardar la URL original para comparar al guardar
+        console.log(`URL de imagen original guardada: ${originalMenuImageUrl}`);
     } else if (imagePreviewContainer) {
         imagePreviewContainer.style.display = 'none';
+        menuImagePreview.src = '';
+        originalMenuImageUrl = null; // No hay imagen original
+        console.log('No hay imagen original para este menú');
     }
     
     generateWeekDays(menu.startDate); 
@@ -794,14 +843,14 @@ async function editMenu(menuId) {
         // Esperar un ciclo para asegurar que los días se hayan renderizado por generateWeekDays
         setTimeout(() => {
             menu.days.forEach(dayData => {
-                const dayIndex = DAYS_OF_WEEK.indexOf(dayData.name);
+                const dayIndex = AppUtils.DAYS_OF_WEEK.indexOf(dayData.name);
                 if (dayIndex === -1) return;
 
                 const daySection = document.querySelector(`.day-section[data-day="${dayIndex}"]`);
                 if (!daySection) return;
 
                 // Limpiar inputs antes de añadir
-                Object.keys(CATEGORIES).forEach(categoryKey => {
+                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
                     const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
                     if(dishesContainer) dishesContainer.innerHTML = ''; 
                 });
@@ -820,7 +869,7 @@ async function editMenu(menuId) {
                 }
                 
                 // Añadir input vacío si la categoría quedó vacía
-                Object.keys(CATEGORIES).forEach(categoryKey => {
+                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
                     const dishesContainer = daySection.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
                     if (dishesContainer && dishesContainer.children.length === 0) {
                         const dayNameNormalized = dayData.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -862,6 +911,7 @@ async function deleteMenu(menuId) {
 
 function resetMenuForm() { 
     currentEditingMenuId = null;
+    originalMenuImageUrl = null; // Resetear la URL de la imagen original
     const form = document.getElementById('menu-form');
     if(form) form.reset();
     
@@ -879,6 +929,7 @@ function resetMenuForm() {
     if(dateInput) dateInput.value = AppUtils.formatDateForInput(today);
     generateWeekDays(AppUtils.formatDateForInput(today)); // Regenerar días vacíos
     AppUtils.showNotification('Formulario limpiado.', 'info');
+    console.log('Formulario y variables de estado reseteados');
 }
 
 
