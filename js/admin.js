@@ -1304,28 +1304,74 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
             return;
         }
         
+        console.log('[ConfirmationReportManagement] Configurando selector de fechas...');
         this.setCurrentWeek(this.getMonday(new Date())); 
+        console.log('[ConfirmationReportManagement] Configurando event listeners...');
         this.setupEventListeners();
+        console.log('[ConfirmationReportManagement] Cargando datos iniciales...');
         this.loadConfirmationData().catch(error => console.error('Error loading initial report data:', error));
     },
     setupEventListeners: function() { 
+        console.log('[ConfirmationReportManagement] Configurando event listeners para reportes...');
+        
+        // Clonar y reemplazar el selector de semana para limpiar listeners previos
         const newWeekSel = this.weekSelector.cloneNode(true);
         this.weekSelector.parentNode.replaceChild(newWeekSel, this.weekSelector);
         this.weekSelector = newWeekSel;
-        this.weekSelector.addEventListener('change', () => {
-            this.setCurrentWeek(this.getMonday(new Date(this.weekSelector.value + 'T00:00:00Z')));
-            this.loadConfirmationData();
+        
+        // Añadir evento change con mejor manejo de errores y logging
+        this.weekSelector.addEventListener('change', (event) => {
+            console.log(`[ConfirmationReportManagement] Fecha seleccionada cambiada a: ${this.weekSelector.value}`);
+            try {
+                if (!this.weekSelector.value) {
+                    console.error('[ConfirmationReportManagement] Valor de fecha vacío');
+                    return;
+                }
+                
+                // Crear fecha a partir del valor seleccionado
+                const selectedDate = new Date(this.weekSelector.value + 'T00:00:00');
+                if (isNaN(selectedDate.getTime())) {
+                    console.error(`[ConfirmationReportManagement] Fecha inválida: ${this.weekSelector.value}`);
+                    return;
+                }
+                
+                console.log(`[ConfirmationReportManagement] Calculando lunes para: ${selectedDate.toISOString()}`);
+                const mondayDate = this.getMonday(selectedDate);
+                console.log(`[ConfirmationReportManagement] Lunes calculado: ${mondayDate.toISOString()}`);
+                
+                // Actualizar la semana actual y cargar datos
+                this.setCurrentWeek(mondayDate);
+                this.loadConfirmationData();
+                
+                // Notificar al usuario
+                AppUtils.showNotification(`Mostrando datos para la semana del ${new Intl.DateTimeFormat('es-ES', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                }).format(mondayDate)}`, 'info');
+            } catch (error) {
+                console.error('[ConfirmationReportManagement] Error al cambiar fecha:', error);
+                AppUtils.showNotification('Error al cambiar la fecha. Intente de nuevo.', 'error');
+            }
         });
 
+        // Configurar botón de semana anterior
         const newPrevBtn = this.prevWeekBtn.cloneNode(true);
         this.prevWeekBtn.parentNode.replaceChild(newPrevBtn, this.prevWeekBtn);
         this.prevWeekBtn = newPrevBtn;
-        this.prevWeekBtn.addEventListener('click', () => this.changeWeek(-7));
+        this.prevWeekBtn.addEventListener('click', () => {
+            console.log('[ConfirmationReportManagement] Botón semana anterior clickeado');
+            this.changeWeek(-7);
+        });
 
+        // Configurar botón de semana siguiente
         const newNextBtn = this.nextWeekBtn.cloneNode(true);
         this.nextWeekBtn.parentNode.replaceChild(newNextBtn, this.nextWeekBtn);
         this.nextWeekBtn = newNextBtn;
-        this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
+        this.nextWeekBtn.addEventListener('click', () => {
+            console.log('[ConfirmationReportManagement] Botón semana siguiente clickeado');
+            this.changeWeek(7);
+        });
+        
+        console.log('[ConfirmationReportManagement] Event listeners configurados correctamente');
     },
     changeWeek: function(dayOffset) { 
         const newDate = new Date(this.currentWeekStartDate);
