@@ -71,16 +71,6 @@ const FirebaseAttendanceModel = {
      * @returns {Promise<Object|null>} - Promesa que resuelve a la confirmación o null si no existe
      */
     getByCoordinatorAndWeek: async function(coordinatorId, weekStartDate) {
-        return this.getConfirmationByWeek(coordinatorId, weekStartDate);
-    },
-    
-    /**
-     * Alias para getByCoordinatorAndWeek (para mejor legibilidad)
-     * @param {string} coordinatorId - ID del coordinador
-     * @param {Date|string} weekStartDate - Fecha de inicio de la semana
-     * @returns {Promise<Object|null>} - Promesa que resuelve a la confirmación o null si no existe
-     */
-    getConfirmationByWeek: async function(coordinatorId, weekStartDate) {
         try {
             // Normalizar la fecha de inicio de semana
             let startDateStr;
@@ -112,32 +102,6 @@ const FirebaseAttendanceModel = {
         }
     },
 
-    /**
-     * Crea una nueva confirmación de asistencia
-     * @param {string} coordinatorId - ID del coordinador
-     * @param {string} weekStartDate - Fecha de inicio de la semana (formato YYYY-MM-DD)
-     * @param {Object} attendanceCounts - Conteos de asistencia por día
-     * @returns {Promise<boolean>} - Promesa que resuelve a true si se creó correctamente
-     */
-    create: async function(coordinatorId, weekStartDate, attendanceCounts) {
-        try {
-            // Crear objeto de confirmación
-            const confirmation = {
-                coordinatorId,
-                weekStartDate,
-                attendanceCounts,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            // Agregar la confirmación usando el método add
-            return await this.add(confirmation);
-        } catch (error) {
-            console.error('Error al crear confirmación:', error);
-            return false;
-        }
-    },
-    
     /**
      * Agrega una nueva confirmación de asistencia a Firestore
      * @param {Object} confirmation - Confirmación a agregar
@@ -175,30 +139,18 @@ const FirebaseAttendanceModel = {
     /**
      * Actualiza una confirmación de asistencia existente en Firestore
      * @param {string} id - ID de la confirmación a actualizar
-     * @param {Object} attendanceCounts - Conteos de asistencia actualizados o datos completos de la confirmación
+     * @param {Object} updatedData - Datos actualizados de la confirmación
      * @returns {Promise<boolean>} - Promesa que resuelve a true si se actualizó correctamente
      */
-    update: async function(id, attendanceCounts) {
+    update: async function(id, updatedData) {
         try {
-            // Determinar si solo se están actualizando los conteos o toda la confirmación
-            let updateData;
-            
-            if (typeof attendanceCounts === 'object' && !Array.isArray(attendanceCounts) && 
-                !('coordinatorId' in attendanceCounts) && !('weekStartDate' in attendanceCounts)) {
-                // Solo se están actualizando los conteos
-                updateData = {
-                    attendanceCounts: attendanceCounts,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-            } else {
-                // Se está actualizando toda la confirmación
-                updateData = {
-                    ...attendanceCounts,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-            }
+            // Asegurar que la confirmación tenga timestamp de actualización
+            const confirmationWithTimestamp = {
+                ...updatedData,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
 
-            await firebase.firestore().collection('attendanceConfirmations').doc(id).update(updateData);
+            await firebase.firestore().collection('attendanceConfirmations').doc(id).update(confirmationWithTimestamp);
             console.log(`Confirmación ${id} actualizada correctamente`);
             return true;
         } catch (error) {

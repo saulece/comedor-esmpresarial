@@ -79,34 +79,11 @@ async function checkSession() {
 function showLoginModal() {
     const loginModal = document.getElementById('login-modal');
     const loginForm = document.getElementById('login-form');
-    const closeModalBtn = document.getElementById('close-login-modal');
     
     if (loginModal) {
         // Asegurarse que el modal se muestre y esté visible
         loginModal.classList.add('active'); 
         loginModal.style.display = 'block';
-        
-        // Limpiar cualquier error anterior
-        const errorMessage = document.querySelector('#login-modal .error-message');
-        if (errorMessage) {
-            errorMessage.style.display = 'none';
-            errorMessage.textContent = '';
-        }
-        
-        // Configurar el botón de cierre del modal
-        if (closeModalBtn) {
-            // Eliminar listeners anteriores para evitar duplicados
-            const newCloseBtn = closeModalBtn.cloneNode(true);
-            closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
-            
-            // Agregar listener al nuevo botón
-            newCloseBtn.addEventListener('click', function() {
-                loginModal.classList.remove('active');
-                loginModal.style.display = 'none';
-                // Redirigir al usuario a la página principal
-                window.location.href = 'index.html';
-            });
-        }
         
         if (loginForm) {
             // Eliminar event listeners previos para evitar duplicados
@@ -211,195 +188,11 @@ function logoutCoordinator() {
  * Inicializa la interfaz de coordinación
  */
 function initCoordinatorInterface() {
-    console.log('Inicializando interfaz de coordinador...');
-    
-    // Forzar la carga de menús inmediatamente
-    setTimeout(() => {
-        console.log('Forzando carga de menús...');
-        loadCurrentMenu();
-        loadNextWeekMenu();
-        
-        // Agregar botón para recargar menús
-        addReloadMenusButton();
-        
-        // Inicializar el gestor de asistencia
-        if (typeof AttendanceManager !== 'undefined') {
-            try {
-                console.log('Inicializando AttendanceManager...');
-                AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
-            } catch (error) {
-                console.error('Error al inicializar AttendanceManager:', error);
-            }
-        } else {
-            console.error('AttendanceManager no está disponible');
-        }
-    }, 300);
-}
-
-// Nota: La función setupTabNavigation se ha movido a coordinator-ui.js
-
-// Nota: La función setupWeekSelectors se ha movido a coordinator-ui.js
-
-// Nota: La función setupMenuWeekSelector se ha movido a coordinator-ui.js
-
-// Nota: La función setupConfirmationWeekSelector se ha movido a coordinator-ui.js
-
-// Nota: La función setupLogoutButton se ha movido a coordinator-ui.js
-
-/**
- * Agrega un botón para recargar los menús manualmente
- */
-function addReloadMenusButton() {
-    // Buscar el contenedor del menú semanal
-    const menuSection = document.querySelector('.menu-section');
-    if (!menuSection) return;
-    
-    // Verificar si ya existe el botón
-    if (document.querySelector('.reload-all-menus-btn')) return;
-    
-    // Crear el botón de recarga
-    const reloadButton = document.createElement('button');
-    reloadButton.className = 'reload-all-menus-btn';
-    reloadButton.innerHTML = '<i class="fas fa-sync-alt"></i> Recargar menús';
-    reloadButton.style.marginBottom = '15px';
-    reloadButton.style.padding = '5px 10px';
-    reloadButton.style.backgroundColor = '#3498db';
-    reloadButton.style.color = 'white';
-    reloadButton.style.border = 'none';
-    reloadButton.style.borderRadius = '4px';
-    reloadButton.style.cursor = 'pointer';
-    
-    // Agregar evento de clic
-    reloadButton.addEventListener('click', function() {
-        console.log('Recargando todos los menús...');
-        AppUtils.showNotification('Recargando menús...', 'info');
-        loadMenusWithRetry();
-    });
-    
-    // Insertar el botón al principio de la sección de menú
-    menuSection.insertBefore(reloadButton, menuSection.firstChild);
-}
-
-/**
- * Carga los menús con reintentos en caso de error
- */
-function loadMenusWithRetry(attempt = 1) {
-    console.log(`Intentando cargar menús (intento ${attempt})`);
-    
-    try {
-        // Cargar menú actual con un pequeño retraso para evitar bloqueos
-        setTimeout(() => {
-            try {
-                loadCurrentMenu();
-            } catch (currentError) {
-                console.error('Error al cargar menú actual:', currentError);
-            }
-        }, 100);
-        
-        // Cargar menú de la próxima semana con un retraso mayor
-        setTimeout(() => {
-            try {
-                loadNextWeekMenu();
-            } catch (nextError) {
-                console.error('Error al cargar menú de la próxima semana:', nextError);
-            }
-        }, 500);
-    } catch (error) {
-        console.error(`Error al cargar menús (intento ${attempt}):`, error);
-        
-        // Reintentar hasta 3 veces con un retraso creciente
-        if (attempt < 3) {
-            const delay = attempt * 1000; // 1s, 2s, 3s
-            console.log(`Reintentando en ${delay}ms...`);
-            
-            setTimeout(() => {
-                loadMenusWithRetry(attempt + 1);
-            }, delay);
-        } else {
-            console.error('Se alcanzó el número máximo de intentos para cargar los menús');
-            if (typeof AppUtils !== 'undefined' && AppUtils.showNotification) {
-                AppUtils.showNotification('Error al cargar los menús. Por favor, recargue la página.', 'error');
-            }
-        }
-    }
-}
-
-/**
- * Configura el selector de semana para las confirmaciones
- */
-function setupConfirmationWeekSelector() {
-    const weekButtons = document.querySelectorAll('.confirmation-week-btn');
-    const confirmationContents = document.querySelectorAll('.confirmation-content');
-    const attendanceForms = document.querySelectorAll('.attendance-form');
-    
-    weekButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Quitar clase active de todos los botones y contenidos
-            weekButtons.forEach(btn => btn.classList.remove('active'));
-            confirmationContents.forEach(content => content.classList.remove('active'));
-            
-            // Ocultar todos los formularios
-            attendanceForms.forEach(form => form.style.display = 'none');
-            
-            // Agregar clase active al botón clickeado
-            button.classList.add('active');
-            
-            // Mostrar el contenido correspondiente
-            const weekType = button.getAttribute('data-confirmation-week');
-            const confirmationContent = document.getElementById(weekType + '-week-confirmation');
-            const attendanceForm = document.getElementById(weekType + '-attendance-form');
-            
-            if (confirmationContent) {
-                confirmationContent.classList.add('active');
-            }
-            
-            if (attendanceForm) {
-                attendanceForm.style.display = 'block';
-            }
-            
-            // Cargar los datos correspondientes si es necesario
-            if (weekType === 'current') {
-                // Cargar datos para la semana actual
-                AttendanceManager.loadCurrentWeekData();
-            } else if (weekType === 'next') {
-                // Cargar datos para la próxima semana
-                AttendanceManager.loadNextWeekData();
-            }
-        });
-    });
-}
-
-/**
- * Configura el selector de semana para los menús
- */
-function setupMenuWeekSelector() {
-    const weekButtons = document.querySelectorAll('.menu-week-btn');
-    const menuContents = document.querySelectorAll('.menu-content');
-    
-    weekButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Quitar clase active de todos los botones y contenidos
-            weekButtons.forEach(btn => btn.classList.remove('active'));
-            menuContents.forEach(content => content.classList.remove('active'));
-            
-            // Agregar clase active al botón clickeado
-            button.classList.add('active');
-            
-            // Mostrar el contenido correspondiente
-            const weekType = button.getAttribute('data-menu-week');
-            const menuContent = document.getElementById(weekType + '-menu');
-            if (menuContent) {
-                menuContent.classList.add('active');
-                
-                // Recargar el menú si es necesario
-                if (weekType === 'current' && !menuContent.dataset.loaded) {
-                    loadCurrentMenu();
-                } else if (weekType === 'next' && !menuContent.dataset.loaded) {
-                    loadNextWeekMenu();
-                }
-            }
-        });
-    });
+    displayCoordinatorInfo();
+    setupLogoutButton();
+    setupTabNavigation();
+    loadCurrentMenu(); // Para la pestaña de "Menú Semanal"
+    AttendanceManager.init(); // Para la pestaña de "Confirmaciones"
 }
 
 /**
@@ -451,7 +244,7 @@ function loadCurrentMenu() {
     const currentMenuContainer = document.getElementById('current-menu');
     if (!currentMenuContainer) return;
 
-    currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú actual...</p>';
+    currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú...</p>';
     
     if (typeof FirebaseMenuModel !== 'undefined') {
         // Cancelar listener anterior si existe
@@ -475,15 +268,10 @@ function loadCurrentMenu() {
                 
                 displayMenuForCoordinator(menu, currentMenuContainer); // Renombrada para evitar conflicto
                 
-                // Marcar el contenedor como cargado
-                currentMenuContainer.dataset.loaded = 'true';
-                
-                // Mostrar indicador de sincronización en tiempo real
                 const syncIndicator = document.createElement('div');
                 syncIndicator.className = 'sync-indicator';
-                syncIndicator.innerHTML = '<i class="fas fa-sync"></i> Sincronizado en tiempo real';
-                
-                // Agregar el indicador al contenedor
+                syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado';
+                // Append to container, not body, and style to be less intrusive
                 const header = currentMenuContainer.querySelector('.menu-header');
                 if (header) header.appendChild(syncIndicator);
                 else currentMenuContainer.appendChild(syncIndicator);
@@ -507,178 +295,6 @@ function loadCurrentMenu() {
     }
 }
 
-/**
- * Carga el menú de la próxima semana (la que comienza el lunes siguiente)
- */
-function loadNextWeekMenu() {
-    const nextMenuContainer = document.getElementById('next-menu');
-    if (!nextMenuContainer) return;
-
-    nextMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú de la próxima semana...</p>';
-    
-    if (typeof FirebaseMenuModel !== 'undefined') {
-        // Cancelar listener anterior si existe
-        if (nextMenuContainer.dataset.unsubscribeListenerId && typeof FirebaseRealtime !== 'undefined') {
-            FirebaseRealtime.cancelListener(nextMenuContainer.dataset.unsubscribeListenerId);
-        }
-
-        try {
-            // Obtener la fecha actual
-            const today = new Date();
-            
-            // Calcular la fecha del próximo lunes
-            const nextMonday = new Date(today);
-            const currentDay = today.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-            const daysUntilNextMonday = currentDay === 0 ? 1 : 8 - currentDay; // Si hoy es domingo, el próximo lunes es mañana
-            nextMonday.setDate(today.getDate() + daysUntilNextMonday);
-            
-            // Formatear la fecha para la consulta (YYYY-MM-DD)
-            const nextMondayFormatted = nextMonday.toISOString().split('T')[0];
-            
-            console.log('Fecha actual:', today.toISOString().split('T')[0]);
-            console.log('Próximo lunes:', nextMondayFormatted);
-            console.log('Buscando menú que comienza el lunes de la próxima semana:', nextMondayFormatted);
-            
-            // Buscar menús que comiencen exactamente el lunes de la próxima semana
-            const unsubscribe = FirebaseRealtime.listenToCollection('menus', {
-                where: [
-                    ['startDate', '==', nextMondayFormatted]
-                ],
-                onSnapshot: (snapshot) => {
-                    try {
-                        console.log('Snapshot recibido para menú del próximo lunes, docs:', snapshot.docs.length);
-                        
-                        if (snapshot.empty) {
-                            console.log('No se encontró menú para el lunes', nextMondayFormatted);
-                            console.log('Buscando menús futuros cercanos como alternativa...');
-                            
-                            // Si no hay menú para el lunes exacto, buscar menús futuros cercanos
-                            searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
-                            return;
-                        }
-                        
-                        // Convertir documentos a objetos de menú
-                        const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                        console.log('Menú para el lunes encontrado:', menus.length);
-                        
-                        if (menus.length > 0) {
-                            const nextWeekMenu = menus[0];
-                            console.log('Mostrando menú del próximo lunes:', nextWeekMenu.name, 'ID:', nextWeekMenu.id);
-                            
-                            displayMenuForCoordinator(nextWeekMenu, nextMenuContainer);
-                            
-                            // Marcar el contenedor como cargado
-                            nextMenuContainer.dataset.loaded = 'true';
-                            nextMenuContainer.dataset.unsubscribeListenerId = unsubscribe;
-                        } else {
-                            searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
-                        }
-                    } catch (error) {
-                        console.error('Error procesando snapshot para menú del próximo lunes:', error);
-                        searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
-                    }
-                },
-                onError: (error) => {
-                    console.error('Error en la búsqueda del menú del próximo lunes:', error);
-                    searchNearbyFutureMenus(nextMenuContainer, nextMondayFormatted);
-                }
-            });
-            
-            return unsubscribe;
-        } catch (error) {
-            console.error('Error al iniciar la búsqueda del menú de la próxima semana:', error);
-            nextMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. <button class="reload-menu-btn">Reintentar</button></p>';
-            
-            // Agregar evento al botón de reintentar
-            const retryBtn = nextMenuContainer.querySelector('.reload-menu-btn');
-            if (retryBtn) {
-                retryBtn.addEventListener('click', loadNextWeekMenu);
-            }
-        }
-    } else {
-        console.error('FirebaseMenuModel no está disponible');
-        nextMenuContainer.innerHTML = '<p class="error-state">Error: Componente de menú no disponible. <button class="reload-menu-btn">Reintentar</button></p>';
-        
-        // Agregar evento al botón de reintentar
-        const retryBtn = nextMenuContainer.querySelector('.reload-menu-btn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', loadNextWeekMenu);
-        }
-    }
-}
-
-/**
- * Busca menús futuros cercanos como alternativa si no se encuentra un menú para el lunes exacto
- * @param {HTMLElement} container - Contenedor donde mostrar el menú
- * @param {string} startDate - Fecha de inicio para la búsqueda (YYYY-MM-DD)
- */
-function searchNearbyFutureMenus(container, startDate) {
-    console.log('Buscando menús futuros cercanos a partir de:', startDate);
-    
-    // Buscar menús que comiencen después de la fecha dada pero no más de 14 días después
-    const unsubscribe = FirebaseMenuModel.listenToFutureMenus(startDate, 14, (menus, error) => {
-        if (error) {
-            console.error('Error en la búsqueda de menús futuros cercanos:', error);
-            container.innerHTML = '<p class="error-state">Error al cargar el menú de la próxima semana. <button class="reload-menu-btn">Reintentar</button></p>';
-            
-            // Agregar evento al botón de reintentar
-            const retryBtn = container.querySelector('.reload-menu-btn');
-            if (retryBtn) {
-                retryBtn.addEventListener('click', loadNextWeekMenu);
-            }
-            return;
-        }
-        
-        console.log('Menús futuros cercanos recibidos:', menus ? menus.length : 0);
-        
-        if (!menus || menus.length === 0) {
-            container.innerHTML = '<p class="empty-state">No hay menú disponible para la próxima semana. <button class="reload-menu-btn">Reintentar carga</button></p>';
-            
-            // Agregar evento al botón de reintentar
-            const retryBtn = container.querySelector('.reload-menu-btn');
-            if (retryBtn) {
-                retryBtn.addEventListener('click', loadNextWeekMenu);
-            }
-            return;
-        }
-        
-        // Ordenar los menús por fecha de inicio y tomar el primero (el más cercano)
-        const sortedMenus = menus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-        
-        // Mostrar información detallada sobre los menús encontrados
-        sortedMenus.forEach((menu, index) => {
-            console.log(`Menú futuro cercano ${index + 1}:`, menu.name, 
-                        'Inicio:', menu.startDate, 
-                        'Fin:', menu.endDate,
-                        'ID:', menu.id);
-        });
-        
-        const nextWeekMenu = sortedMenus[0];
-        console.log('Mostrando menú futuro cercano:', nextWeekMenu.name, 'ID:', nextWeekMenu.id);
-        
-        displayMenuForCoordinator(nextWeekMenu, container);
-        
-        // Marcar el contenedor como cargado
-        container.dataset.loaded = 'true';
-        container.dataset.unsubscribeListenerId = unsubscribe;
-        
-        // Mostrar indicador de sincronización en tiempo real
-        const syncIndicator = document.createElement('div');
-        syncIndicator.className = 'sync-indicator';
-        syncIndicator.innerHTML = '<i class="fas fa-sync"></i> Sincronizado en tiempo real';
-        
-        // Agregar el indicador al contenedor
-        const header = container.querySelector('.menu-header');
-        if (header) header.appendChild(syncIndicator);
-        else container.appendChild(syncIndicator);
-        
-        // Mostrar indicador de sincronización por un tiempo y luego ocultarlo
-        setTimeout(() => {
-            syncIndicator.classList.add('fade-out');
-            setTimeout(() => syncIndicator.remove(), 500);
-        }, 3000);
-    });
-}
 
 /**
  * Muestra un menú en el contenedor especificado para el coordinador
@@ -686,60 +302,35 @@ function searchNearbyFutureMenus(container, startDate) {
  * @param {HTMLElement} container - Contenedor donde mostrar el menú
  */
 function displayMenuForCoordinator(menu, container) {
-    console.log('Iniciando displayMenuForCoordinator con:', menu ? menu.name : 'menú indefinido');
-    
     if (!menu || typeof menu !== 'object') {
-        console.error('Error: Formato de menú inválido', menu);
         container.innerHTML = '<p class="empty-state">Error: Formato de menú inválido.</p>';
         return;
     }
-    
-    // Determinar si es el menú actual o el de la próxima semana
-    const isCurrentMenu = container.id === 'current-menu';
-    const weekType = isCurrentMenu ? 'current' : 'next';
-    
-    console.log(`Mostrando menú para ${weekType}:`, menu.name);
 
-    // Verificar si AppUtils está disponible
-    if (typeof AppUtils === 'undefined') {
-        console.error('Error: AppUtils no está definido. Usando formateo básico de fechas.');
-        // Implementar formateo básico si AppUtils no está disponible
-        if (!window.AppUtils) {
-            window.AppUtils = {
-                formatDate: function(date) {
-                    if (!date) return '';
-                    try {
-                        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                    } catch (e) {
-                        return date.toString();
-                    }
-                }
-            };
-        }
+    // Verificar si el menú tiene una imagen
+    if (menu.imageUrl) {
+        // Si hay imagen, mostrar la imagen como presentación principal
+        let html = `
+            <div class="menu-header">
+                <h4>${menu.name || 'Menú Semanal'}</h4>
+                <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
+            </div>
+            <div class="menu-image-container" style="text-align: center; margin: 20px 0;">
+                <img src="${menu.imageUrl}" alt="${menu.name || 'Menú Semanal'}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
     }
 
-    // Crear el HTML base para el menú
+    // Si no hay imagen, mostrar el menú detallado como antes
     let html = `
         <div class="menu-header">
             <h4>${menu.name || 'Menú Semanal'}</h4>
             <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
         </div>
+        <div class="menu-days">
     `;
-    
-    // Si hay una imagen del menú, agregar el contenedor de imagen
-    if (menu.imageUrl) {
-        console.log('El menú tiene imageUrl:', typeof menu.imageUrl, menu.imageUrl ? menu.imageUrl.substring(0, 50) + '...' : 'vacío');
-        
-        html += `
-            <div class="menu-image-display">
-                <div class="loading-indicator"><span class="spinner"></span> Cargando imagen...</div>
-                <img alt="Imagen del menú ${menu.name || 'Semanal'}" class="menu-image" style="display:none;">
-            </div>
-        `;
-    }
-    
-    // Agregar sección de días del menú
-    html += `<div class="menu-days">`;
     
     if (Array.isArray(menu.days) && menu.days.length > 0) {
         // Ordenar días
@@ -761,137 +352,109 @@ function displayMenuForCoordinator(menu, container) {
                 // Agrupar por categoría
                 const dishesByCategory = {};
                 day.dishes.forEach(dish => {
-                    const category = dish.category || 'otros';
-                    if (!dishesByCategory[category]) {
-                        dishesByCategory[category] = [];
+                    if (!dishesByCategory[dish.category]) {
+                        dishesByCategory[dish.category] = [];
                     }
-                    dishesByCategory[category].push(dish);
+                    dishesByCategory[dish.category].push(dish);
                 });
-                
-                // Mostrar platos por categoría
-                Object.keys(dishesByCategory).forEach(category => {
-                    const dishes = dishesByCategory[category];
-                    const categoryName = CATEGORIES[category] || category.charAt(0).toUpperCase() + category.slice(1);
-                    
-                    html += `<div class="dish-category"><h6>${categoryName}</h6><ul class="dish-list">`;
-                    
-                    dishes.forEach(dish => {
-                        html += `<li>${dish.name}</li>`;
+
+                Object.keys(dishesByCategory).forEach(categoryKey => {
+                    html += `<div class="menu-category-display">
+                                <h6>${CATEGORIES[categoryKey] || categoryKey}</h6>
+                                <ul class="dishes-list">`;
+                    dishesByCategory[categoryKey].forEach(dish => {
+                        html += `
+                            <li class="dish-item">
+                                <span class="dish-name">${dish.name}</span>
+                                <!-- Podrías añadir precio/descripción si están en 'dish'
+                                <span class="dish-price">$${dish.price ? dish.price.toFixed(2) : 'N/A'}</span>
+                                <p class="dish-description">${dish.description || ''}</p> 
+                                -->
+                            </li>
+                        `;
                     });
-                    
                     html += `</ul></div>`;
                 });
             } else {
-                html += `<p class="empty-state">No hay platos definidos para este día.</p>`;
+                html += '<p class="empty-state-small">No hay platillos para este día.</p>';
             }
-            
-            html += `</div>`;
+            html += `</div>`; // Cierre de menu-day
         });
     } else {
-        html += `<p class="empty-state">El menú no contiene días configurados.</p>`;
+        html += '<p class="empty-state">El menú no contiene días configurados.</p>';
     }
     
-    html += `</div>`;
-    
-    // Aplicar el HTML al contenedor
+    html += '</div>';
     container.innerHTML = html;
-    
-    // Si hay imagen, configurar eventos para cargarla
-    if (menu.imageUrl) {
-        const menuImage = container.querySelector('.menu-image');
-        const loadingIndicator = container.querySelector('.loading-indicator');
-        
-        if (menuImage && loadingIndicator) {
-            // Evento cuando la imagen carga correctamente
-            menuImage.onload = function() {
-                console.log('Imagen del menú cargada correctamente');
-                menuImage.style.display = 'block';
-                loadingIndicator.style.display = 'none';
-            };
-            
-            // Evento cuando hay un error al cargar la imagen
-            menuImage.onerror = function() {
-                console.error('Error al cargar la imagen del menú:', menu.imageUrl);
-                loadingIndicator.innerHTML = '<p class="error-state">Error al cargar la imagen. <button class="retry-btn">Reintentar</button></p>';
-                
-                // Agregar botón para reintentar
-                const retryBtn = loadingIndicator.querySelector('.retry-btn');
-                if (retryBtn) {
-                    retryBtn.onclick = function() {
-                        console.log('Reintentando carga de imagen con timestamp');
-                        // Reintentar carga de imagen
-                        const timestamp = new Date().getTime();
-                        menuImage.src = menu.imageUrl + '?t=' + timestamp; // Evitar caché
-                        loadingIndicator.innerHTML = '<span class="spinner"></span> Cargando imagen...';
-                    };
-                }
-            };
-            
-            // Iniciar la carga de la imagen
-            if (menu.imageUrl.length > 1000 && menu.imageUrl.startsWith('data:')) {
-                // Para data URLs largas, usar una imagen temporal primero
-                try {
-                    const tempImg = new Image();
-                    tempImg.onload = function() {
-                        menuImage.src = menu.imageUrl;
-                    };
-                    tempImg.onerror = function() {
-                        menuImage.onerror();
-                    };
-                    tempImg.src = menu.imageUrl;
-                } catch (error) {
-                    console.error('Error al procesar la data URL:', error);
-                    menuImage.onerror();
-                }
-            } else {
-                // URL normal, cargar directamente
-                menuImage.src = menu.imageUrl;
-            }
-        }
-    }
-    
-    // Actualizar el menú en el gestor de asistencia si está disponible
-    setTimeout(() => {
-        if (typeof AttendanceManager !== 'undefined') {
-            try {
-                const menuData = {
-                    id: menu.id,
-                    name: menu.name,
-                    startDate: menu.startDate,
-                    endDate: menu.endDate,
-                    days: {}
-                };
-                
-                // Convertir los días a formato compatible con AttendanceManager
-                if (Array.isArray(menu.days)) {
-                    menu.days.forEach(day => {
-                        const dayName = day.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        menuData.days[dayName] = {
-                            date: day.date,
-                            dish: day.dishes && day.dishes.length > 0 ? day.dishes[0].name : 'No especificado'
-                        };
-                    });
-                }
-                
-                // Actualizar el menú en el gestor de asistencia
-                AttendanceManager.updateMenu(weekType, menuData);
-                console.log(`Menú ${weekType} actualizado en AttendanceManager`);
-            } catch (error) {
-                console.error('Error al actualizar menú en AttendanceManager:', error);
-            }
-        }
-    }, 200);
 }
+// Mapeo global de categorías para ser usado por displayMenuForCoordinator
+const CATEGORIES = {
+    'plato_fuerte': 'Platos Fuertes',
+    'bebida': 'Bebidas',
+    // ... puedes añadir más categorías aquí si las usas en admin.js
+    'entrada': 'Entradas',
+    'postre': 'Postres',
+    'guarnicion': 'Guarniciones'
+};
 
-// Gestor de asistencia para coordinadores
+
+/**
+ * Gestión de asistencia para coordinadores
+ */
 const AttendanceManager = {
-    currentWeekStartDate: null,
-    nextWeekStartDate: null,
+    currentWeekStartDate: null,    // La semana que se está viendo actualmente
+    actualCurrentWeekStartDate: null, // El lunes de la semana real actual
     currentMenu: null,
-    nextWeekMenu: null,
-    currentConfirmation: null,
-    nextWeekConfirmation: null,
+    currentConfirmation: null, // Almacena la confirmación actual para la semana y coordinador
+    
+    init: function() {
+        const prevWeekBtn = document.getElementById('prev-week-btn');
+        const nextWeekBtn = document.getElementById('next-week-btn');
+        const attendanceForm = document.getElementById('attendance-form');
+        const resetBtn = document.getElementById('reset-attendance-btn');
 
+        if(prevWeekBtn) prevWeekBtn.addEventListener('click', () => this.changeWeek(-1));
+        if(nextWeekBtn) nextWeekBtn.addEventListener('click', () => this.changeWeek(1));
+        
+        if(attendanceForm) {
+            attendanceForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const submitButton = document.getElementById('save-attendance-btn');
+                const originalButtonHtml = submitButton.innerHTML;
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class="spinner"></span> Guardando...';
+                }
+                try {
+                    await this.saveAttendance();
+                } catch (error) {
+                    console.error('Error al guardar confirmación:', error);
+                    AppUtils.showNotification('Error al guardar la confirmación.', 'error');
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonHtml; // Se actualizará en loadExistingConfirmation
+                    }
+                }
+            });
+        }
+        if(resetBtn) resetBtn.addEventListener('click', () => this.resetForm());
+        
+        // Calcular y guardar el lunes de la semana actual real
+        this.actualCurrentWeekStartDate = this.getStartOfWeek(new Date());
+        
+        // Inicializar la vista en la semana actual
+        this.setCurrentWeek(this.actualCurrentWeekStartDate);
+    },
+    
+    getStartOfWeek: function(date) {
+        const d = new Date(date);
+        const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        d.setHours(0,0,0,0); // Normalizar a medianoche
+        return d;
+    },
+    
     setCurrentWeek: async function(startDate) {
         this.currentWeekStartDate = startDate;
         this.updateWeekDisplay();
@@ -906,12 +469,46 @@ const AttendanceManager = {
             if(menuContainer) menuContainer.innerHTML = '<p class="error-state">Error al cargar datos de la semana.</p>';
             this.generateAttendanceInputs(null); // Generar inputs vacíos o mensaje
         }
+        
+        // Actualizar el estado de los botones de navegación
+        this.updateNavigationButtonsState();
     },
     
     changeWeek: async function(offsetWeeks) {
+        // Asegurar que offsetWeeks sea solo 1 o -1 para la navegación de una semana
+        offsetWeeks = offsetWeeks > 0 ? 1 : -1;
+        
         const newDate = new Date(this.currentWeekStartDate);
         newDate.setDate(newDate.getDate() + (offsetWeeks * 7));
         await this.setCurrentWeek(newDate);
+    },
+    
+    /**
+     * Actualiza el estado de los botones de navegación según la semana que se está viendo
+     * - Deshabilita el botón de semana anterior si estamos en la semana actual
+     * - Deshabilita el botón de semana siguiente si estamos en la próxima semana
+     */
+    updateNavigationButtonsState: function() {
+        const prevWeekBtn = document.getElementById('prev-week-btn');
+        const nextWeekBtn = document.getElementById('next-week-btn');
+        
+        if (!prevWeekBtn || !nextWeekBtn || !this.currentWeekStartDate || !this.actualCurrentWeekStartDate) {
+            return;
+        }
+        
+        // Calcular el inicio de la próxima semana real
+        const nextActualWeek = new Date(this.actualCurrentWeekStartDate);
+        nextActualWeek.setDate(nextActualWeek.getDate() + 7);
+        
+        // Deshabilitar botón de semana anterior si estamos viendo la semana actual o una anterior
+        prevWeekBtn.disabled = (this.currentWeekStartDate.getTime() <= this.actualCurrentWeekStartDate.getTime());
+        
+        // Deshabilitar botón de semana siguiente si estamos viendo la próxima semana o una posterior
+        nextWeekBtn.disabled = (this.currentWeekStartDate.getTime() >= nextActualWeek.getTime());
+        
+        // Actualizar estilos visuales de los botones
+        prevWeekBtn.classList.toggle('disabled', prevWeekBtn.disabled);
+        nextWeekBtn.classList.toggle('disabled', nextWeekBtn.disabled);
     },
     
     updateWeekDisplay: function() {
@@ -923,7 +520,25 @@ const AttendanceManager = {
         
         const startStr = AppUtils.formatDate(this.currentWeekStartDate);
         const endStr = AppUtils.formatDate(endDate);
-        weekDisplay.textContent = `Semana del ${startStr} al ${endStr}`;
+        
+        // Determinar si estamos viendo la semana actual o la próxima
+        let weekLabel = "Semana del";
+        
+        if (this.actualCurrentWeekStartDate) {
+            if (this.currentWeekStartDate.getTime() === this.actualCurrentWeekStartDate.getTime()) {
+                weekLabel = "Semana actual:";
+            } else {
+                // Calcular la próxima semana
+                const nextWeekStart = new Date(this.actualCurrentWeekStartDate);
+                nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+                
+                if (this.currentWeekStartDate.getTime() === nextWeekStart.getTime()) {
+                    weekLabel = "Próxima semana:";
+                }
+            }
+        }
+        
+        weekDisplay.textContent = `${weekLabel} ${startStr} al ${endStr}`;
     },
     
     loadMenuForWeek: async function() {
@@ -932,6 +547,7 @@ const AttendanceManager = {
         menuContainer.innerHTML = '<p class="empty-state"><span class="spinner"></span> Cargando menú...</p>';
 
         try {
+            // Usar this.currentWeekStartDate (la semana que se está viendo) para buscar el menú
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
             const weekEnd = new Date(this.currentWeekStartDate);
             weekEnd.setDate(weekEnd.getDate() + 6); // Hasta Domingo
@@ -975,16 +591,35 @@ const AttendanceManager = {
         }
     },
         
-    generateAttendanceInputs: function(menu, containerId) {
-        const inputsContainer = document.getElementById(containerId);
+    generateAttendanceInputs: function(menu) {
+        const inputsContainer = document.getElementById('attendance-inputs');
         if (!inputsContainer) return;
         inputsContainer.innerHTML = '';
 
+        // Actualizar el contenedor de menú para mostrar la imagen si existe
+        const menuContainer = document.getElementById('confirmation-menu-display');
+        if (menuContainer && menu) {
+            if (menu.imageUrl) {
+                // Si hay una imagen de menú, mostrar una versión más compacta
+                menuContainer.innerHTML = `
+                    <div class="menu-header">
+                        <h4>${menu.name || 'Menú Semanal'}</h4>
+                        <p>Vigente del ${AppUtils.formatDate(new Date(menu.startDate + 'T00:00:00'))} al ${AppUtils.formatDate(new Date(menu.endDate + 'T00:00:00'))}</p>
+                    </div>
+                    <div class="menu-image-container" style="text-align: center; margin: 10px 0;">
+                        <a href="#menu-tab" onclick="document.querySelector('.tab-btn[data-tab=\'menu-tab\']').click();" style="display: inline-block;">
+                            <img src="${menu.imageUrl}" alt="${menu.name || 'Menú Semanal'}" style="max-width: 100%; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <p style="margin-top: 5px; font-size: 0.9em;">Ver menú completo</p>
+                        </a>
+                    </div>
+                `;
+            } else {
+                // Si no hay imagen, dejar el contenedor vacío como estaba antes
+                menuContainer.innerHTML = '';
+            }
+        }
+
         const daysToDisplay = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        
-        // Determinar la fecha de inicio de la semana según el contenedor
-        const isNextWeek = containerId === 'next-attendance-inputs';
-        const weekStartDate = isNextWeek ? this.nextWeekStartDate : this.currentWeekStartDate;
 
         daysToDisplay.forEach((dayName, index) => {
             const dayDiv = document.createElement('div');
@@ -993,7 +628,7 @@ const AttendanceManager = {
             const dayId = dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             dayDiv.dataset.dayId = dayId;
 
-            const currentDate = new Date(weekStartDate);
+            const currentDate = new Date(this.currentWeekStartDate);
             currentDate.setDate(currentDate.getDate() + index);
 
             const header = document.createElement('div');
@@ -1003,22 +638,28 @@ const AttendanceManager = {
             const inputGroup = document.createElement('div');
             inputGroup.className = 'form-group';
             
-            const inputId = isNextWeek ? `next-attendance-${dayId}` : `current-attendance-${dayId}`;
-            
             const label = document.createElement('label');
-            label.htmlFor = inputId;
+            label.htmlFor = `attendance-${dayId}`;
             label.textContent = 'Asistentes:';
             
             const input = document.createElement('input');
             input.type = 'number';
-            input.id = inputId;
+            input.id = `attendance-${dayId}`;
             input.className = 'attendance-count form-control'; // form-control para mejor estilo
             input.min = '0';
             input.value = '0'; // Por defecto
             input.required = true;
 
             // Verificar si este día está en el menú actual
-            const dayInMenu = menu && menu.days && menu.days.find(d => d.name === dayName);
+            // Importante: Esto funciona igual para menús con imagen o sin imagen
+            // ya que los días activos se definen en menu.days independientemente
+            const dayInMenu = menu && menu.days && menu.days.find(d => {
+                // Normalizar el nombre del día para comparación
+                const normalizedDayName = d.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const normalizedCurrentDay = dayName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return normalizedDayName.toLowerCase() === normalizedCurrentDay.toLowerCase();
+            });
+            
             if (!dayInMenu) {
                 input.disabled = true;
                 input.value = '';
@@ -1034,183 +675,124 @@ const AttendanceManager = {
         });
     },
     
-    loadExistingConfirmation: async function(weekType = 'current') {
+    loadExistingConfirmation: async function() {
         const coordinatorId = sessionStorage.getItem('coordinatorId');
-        if (!coordinatorId) return;
-        
-        // Determinar qué semana estamos cargando
-        const isNextWeek = weekType === 'next';
-        const weekStartDate = isNextWeek ? this.nextWeekStartDate : this.currentWeekStartDate;
-        if (!weekStartDate) return;
-        
-        // Elementos de la UI para la semana correspondiente
-        const saveButton = document.getElementById(isNextWeek ? 'save-next-attendance-btn' : 'save-attendance-btn');
-        const lastUpdateInfo = document.getElementById(isNextWeek ? 'next-last-update-info' : 'last-update-info');
-        const lastUpdateTime = document.getElementById(isNextWeek ? 'next-last-update-time' : 'last-update-time');
+        if (!coordinatorId || !this.currentWeekStartDate) return;
+
+        const saveButton = document.getElementById('save-attendance-btn');
+        const lastUpdateInfo = document.getElementById('last-update-info');
+        const lastUpdateTime = document.getElementById('last-update-time');
 
         // Guardar HTML original del botón antes de poner spinner
         const originalButtonHtml = saveButton ? saveButton.innerHTML : '';
         if (saveButton) {
             saveButton.disabled = true;
-            saveButton.innerHTML = '<span class="spinner"></span> Cargando...';
+            saveButton.innerHTML = '<span class="spinner"></span> Cargando confirmación...';
         }
+        if(lastUpdateInfo) lastUpdateInfo.style.display = 'none';
 
         try {
-            const weekStartStr = AppUtils.formatDateForInput(weekStartDate);
-            const confirmation = await FirebaseAttendanceModel.getConfirmationByWeek(coordinatorId, weekStartStr);
+            // Usar this.currentWeekStartDate (la semana que se está viendo) para buscar la confirmación
+            const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
+            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(coordinatorId, weekStartStr);
             
-            // Guardar la confirmación en la propiedad correspondiente
-            if (isNextWeek) {
-                this.nextWeekConfirmation = confirmation;
-            } else {
-                this.currentConfirmation = confirmation;
-            }
-            
-            if (confirmation) {
-                // Rellenar los inputs con los valores guardados
-                Object.entries(confirmation.attendanceCounts).forEach(([dayId, count]) => {
-                    const prefix = isNextWeek ? 'next-attendance-' : 'current-attendance-';
-                    const input = document.getElementById(`${prefix}${dayId}`);
-                    if (input && !input.disabled) {
-                        input.value = count;
-                    }
-                });
-                
-                // Mostrar última actualización
-                if (lastUpdateTime) {
-                    lastUpdateTime.textContent = AppUtils.formatDateTime(new Date(confirmation.updatedAt.seconds * 1000));
+            const attendanceDays = document.querySelectorAll('.attendance-day');
+            attendanceDays.forEach(dayDiv => {
+                const dayId = dayDiv.dataset.dayId;
+                const input = dayDiv.querySelector('input.attendance-count');
+                if (input) {
+                    input.value = (this.currentConfirmation && this.currentConfirmation.attendanceCounts && this.currentConfirmation.attendanceCounts[dayId] !== undefined)
+                        ? this.currentConfirmation.attendanceCounts[dayId]
+                        : (input.disabled ? '' : '0'); // Mantener vacío si está deshabilitado, sino 0
                 }
-                if (lastUpdateInfo) {
-                    lastUpdateInfo.style.display = 'block';
-                }
+            });
+
+            if (this.currentConfirmation && lastUpdateInfo && lastUpdateTime) {
+                const updateDate = this.currentConfirmation.updatedAt?.toDate ? this.currentConfirmation.updatedAt.toDate() : new Date(this.currentConfirmation.updatedAt);
+                lastUpdateTime.textContent = updateDate.toLocaleString('es-ES');
+                lastUpdateInfo.style.display = 'block';
             }
             
         } catch (error) {
-            console.error(`Error al cargar confirmación existente (${weekType}):`, error);
-            AppUtils.showNotification(`Error al cargar datos de confirmación previos para ${isNextWeek ? 'la próxima semana' : 'la semana actual'}.`, 'error');
+            console.error('Error al cargar confirmación existente:', error);
+            AppUtils.showNotification('Error al cargar datos de confirmación previos.', 'error');
         } finally {
             if (saveButton) {
                 const iconHtml = '<i class="fas fa-save"></i> ';
-                const confirmation = isNextWeek ? this.nextWeekConfirmation : this.currentConfirmation;
-                saveButton.innerHTML = iconHtml + (confirmation ? 'Actualizar Asistencia' : 'Confirmar Asistencia');
+                saveButton.innerHTML = iconHtml + (this.currentConfirmation ? 'Actualizar Asistencia' : 'Confirmar Asistencia');
                 saveButton.disabled = false;
             }
         }
     },
     
-    saveCurrentAttendance: async function() {
-        return this.saveAttendance('current');
-    },
-    
-    saveNextAttendance: async function() {
-        return this.saveAttendance('next');
-    },
-    
-    saveAttendance: async function(weekType = 'current') {
+    saveAttendance: async function() {
         const coordinatorId = sessionStorage.getItem('coordinatorId');
-        
-        // Determinar qué semana estamos guardando
-        const isNextWeek = weekType === 'next';
-        const menu = isNextWeek ? this.nextWeekMenu : this.currentMenu;
-        const weekStartDate = isNextWeek ? this.nextWeekStartDate : this.currentWeekStartDate;
-        const confirmation = isNextWeek ? this.nextWeekConfirmation : this.currentConfirmation;
-        
-        if (!coordinatorId || !menu) { // Solo guardar si hay un menú para la semana
-            AppUtils.showNotification(`No hay un menú activo para ${isNextWeek ? 'la próxima semana' : 'esta semana'} o no ha iniciado sesión.`, 'warning');
+        if (!coordinatorId || !this.currentMenu) { // Solo guardar si hay un menú para la semana
+            AppUtils.showNotification('No hay un menú activo para esta semana o no ha iniciado sesión.', 'warning');
             return false;
         }
         
         const attendanceCounts = {};
+        const attendanceDays = document.querySelectorAll('.attendance-day');
         let hasValidInput = false;
-        
-        // Seleccionar el contenedor correcto según la semana
-        const inputsContainer = document.getElementById(isNextWeek ? 'next-attendance-inputs' : 'current-attendance-inputs');
-        if (!inputsContainer) return false;
-        
-        // Obtener todos los días en el contenedor
-        const attendanceDays = inputsContainer.querySelectorAll('.attendance-day');
-        
+
         attendanceDays.forEach(dayDiv => {
             const dayId = dayDiv.dataset.dayId;
-            const prefix = isNextWeek ? 'next-attendance-' : 'current-attendance-';
-            const input = document.getElementById(`${prefix}${dayId}`);
-            
-            if (input && !input.disabled && input.value.trim() !== '') {
-                const count = parseInt(input.value.trim(), 10);
-                if (!isNaN(count) && count >= 0) {
-                    attendanceCounts[dayId] = count;
-                    hasValidInput = true;
-                }
+            const input = dayDiv.querySelector('input.attendance-count');
+            if (input && !input.disabled) { // Solo considerar inputs habilitados
+                const count = parseInt(input.value, 10);
+                attendanceCounts[dayId] = isNaN(count) || count < 0 ? 0 : count;
+                if(attendanceCounts[dayId] > 0) hasValidInput = true;
             }
         });
 
-        if (!hasValidInput) {
-            AppUtils.showNotification('Por favor, ingrese al menos un valor válido de asistencia.', 'warning');
-            return false;
-        }
+        // if (!hasValidInput && !this.currentConfirmation) { // Si es una nueva confirmación y todo es 0
+        //     AppUtils.showNotification('Por favor, ingrese al menos una asistencia.', 'info');
+        //     return false;
+        // }
 
+        // Usar this.currentWeekStartDate (la semana que se está viendo) para guardar la confirmación
+        const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
+        const confirmationData = {
+            coordinatorId,
+            weekStartDate: weekStartStr,
+            menuId: this.currentMenu.id, // Guardar ID del menú con la confirmación
+            attendanceCounts,
+            // createdAt y updatedAt serán manejados por FirebaseAttendanceModel
+        };
+        
         try {
-            // Crear o actualizar la confirmación
-            let success;
-            if (confirmation) {
-                // Actualizar confirmación existente
-                success = await FirebaseAttendanceModel.update(
-                    confirmation.id,
-                    attendanceCounts
-                );
+            let success = false;
+            if (this.currentConfirmation) {
+                success = await FirebaseAttendanceModel.update(this.currentConfirmation.id, confirmationData);
             } else {
-                // Crear nueva confirmación
-                success = await FirebaseAttendanceModel.create(
-                    coordinatorId,
-                    AppUtils.formatDateForInput(weekStartDate),
-                    attendanceCounts
-                );
+                // Generar un ID para la nueva confirmación si el modelo no lo hace
+                // confirmationData.id = 'attend_' + Date.now(); 
+                success = await FirebaseAttendanceModel.add(confirmationData);
             }
             
             if (success) {
-                AppUtils.showNotification(`Confirmación de asistencia para ${isNextWeek ? 'la próxima semana' : 'la semana actual'} guardada.`, 'success');
-                await this.loadExistingConfirmation(weekType); // Recargar para actualizar UI
+                AppUtils.showNotification('Confirmación de asistencia guardada.', 'success');
+                await this.loadExistingConfirmation(); // Recargar para actualizar UI (ej. hora de última actualización)
                 return true;
             } else {
-                AppUtils.showNotification(`Error al guardar la confirmación para ${isNextWeek ? 'la próxima semana' : 'la semana actual'}.`, 'error');
+                AppUtils.showNotification('Error al guardar la confirmación.', 'error');
                 return false;
             }
         } catch (error) {
-            console.error(`Error al guardar confirmación en Firebase (${weekType}):`, error);
-            AppUtils.showNotification(`Error al guardar la confirmación para ${isNextWeek ? 'la próxima semana' : 'la semana actual'}: ${error.message}`, 'error');
+            console.error('Error al guardar confirmación en Firebase:', error);
+            AppUtils.showNotification('Error al guardar la confirmación: ' + error.message, 'error');
             return false;
         }
     },
     
-    /**
-     * Resetea el formulario de confirmación de la semana actual
-     */
-    resetCurrentForm: function() {
-        this.resetForm('current');
-    },
-    
-    /**
-     * Resetea el formulario de confirmación de la próxima semana
-     */
-    resetNextForm: function() {
-        this.resetForm('next');
-    },
-    
-    /**
-     * Resetea un formulario de confirmación
-     */
-    resetForm: function(weekType = 'current') {
-        const isNextWeek = weekType === 'next';
-        const inputsContainer = document.getElementById(isNextWeek ? 'next-attendance-inputs' : 'current-attendance-inputs');
-        if (!inputsContainer) return;
-        
-        const inputs = inputsContainer.querySelectorAll('input.attendance-count');
-        inputs.forEach(input => {
-            if (!input.disabled) {
-                input.value = '0';
-            }
+    resetForm: function() {
+        const attendanceDays = document.querySelectorAll('.attendance-day');
+        attendanceDays.forEach(dayDiv => {
+            const input = dayDiv.querySelector('input.attendance-count');
+            if (input && !input.disabled) input.value = '0';
         });
-        
-        AppUtils.showNotification(`Formulario de ${isNextWeek ? 'la próxima semana' : 'la semana actual'} restablecido.`, 'info');
+        // Opcionalmente, recargar la confirmación existente para volver a los valores guardados
+        // this.loadExistingConfirmation();
     }
 };

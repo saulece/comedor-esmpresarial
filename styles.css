@@ -261,280 +261,6 @@ footer a:hover { color: var(--border-color); }
 /* Párrafos */
 p { margin-bottom: var(--spacing-md); }
 
-/* Estilos específicos para el menú */
-.menu-item {
-    margin-bottom: var(--spacing-md);
-}
-
-.menu-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    padding: var(--spacing-md);
-}
-
-/* Estilos para la carga de imágenes */
-.menu-image-upload {
-    width: 100%;
-}
-
-.image-preview {
-    position: relative;
-    max-width: 100%;
-    margin: var(--spacing-md) 0;
-    border: 2px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-}
-
-.image-preview img {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 500px;
-    object-fit: contain;
-    background-color: #f9f9f9;
-}
-
-.image-preview button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-    z-index: 10;
-}
-
-.image-preview button:hover {
-    background-color: var(--error-color);
-}
-
-/* Estilos para el input de archivo */
-input[type="file"] {
-    opacity: 0;
-    position: absolute;
-    z-index: -1;
-}
-
-.upload-button-container {
-    display: flex;
-    align-items: center;
-    margin-top: var(--spacing-sm);
-    gap: var(--spacing-md);
-}
-
-#select-image-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    background-color: var(--secondary-color);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#select-image-btn:hover {
-    background-color: var(--secondary-dark);
-}
-
-#selected-file-name {
-    font-size: var(--font-size-sm);
-    color: var(--text-light);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-
-.save-status {
-    margin-top: var(--spacing-sm);
-    font-size: var(--font-size-sm);
-    color: var(--text-light);
-    display: inline-block;
-    margin-left: var(--spacing-md);
-}
-
-.save-status.success {
-    color: var(--success-color);
-}
-
-.save-status.error {
-    color: var(--danger-color);
-}
-
-.help-text {
-    margin-top: 5px;
-    font-size: var(--font-size-sm);
-    color: var(--text-light);
-}
-
-/* Estilos para la miniatura de imagen en la lista de menús */
-.menu-image-container {
-    margin-right: var(--spacing-md);
-    width: 80px;
-    height: 80px;
-    border-radius: var(--border-radius-sm);
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.menu-thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Estilos para los selectores de semana del menú */
-.menu-week-selector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: var(--spacing-lg);
-    gap: var(--spacing-md);
-    background-color: var(--bg-light);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.menu-week-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: none;
-    background-color: transparent;
-    color: var(--text-color);
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.menu-week-btn i {
-    font-size: 0.9em;
-}
-
-.menu-week-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-.menu-week-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* Estilos para los contenedores de menú y confirmaciones */
-.menu-content, .confirmation-content {
-    display: none;
-}
-
-.menu-content.active, .confirmation-content.active {
-    display: block;
-}
-
-/* Estilos para los botones de confirmación de semana */
-.confirmation-week-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: none;
-    background-color: transparent;
-    color: var(--text-color);
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.confirmation-week-btn i {
-    font-size: 0.9em;
-}
-
-.confirmation-week-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-.confirmation-week-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* Estilos para los formularios de asistencia */
-.attendance-form {
-    margin-top: var(--spacing-lg);
-}
-
-/* Estilos para la imagen del menú en la vista de coordinador */
-.menu-image-display {
-    text-align: center;
-    margin: var(--spacing-md) 0;
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    position: relative;
-    min-height: 200px;
-}
-
-.menu-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Estilos para el indicador de carga de imágenes */
-.loading-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.8);
-    z-index: 2;
-}
-
-/* Estilos para el botón de reintentar */
-.retry-btn {
-    margin-left: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color var(--transition-fast);
-}
-
-.retry-btn:hover {
-    background-color: var(--primary-color-dark);
-}
-
-/* Estilos para dispositivos móviles */
-@media (max-width: 768px) {
-    .menu-image-display {
-        padding: var(--spacing-sm);
-    }
-}
-
 /* Secciones */
 section { margin-bottom: var(--spacing-xl); }
 .section-header {
@@ -758,6 +484,104 @@ tbody tr:hover { background-color: #f5f5f5; }
 }
 .menu-dish-item { margin-bottom: var(--spacing-xs); }
 
+/* Estilos para imágenes de menú */
+.menu-image-container {
+    text-align: center;
+    margin: var(--spacing-md) 0;
+}
+
+.menu-image-display {
+    width: 100%;
+    max-width: 600px; /* Ancho máximo para la imagen */
+    height: auto;
+    border-radius: var(--border-radius-md);
+    margin-top: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.menu-image-display:hover {
+    transform: scale(1.02);
+    box-shadow: var(--box-shadow-hover);
+}
+
+/* Vista previa de imagen en el formulario de administrador */
+.image-preview-container {
+    margin-top: var(--spacing-sm);
+    text-align: center;
+}
+
+#menu-image-preview {
+    max-width: 300px;
+    max-height: 200px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+#remove-image-btn {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+/* Estilos para input de archivo */
+input[type="file"] {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: #fff;
+    font-family: inherit;
+    font-size: var(--font-size-md);
+    line-height: 1.4;
+}
+
+input[type="file"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Estilos para imágenes en la vista de coordinador */
+#current-menu .menu-image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--box-shadow);
+}
+
+/* Estilos para la imagen en miniatura en la pestaña de confirmaciones */
+#confirmation-menu-display .menu-image-container {
+    margin: var(--spacing-sm) 0;
+}
+
+#confirmation-menu-display .menu-image-container img {
+    max-height: 150px;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--box-shadow);
+    transition: transform var(--transition-fast);
+}
+
+#confirmation-menu-display .menu-image-container img:hover {
+    transform: scale(1.05);
+}
+
+/* Estilos para botones de navegación de semana deshabilitados */
+#prev-week-btn:disabled,
+#next-week-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #e0e0e0;
+    color: #999;
+    border-color: #ccc;
+}
+
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 
 /* Gestión de Usuarios (Coordinadores) */
 .access-code-display { display: flex; align-items: center; gap: var(--spacing-sm); }
@@ -876,37 +700,11 @@ tbody tr:hover { background-color: #f5f5f5; }
     width: 90%;
     max-width: 400px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    position: relative; /* Para posicionar el botón de cierre correctamente */
 }
-.close-modal-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: transparent;
-    border: none;
-    color: var(--text-light);
-    font-size: var(--font-size-lg);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    transition: all var(--transition-fast);
-}
-
-.close-modal-btn:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: var(--danger-color);
-}
-
 .login-modal-content h2 {
+    text-align: center;
     color: var(--primary-color);
     margin-bottom: var(--spacing-lg);
-    font-size: var(--font-size-xl);
-    text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;

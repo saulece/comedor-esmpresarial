@@ -54,60 +54,37 @@ const FirebaseOffline = {
                 return;
             }
             
-            // Variable para verificar si ya se intentó habilitar la persistencia
-            if (window._firebasePersistenceEnabled) {
-                console.log('La persistencia offline ya fue configurada anteriormente');
-                return;
-            }
+            // Habilitar persistencia offline
+            await firebase.firestore().enablePersistence({
+                synchronizeTabs: true
+            });
             
-            // Intentar habilitar persistencia offline con manejo de errores mejorado
-            try {
-                await firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
+            console.log('Persistencia offline de Firebase habilitada');
+            
+            // Configurar monitoreo de estado de conexión de Firestore
+            firebase.firestore().collection('_connection_status').doc('status')
+                .onSnapshot(() => {
+                    // Esta callback se ejecutará cuando haya conexión con Firestore
+                    if (!this._isOnline) {
+                        this._isOnline = true;
+                        this._updateOfflineIndicator();
+                        this._notifyStateChange('online');
+                    }
+                }, () => {
+                    // Esta callback se ejecutará cuando no haya conexión con Firestore
+                    if (this._isOnline) {
+                        this._isOnline = false;
+                        this._updateOfflineIndicator();
+                        this._notifyStateChange('offline');
+                    }
                 });
-                window._firebasePersistenceEnabled = true;
-                console.log('Persistencia offline de Firebase habilitada correctamente');
-            } catch (persistenceError) {
-                // Manejar error de múltiples pestañas
-                if (persistenceError.code === 'failed-precondition') {
-                    console.log('La persistencia offline ya está habilitada en otra pestaña. Esto es normal.');
-                    window._firebasePersistenceEnabled = true; // Marcar como habilitada aunque sea en otra pestaña
-                } 
-                // Manejar error de navegador no compatible
-                else if (persistenceError.code === 'unimplemented') {
-                    console.warn('Este navegador no soporta persistencia offline de Firebase');
-                } 
-                // Otros errores
-                else {
-                    throw persistenceError; // Re-lanzar para el catch externo
-                }
-            }
-            
-            // Configurar monitoreo de estado de conexión de Firestore (solo si no hay errores)
-            try {
-                firebase.firestore().collection('_connection_status').doc('status')
-                    .onSnapshot(() => {
-                        // Esta callback se ejecutará cuando haya conexión con Firestore
-                        if (!this._isOnline) {
-                            this._isOnline = true;
-                            this._updateOfflineIndicator();
-                            this._notifyStateChange('online');
-                        }
-                    }, () => {
-                        // Esta callback se ejecutará cuando no haya conexión con Firestore
-                        if (this._isOnline) {
-                            this._isOnline = false;
-                            this._updateOfflineIndicator();
-                            this._notifyStateChange('offline');
-                        }
-                    });
-            } catch (monitorError) {
-                console.warn('No se pudo configurar el monitoreo de conexión:', monitorError);
-            }
         } catch (error) {
-            // Evitar mostrar errores en la consola para no alarmar al usuario
-            console.log('Nota: Se detectó un problema con la persistencia offline, pero la aplicación seguirá funcionando normalmente.');
-            console.debug('Detalles del error (solo para desarrollo):', error);
+            console.error('Error al configurar persistencia offline:', error);
+            
+            // Si hay un error de múltiples pestañas, mostrar mensaje informativo
+            if (error.code === 'failed-precondition') {
+                console.warn('La persistencia offline ya está habilitada en otra pestaña');
+            }
         }
     },
     

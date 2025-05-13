@@ -53,153 +53,40 @@ const FirebaseMenuModel = {
     /**
      * Escucha cambios en tiempo real en el menú activo
      * @param {Function} callback - Función a llamar cuando hay cambios (menu, error)
-     * @returns {string} - ID del listener para cancelarlo posteriormente
+     * @returns {Function} - Función para cancelar la suscripción
      */
     listenToActiveMenu: function(callback) {
-        console.log('Iniciando listenToActiveMenu');
         const todayStr = new Date().toISOString().split('T')[0];
-        console.log('Fecha actual para filtrado:', todayStr);
-        
-        try {
-            return FirebaseRealtime.listenToCollection('menus', {
-                where: [['endDate', '>=', todayStr]],
-                orderBy: [['endDate', 'asc']],
-                onSnapshot: (snapshot) => {
-                    try {
-                        console.log('Snapshot recibido en listenToActiveMenu, docs:', snapshot.docs.length);
-                        
-                        if (snapshot.empty) {
-                            console.log('No hay menús activos disponibles');
-                            callback(null);
-                            return;
-                        }
-                        
-                        // Filtrar menús que ya han comenzado
-                        const validMenus = snapshot.docs
-                            .map(doc => ({ ...doc.data(), id: doc.id }))
-                            .filter(menu => menu.startDate <= todayStr);
-                        
-                        console.log('Menús válidos (ya comenzados):', validMenus.length);
-                        
-                        if (validMenus.length === 0) {
-                            console.log('No hay menús válidos que ya hayan comenzado');
-                            callback(null);
-                            return;
-                        }
-                        
-                        // Ordenar por fecha de inicio descendente y tomar el primero
-                        validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-                        console.log('Menú activo seleccionado:', validMenus[0].name, 'ID:', validMenus[0].id);
-                        callback(validMenus[0]);
-                    } catch (error) {
-                        console.error('Error procesando snapshot en listenToActiveMenu:', error);
-                        callback(null, error);
-                    }
-                },
-                onError: (error) => {
-                    console.error('Error en listenToActiveMenu:', error);
-                    callback(null, error);
+        const unsubscribe = firebase.firestore()
+            .collection('menus')
+            // 1. Obtener menús que AÚN NO HAN TERMINADO o TERMINAN HOY.
+            .where('endDate', '>=', todayStr)
+            // 2. El PRIMER orderBy DEBE ser en 'endDate' porque es el campo de la desigualdad.
+            .orderBy('endDate', 'asc') // Opcionalmente, puedes añadir un segundo orderBy aquí
+                                       // .orderBy('startDate', 'desc') si necesitas que la BD ayude más en el orden
+            .onSnapshot(snapshot => {
+                let activeMenu = null;
+                
+                // 3. En el cliente, encontrar el menú que YA HA COMENZADO y es el más adecuado.
+                const validMenus = snapshot.docs
+                    .map(doc => ({ ...doc.data(), id: doc.id }))
+                    .filter(menu => menu.startDate <= todayStr); // Filtrar los que ya comenzaron
+
+                if (validMenus.length > 0) {
+                    // De los menús válidos, tomar el que tiene la fecha de inicio más reciente.
+                    validMenus.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+                    activeMenu = validMenus[0];
                 }
+                
+                callback(activeMenu, null); // Llamar con el menú encontrado o null
+            }, error => {
+                console.error('Error al escuchar cambios en menú activo:', error);
+                callback(null, error);
             });
-        } catch (error) {
-            console.error('Error al iniciar listenToActiveMenu:', error);
-            callback(null, error);
-            return null;
-        }
+
+        return unsubscribe;
     },
-    
-    /**
-     * Escucha cambios en los menús futuros a partir de una fecha
-     * @param {string} startDate - Fecha de inicio mínima en formato YYYY-MM-DD
-     * @param {number} daysAhead - Número de días hacia adelante para buscar (opcional, por defecto 14)
-     * @param {Function} callback - Función a llamar cuando haya cambios
-     * @returns {string} - ID del listener para cancelarlo posteriormente
-     */
-    listenToFutureMenus: function(startDate, daysAhead = 14, callback) {
-        console.log('Iniciando listenToFutureMenus con fecha:', startDate, 'y días:', daysAhead);
-        
-        // Si el tercer parámetro no es una función, asumir que daysAhead es la función callback
-        if (typeof daysAhead === 'function') {
-            callback = daysAhead;
-            daysAhead = 14; // Valor por defecto
-        }
-        
-        // Calcular la fecha límite (startDate + daysAhead)
-        const startDateObj = new Date(startDate + 'T00:00:00');
-        const endDateObj = new Date(startDateObj);
-        endDateObj.setDate(startDateObj.getDate() + daysAhead);
-        const endDateStr = endDateObj.toISOString().split('T')[0];
-        
-        // Obtener la fecha actual para filtrar menús que ya han pasado
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        
-        console.log('Buscando menús futuros entre', startDate, 'y', endDateStr, '(Hoy es:', todayStr, ')');
-        
-        try {
-            // Primero intentamos buscar menús que comiencen en el futuro
-            return FirebaseRealtime.listenToCollection('menus', {
-                where: [
-                    // Buscamos menús que terminen en el futuro (para incluir menús actuales que se extienden al futuro)
-                    ['endDate', '>=', todayStr]
-                ],
-                orderBy: [['startDate', 'asc']],
-                onSnapshot: (snapshot) => {
-                    try {
-                        console.log('Snapshot recibido en listenToFutureMenus, docs:', snapshot.docs.length);
-                        
-                        if (snapshot.empty) {
-                            console.log('No hay menús futuros disponibles');
-                            callback([]);
-                            return;
-                        }
-                        
-                        // Convertir documentos a objetos de menú
-                        let menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                        console.log('Menús encontrados (sin filtrar):', menus.length);
-                        
-                        // Filtrar menús que comienzan en el futuro o que incluyen la fecha de inicio solicitada
-                        const futureMenus = menus.filter(menu => {
-                            // Convertir fechas a objetos Date para comparación
-                            const menuStartDate = new Date(menu.startDate + 'T00:00:00');
-                            const menuEndDate = new Date(menu.endDate + 'T00:00:00');
-                            
-                            // Un menú es futuro si:
-                            // 1. Comienza después de la fecha de inicio solicitada
-                            // 2. No ha terminado aún (su fecha de fin es mayor o igual a hoy)
-                            // 3. No es el menú actual (su fecha de inicio es mayor que hoy)
-                            return menuStartDate >= startDateObj && 
-                                   menuEndDate >= today && 
-                                   menuStartDate > today;
-                        });
-                        
-                        console.log('Menús futuros filtrados:', futureMenus.length);
-                        
-                        // Ordenar por fecha de inicio ascendente
-                        futureMenus.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-                        
-                        // Mostrar información de los menús encontrados
-                        futureMenus.forEach((menu, index) => {
-                            console.log(`Menú futuro ${index + 1}:`, menu.name, 'Inicio:', menu.startDate, 'Fin:', menu.endDate);
-                        });
-                        
-                        callback(futureMenus);
-                    } catch (error) {
-                        console.error('Error procesando snapshot en listenToFutureMenus:', error);
-                        callback([], error);
-                    }
-                },
-                onError: (error) => {
-                    console.error('Error en listenToFutureMenus:', error);
-                    callback([], error);
-                }
-            });
-        } catch (error) {
-            console.error('Error al iniciar listenToFutureMenus:', error);
-            callback([], error);
-            return null;
-        }
-    },
+
     // ... (las demás funciones como getAll, get, add, update, delete, listenToAllMenus permanecen igual) ...
     // Asegúrate de incluir las demás funciones que te pasé en la respuesta anterior si no están aquí.
     // Esta es solo la parte modificada.

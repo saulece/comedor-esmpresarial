@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
     <link rel="stylesheet" href="css/login-modal.css">
-    <link rel="stylesheet" href="css/coordinator-styles.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -46,23 +45,8 @@
             <div id="menu-tab" class="tab-content active">
                 <div class="card">
                     <h3><i class="fas fa-utensils"></i> Menú Semanal</h3>
-                    
-                    <div class="menu-week-selector">
-                        <button class="menu-week-btn active" data-menu-week="current">
-                            <i class="fas fa-calendar-day"></i> Semana Actual
-                        </button>
-                        <button class="menu-week-btn" data-menu-week="next">
-                            <i class="fas fa-calendar-plus"></i> Próxima Semana
-                        </button>
-                    </div>
-                    
-                    <div id="menu-container">
-                        <div id="current-menu" class="menu-content active">
-                            <p class="empty-state">No hay menú disponible para esta semana.</p>
-                        </div>
-                        <div id="next-menu" class="menu-content">
-                            <p class="empty-state">No hay menú disponible para la próxima semana.</p>
-                        </div>
+                    <div id="current-menu">
+                        <p class="empty-state">No hay menú disponible para esta semana.</p>
                     </div>
                 </div>
             </div>
@@ -71,30 +55,42 @@
                 <div class="card">
                     <h3><i class="fas fa-clipboard-check"></i> Confirmaciones de Asistencia</h3>
                     
-                    <div class="menu-week-selector">
-                        <button class="confirmation-week-btn active" data-confirmation-week="current">
-                            <i class="fas fa-calendar-day"></i> Semana Actual
+                    <div class="week-selector">
+                        <button id="prev-week-btn" class="icon-btn" title="Semana Anterior">
+                            <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button class="confirmation-week-btn" data-confirmation-week="next">
-                            <i class="fas fa-calendar-plus"></i> Próxima Semana
+                        <span id="selected-week-display">Semana actual</span>
+                        <button id="next-week-btn" class="icon-btn" title="Semana Siguiente">
+                            <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
                     
-                    <div id="confirmation-container">
-                    <!-- Los contenedores de confirmación se generarán dinámicamente por AttendanceManager -->
-                    <div id="current-week-confirmation" class="confirmation-content active">
-                        <div id="current-confirmation-menu-display">
-                            <!-- El menú actual se mostrará aquí -->
-                            <p class="empty-state">Cargando menú semanal actual...</p>
-                        </div>
+                    <div id="confirmation-menu-display">
+                        <!-- El menú semanal se mostrará aquí -->
+                        <p class="empty-state">Cargando menú semanal...</p>
                     </div>
-                    <div id="next-week-confirmation" class="confirmation-content">
-                        <div id="next-confirmation-menu-display">
-                            <!-- El menú de la próxima semana se mostrará aquí -->
-                            <p class="empty-state">Cargando menú de la próxima semana...</p>
+                    
+                    <form id="attendance-form" class="attendance-form">
+                        <h4><i class="fas fa-users"></i> Confirmar Asistencia</h4>
+                        <p class="help-text">Indique el número estimado de personas que asistirán cada día:</p>
+                        
+                        <div id="attendance-inputs" class="attendance-inputs">
+                            <!-- Los inputs para cada día se generarán dinámicamente -->
                         </div>
-                    </div>
-                </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="save-attendance-btn" class="primary-btn">
+                                <i class="fas fa-save"></i> Confirmar Asistencia
+                            </button>
+                            <button type="button" id="reset-attendance-btn" class="secondary-btn">
+                                <i class="fas fa-undo"></i> Restablecer
+                            </button>
+                        </div>
+                        
+                        <div id="last-update-info" class="last-update-info" style="display: none;">
+                            <i class="fas fa-clock"></i> Última actualización: <span id="last-update-time"></span>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -115,9 +111,6 @@
     <!-- Login Modal -->
     <div id="login-modal" class="login-modal">
         <div class="login-modal-content">
-            <button type="button" class="close-modal-btn" id="close-login-modal">
-                <i class="fas fa-times"></i>
-            </button>
             <h2><i class="fas fa-lock"></i> Acceso de Coordinador</h2>
             
             <form id="login-form">
@@ -133,31 +126,24 @@
         </div>
     </div>
 
-    <!-- Script de UI básica (debe cargarse primero) -->
-    <script src="js/coordinator-ui.js"></script>
-    
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
-    <!-- Firebase Configuration & Models -->
+    <!-- Firebase Configuration -->
     <script src="js/firebase-config.js"></script>
     <script src="js/firebase-menu-model.js"></script>
     <script src="js/firebase-coordinator-model.js"></script>
     <script src="js/firebase-attendance-model.js"></script>
-    <script src="js/firebase-storage-utils.js"></script>
     <script src="js/firebase-realtime.js"></script>
     <script src="js/firebase-offline.js"></script>
     <script src="js/storage-adapter.js"></script>
     
     <!-- Application Scripts -->
-    <script src="js/utils.js"></script>
-    <script src="js/app-utils.js"></script>
     <script src="js/models.js"></script>
     <script src="js/storage.js"></script>
-    <script src="js/attendance-manager.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/coordinator.js"></script>
     <script src="js/debug.js"></script>
     
