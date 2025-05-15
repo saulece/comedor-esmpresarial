@@ -265,56 +265,168 @@ function setupTabNavigation() {
     });
 }
 
+// Variable global para almacenar los menús y el índice actual
+let allMenus = [];
+let currentMenuIndex = 0;
+
 /**
- * Carga el menú actual con sincronización en tiempo real
+ * Inicializa la navegación de menús
+ */
+function initMenuNavigation() {
+    const prevMenuBtn = document.getElementById('prev-menu-btn');
+    const nextMenuBtn = document.getElementById('next-menu-btn');
+    const selectedMenuDisplay = document.getElementById('selected-menu-display');
+    
+    if (prevMenuBtn && nextMenuBtn) {
+        prevMenuBtn.addEventListener('click', () => {
+            if (currentMenuIndex > 0) {
+                currentMenuIndex--;
+                updateMenuDisplay();
+            }
+        });
+        
+        nextMenuBtn.addEventListener('click', () => {
+            if (currentMenuIndex < allMenus.length - 1) {
+                currentMenuIndex++;
+                updateMenuDisplay();
+            }
+        });
+    }
+}
+
+/**
+ * Actualiza la visualización del menú según el índice actual
+ */
+function updateMenuDisplay() {
+    const currentMenuContainer = document.getElementById('current-menu');
+    const selectedMenuDisplay = document.getElementById('selected-menu-display');
+    const prevMenuBtn = document.getElementById('prev-menu-btn');
+    const nextMenuBtn = document.getElementById('next-menu-btn');
+    
+    if (!currentMenuContainer) return;
+    
+    if (allMenus.length === 0) {
+        currentMenuContainer.innerHTML = '<p class="empty-state">No hay menús disponibles.</p>';
+        if (selectedMenuDisplay) selectedMenuDisplay.textContent = 'Sin menús';
+        if (prevMenuBtn) prevMenuBtn.disabled = true;
+        if (nextMenuBtn) nextMenuBtn.disabled = true;
+        return;
+    }
+    
+    // Actualizar estado de los botones
+    if (prevMenuBtn) prevMenuBtn.disabled = currentMenuIndex === 0;
+    if (nextMenuBtn) nextMenuBtn.disabled = currentMenuIndex === allMenus.length - 1;
+    
+    const menu = allMenus[currentMenuIndex];
+    
+    // Actualizar el texto del indicador
+    if (selectedMenuDisplay) {
+        const today = new Date();
+        const startDate = new Date(menu.startDate + 'T00:00:00');
+        const endDate = new Date(menu.endDate + 'T00:00:00');
+        
+        let menuStatus = '';
+        if (today >= startDate && today <= endDate) {
+            menuStatus = 'Menú actual';
+        } else if (today < startDate) {
+            menuStatus = 'Menú futuro';
+        } else {
+            menuStatus = 'Menú pasado';
+        }
+        
+        selectedMenuDisplay.textContent = `${menuStatus} (${AppUtils.formatDate(startDate)} - ${AppUtils.formatDate(endDate)})`;
+    }
+    
+    // Mostrar el menú
+    displayMenuForCoordinator(menu, currentMenuContainer);
+}
+
+/**
+ * Carga los menús disponibles (actuales y futuros) con sincronización en tiempo real
  */
 function loadCurrentMenu() {
     const currentMenuContainer = document.getElementById('current-menu');
     if (!currentMenuContainer) return;
 
-    currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menú...</p>';
+    currentMenuContainer.innerHTML = '<p class="loading-state"><span class="spinner"></span> Cargando menús...</p>';
     
     if (typeof FirebaseMenuModel !== 'undefined') {
         // Cancelar listener anterior si existe
-        if (currentMenuContainer.dataset.unsubscribeListenerId && typeof FirebaseRealtime !== 'undefined') {
-            FirebaseRealtime.cancelListener(currentMenuContainer.dataset.unsubscribeListenerId);
+        if (currentMenuContainer.dataset.unsubscribeFunction) {
+            try {
+                const unsubscribeFunc = new Function('return ' + currentMenuContainer.dataset.unsubscribeFunction)();
+                if (typeof unsubscribeFunc === 'function') {
+                    unsubscribeFunc();
+                }
+            } catch (e) {
+                console.warn('Error al cancelar listener anterior:', e);
+            }
         }
 
         try {
-            // Usar FirebaseMenuModel.listenToActiveMenu que ya maneja la lógica de FirebaseRealtime
-            const unsubscribe = FirebaseMenuModel.listenToActiveMenu((menu, error) => {
-                if (error) {
-                    console.error('Error en la escucha del menú activo:', error);
-                    currentMenuContainer.innerHTML = '<p class="error-state">Error al cargar el menú. Por favor, recarga la página.</p>';
-                    return;
-                }
-                
-                if (!menu) {
-                    currentMenuContainer.innerHTML = '<p class="empty-state">No hay menú activo para la fecha actual.</p>';
-                    return;
-                }
-                
-                displayMenuForCoordinator(menu, currentMenuContainer); // Renombrada para evitar conflicto
-                
-                const syncIndicator = document.createElement('div');
-                syncIndicator.className = 'sync-indicator';
-                syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado';
-                // Append to container, not body, and style to be less intrusive
-                const header = currentMenuContainer.querySelector('.menu-header');
-                if (header) header.appendChild(syncIndicator);
-                else currentMenuContainer.appendChild(syncIndicator);
-
-                setTimeout(() => {
-                    syncIndicator.classList.add('fade-out');
-                    setTimeout(() => syncIndicator.remove(), 500);
-                }, 3000);
-            });
+            // Obtener la fecha actual
+            const today = new Date();
+            const todayStr = AppUtils.formatDateForInput(today);
             
-            // Guardar la función de cancelación (el listener en sí)
-            currentMenuContainer.dataset.unsubscribeFunction = unsubscribe; // Guardar la función de desuscripción real
+            // Escuchar a todos los menús que terminan hoy o en el futuro
+            const unsubscribe = firebase.firestore()
+                .collection('menus')
+                .where('endDate', '>=', todayStr)
+                .orderBy('endDate', 'asc')
+                .onSnapshot(snapshot => {
+                    if (snapshot.empty) {
+                        allMenus = [];
+                        currentMenuIndex = 0;
+                        currentMenuContainer.innerHTML = '<p class="empty-state">No hay menús disponibles para la fecha actual o futuras.</p>';
+                        return;
+                    }
+                    
+                    // Obtener todos los menús y ordenarlos por fecha de inicio
+                    allMenus = snapshot.docs
+                        .map(doc => ({ ...doc.data(), id: doc.id }))
+                        .sort((a, b) => new Date(a.startDate + 'T00:00:00Z') - new Date(b.startDate + 'T00:00:00Z'));
+                    
+                    // Encontrar el índice del menú actual (si existe)
+                    const activeMenuIndex = allMenus.findIndex(menu => {
+                        return menu.startDate <= todayStr && menu.endDate >= todayStr;
+                    });
+                    
+                    // Si hay un menú activo, seleccionarlo; de lo contrario, seleccionar el primer menú futuro
+                    if (activeMenuIndex !== -1) {
+                        currentMenuIndex = activeMenuIndex;
+                    } else {
+                        // Si no hay menú activo, seleccionar el primer menú futuro (que debería ser el primero en la lista)
+                        currentMenuIndex = 0;
+                    }
+                    
+                    // Actualizar la visualización
+                    updateMenuDisplay();
+                    
+                    // Mostrar indicador de sincronización
+                    const syncIndicator = document.createElement('div');
+                    syncIndicator.className = 'sync-indicator';
+                    syncIndicator.innerHTML = '<span class="sync-icon"></span> Sincronizado';
+                    const header = currentMenuContainer.querySelector('.menu-header');
+                    if (header) header.appendChild(syncIndicator);
+                    else currentMenuContainer.appendChild(syncIndicator);
+
+                    setTimeout(() => {
+                        syncIndicator.classList.add('fade-out');
+                        setTimeout(() => syncIndicator.remove(), 500);
+                    }, 3000);
+                }, error => {
+                    console.error('Error en la escucha de menús:', error);
+                    currentMenuContainer.innerHTML = '<p class="error-state">Error al cargar los menús. Por favor, recarga la página.</p>';
+                });
+            
+            // Guardar la función de cancelación
+            currentMenuContainer.dataset.unsubscribeFunction = unsubscribe.toString();
+            
+            // Inicializar la navegación de menús
+            initMenuNavigation();
 
         } catch (error) {
-            console.error('Error al inicializar escucha de menú con Firebase:', error);
+            console.error('Error al inicializar escucha de menús con Firebase:', error);
             currentMenuContainer.innerHTML = '<p class="error-state">Error al conectar con Firebase. Por favor, recarga la página.</p>';
         }
     } else {
@@ -565,6 +677,47 @@ const AttendanceManager = {
             header.className = 'attendance-day-header';
             header.innerHTML = `<h5>${dayName} <small>(${AppUtils.formatDate(currentDate)})</small></h5>`;
             
+            // Verificar si este día está en el menú actual
+            const dayInMenu = menu && menu.days && menu.days.find(d => {
+                // Normalizar el nombre del día para comparación
+                const normalizedName = d.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const normalizedDayName = dayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return normalizedName === normalizedDayName;
+            });
+            
+            // Añadir sección de menú del día
+            const menuSection = document.createElement('div');
+            menuSection.className = 'day-menu-preview';
+            
+            if (dayInMenu && dayInMenu.dishes && dayInMenu.dishes.length > 0) {
+                // Agrupar por categoría
+                const dishesByCategory = {};
+                dayInMenu.dishes.forEach(dish => {
+                    if (!dishesByCategory[dish.category]) {
+                        dishesByCategory[dish.category] = [];
+                    }
+                    dishesByCategory[dish.category].push(dish);
+                });
+                
+                // Crear HTML para cada categoría
+                let menuHtml = '<div class="menu-preview">';
+                
+                Object.keys(dishesByCategory).forEach(categoryKey => {
+                    menuHtml += `<div class="menu-category">
+                                <h6>${CATEGORIES[categoryKey] || categoryKey}</h6>
+                                <ul class="dishes-list-compact">`;
+                    dishesByCategory[categoryKey].forEach(dish => {
+                        menuHtml += `<li class="dish-item-compact">${dish.name}</li>`;
+                    });
+                    menuHtml += `</ul></div>`;
+                });
+                
+                menuHtml += '</div>';
+                menuSection.innerHTML = menuHtml;
+            } else {
+                menuSection.innerHTML = '<p class="empty-state-small">No hay menú disponible para este día.</p>';
+            }
+            
             const inputGroup = document.createElement('div');
             inputGroup.className = 'form-group';
             
@@ -580,18 +733,17 @@ const AttendanceManager = {
             input.value = '0'; // Por defecto
             input.required = true;
 
-            // Verificar si este día está en el menú actual
-            const dayInMenu = menu && menu.days && menu.days.find(d => d.name === dayName);
             if (!dayInMenu) {
                 input.disabled = true;
                 input.value = '';
                 input.placeholder = "No disponible";
-                //label.innerHTML += ' <small>(No hay menú este día)</small>';
             }
             
             inputGroup.appendChild(label);
             inputGroup.appendChild(input);
+            
             dayDiv.appendChild(header);
+            dayDiv.appendChild(menuSection); // Añadir la sección del menú
             dayDiv.appendChild(inputGroup);
             inputsContainer.appendChild(dayDiv);
         });
