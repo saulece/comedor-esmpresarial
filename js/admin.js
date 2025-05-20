@@ -299,10 +299,10 @@ function initMenuForm() {
     
     // Paso 2: Buscar elementos del formulario de manera más robusta
     // Primero intentamos con querySelector dentro del formulario, luego con getElementById como respaldo
-    let weekStartDateInput = menuForm.querySelector('#week-start-date');
-    if (!weekStartDateInput) {
-        weekStartDateInput = document.getElementById('week-start-date');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #week-start-date');
+    let menuStartDateInput = menuForm.querySelector('#menu-start-date');
+    if (!menuStartDateInput) {
+        menuStartDateInput = document.getElementById('menu-start-date');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #menu-start-date');
     }
     
     let resetFormBtn = menuForm.querySelector('#reset-form-btn');
@@ -331,7 +331,7 @@ function initMenuForm() {
     
     // Verificar cada elemento individual y mostrar información detallada para depuración
     console.log('[initMenuForm] Verificando elementos del formulario:');
-    console.log(`- weekStartDateInput: ${weekStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    console.log(`- menuStartDateInput: ${menuStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
     console.log(`- resetFormBtn: ${resetFormBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
     console.log(`- daysContainer: ${daysContainer ? 'Encontrado' : 'NO ENCONTRADO'}`);
     console.log(`- saveMenuBtn: ${saveMenuBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
@@ -340,11 +340,11 @@ function initMenuForm() {
     // Crear una lista de elementos faltantes
     let missingElements = [];
     
-    if (!weekStartDateInput) {
-        missingElements.push('Input de fecha (#week-start-date)');
+    if (!menuStartDateInput) {
+        missingElements.push('Input de fecha (#menu-start-date)');
         // Intento alternativo de encontrar el elemento
-        const altWeekStartDateInput = document.querySelector('#menu-form #week-start-date');
-        console.log(`Intento alternativo de encontrar #week-start-date: ${altWeekStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
+        const altMenuStartDateInput = document.querySelector('#menu-form #menu-start-date');
+        console.log(`Intento alternativo de encontrar #menu-start-date: ${altMenuStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
     }
     
     if (!resetFormBtn) missingElements.push('Botón de reset (#reset-form-btn)');
@@ -367,20 +367,20 @@ function initMenuForm() {
     // Remover listeners existentes del input de fecha para evitar duplicados
     // Clonar el input de fecha UNA VEZ para limpiar listeners si es necesario
     console.log('[initMenuForm] Clonando input de fecha para limpiar listeners existentes...');
-    const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
-    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
-    weekStartDateInput = newWeekStartDateInput; // Actualizar la referencia al nuevo nodo en el DOM
+    const newMenuStartDateInput = menuStartDateInput.cloneNode(true);
+    menuStartDateInput.parentNode.replaceChild(newMenuStartDateInput, menuStartDateInput);
+    menuStartDateInput = newMenuStartDateInput; // Actualizar la referencia al nuevo nodo en el DOM
 
     // Establecer la fecha inicial (lunes de la semana actual)
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
     const formattedMonday = AppUtils.formatDateForInput(mondayOfThisWeek);
     console.log(`[initMenuForm] Estableciendo fecha inicial: ${formattedMonday}`);
-    weekStartDateInput.value = formattedMonday;
+    menuStartDateInput.value = formattedMonday;
     
     // Generar los días de la semana para la fecha inicial
     console.log('[initMenuForm] Generando días para la fecha inicial...');
-    generateWeekDays(weekStartDateInput.value); // Llamada inicial con la fecha establecida
+    generateWeekDays(menuStartDateInput.value); // Llamada inicial con la fecha establecida
 
     // Función handler para detectar cambios en la fecha
     const dateChangeHandler = function(event) {
@@ -394,8 +394,8 @@ function initMenuForm() {
 
     // Añadir listeners al input de fecha (que ahora es el clonado)
     console.log('[initMenuForm] Añadiendo listeners al input de fecha...');
-    weekStartDateInput.addEventListener('change', dateChangeHandler);
-    weekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo
+    menuStartDateInput.addEventListener('change', dateChangeHandler);
+    menuStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo
 
     // Configurar el botón de reset
     console.log('[initMenuForm] Configurando botón de reset...');
@@ -441,7 +441,7 @@ function initMenuForm() {
         
         // Verificar que todos los campos requeridos estén completos
         const menuName = document.getElementById('menu-name');
-        const weekStartDate = document.getElementById('week-start-date');
+        const menuStartDate = document.getElementById('menu-start-date');
         const menuType = document.getElementById('menu-type');
         
         if (!menuName || !menuName.value.trim()) {
@@ -450,7 +450,7 @@ function initMenuForm() {
             return;
         }
         
-        if (!weekStartDate || !weekStartDate.value) {
+        if (!menuStartDate || !menuStartDate.value) {
             console.error('[menuForm] ERROR: Fecha de inicio no proporcionada');
             AppUtils.showNotification('Por favor, seleccione una fecha de inicio', 'error');
             return;
@@ -467,11 +467,11 @@ function initMenuForm() {
     });
     
     // Verificar que el input de fecha tenga los listeners correctos
-    const currentWeekStartInput = document.getElementById('week-start-date');
-    if (currentWeekStartInput !== weekStartDateInput) {
+    const currentMenuStartInput = document.getElementById('menu-start-date');
+    if (currentMenuStartInput !== menuStartDateInput) {
         console.warn('[initMenuForm] ADVERTENCIA: La referencia al input de fecha ha cambiado, actualizando listeners...');
-        currentWeekStartInput.addEventListener('change', dateChangeHandler);
-        currentWeekStartInput.addEventListener('input', dateChangeHandler);
+        currentMenuStartInput.addEventListener('change', dateChangeHandler);
+        currentMenuStartInput.addEventListener('input', dateChangeHandler);
     }
     
     console.log("[initMenuForm] Formulario de menú inicializado correctamente con todos los listeners configurados.");
@@ -628,16 +628,16 @@ function generateWeekDays(selectedDateStrFromInput) {
         const actualMondayDate = getMondayOfGivenDate(selectedDateStrFromInput);
         console.log('[generateWeekDays] Lunes calculado:', actualMondayDate.toLocaleDateString('es-ES'), actualMondayDate);
 
-        // 2. Actualizar el valor del input #week-start-date para que refleje este Lunes
+        // 2. Actualizar el valor del input #menu-start-date para que refleje este Lunes
         console.log('[generateWeekDays] Actualizando input de fecha para reflejar el lunes calculado...');
-        const weekStartDateInput = document.getElementById('week-start-date');
-        if (!weekStartDateInput) {
-            console.error('[generateWeekDays] ERROR: Input de fecha (#week-start-date) no encontrado.');
+        const menuStartDateInput = document.getElementById('menu-start-date');
+        if (!menuStartDateInput) {
+            console.error('[generateWeekDays] ERROR: Input de fecha (#menu-start-date) no encontrado.');
         } else {
             const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
-            if (weekStartDateInput.value !== formattedMondayForInput) {
-                console.log(`[generateWeekDays] Actualizando input: ${weekStartDateInput.value} → ${formattedMondayForInput}`);
-                weekStartDateInput.value = formattedMondayForInput;
+            if (menuStartDateInput.value !== formattedMondayForInput) {
+                console.log(`[generateWeekDays] Actualizando input: ${menuStartDateInput.value} → ${formattedMondayForInput}`);
+                menuStartDateInput.value = formattedMondayForInput;
             }
         }
 
@@ -1249,7 +1249,7 @@ function resetMenuForm() {
     
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    const dateInput = document.getElementById('week-start-date');
+    const dateInput = document.getElementById('menu-start-date');
     if (dateInput) dateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
     
     generateWeekDays(dateInput.value); // Regenerar con el primer día expandido
