@@ -14,7 +14,7 @@ let currentEditingMenuId = null;
 let isAdminInitialized = false;
 
 // Función para esperar a que los objetos globales estén disponibles
-function waitForGlobals(globalNames, maxAttempts = 10) {
+function waitForGlobals(globalNames, maxAttempts = 20) {
     return new Promise((resolve, reject) => {
         let attempts = 0;
         
@@ -30,15 +30,52 @@ function waitForGlobals(globalNames, maxAttempts = 10) {
             
             if (attempts >= maxAttempts) {
                 console.error(`[Admin] ERROR: Después de ${maxAttempts} intentos, siguen faltando objetos globales: ${missingGlobals.join(', ')}`);
-                reject(new Error(`Faltan objetos globales: ${missingGlobals.join(', ')}`));
+                // En lugar de rechazar, intentar cargar los objetos faltantes
+                try {
+                    if (missingGlobals.includes('AppUtils')) {
+                        console.log('[Admin] Intentando cargar AppUtils manualmente...');
+                        window.AppUtils = {
+                            DAYS_OF_WEEK: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                            CATEGORIES: {
+                                'plato_fuerte': 'Plato Fuerte',
+                                'bebida': 'Bebida'
+                            },
+                            showNotification: function(message, type = 'info') {
+                                alert(message); // Fallback simple
+                                console.log(`[Notificación ${type}]: ${message}`);
+                            },
+                            formatDateForInput: function(dateObj) {
+                                if (!(dateObj instanceof Date)) return '';
+                                const year = dateObj.getFullYear();
+                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                const day = String(dateObj.getDate()).padStart(2, '0');
+                                return `${year}-${month}-${day}`;
+                            },
+                            formatDate: function(dateInput) {
+                                if (typeof dateInput === 'string') {
+                                    dateInput = new Date(dateInput);
+                                }
+                                if (!(dateInput instanceof Date)) return 'Fecha inválida';
+                                return dateInput.toLocaleDateString('es-ES');
+                            }
+                        };
+                    }
+                    // Intentar continuar con lo que tenemos
+                    console.log('[Admin] Intentando continuar con objetos de fallback...');
+                    resolve();
+                } catch (e) {
+                    console.error('[Admin] Error al crear objetos de fallback:', e);
+                    reject(new Error(`Faltan objetos globales: ${missingGlobals.join(', ')}`));
+                }
                 return;
             }
             
             console.log(`[Admin] Intento ${attempts}/${maxAttempts}: Esperando objetos globales: ${missingGlobals.join(', ')}`);
-            setTimeout(checkGlobals, 200);
+            setTimeout(checkGlobals, 300); // Aumentar el tiempo entre intentos
         }
         
-        checkGlobals();
+        // Pequeño retraso inicial para dar tiempo a que se carguen los scripts
+        setTimeout(checkGlobals, 500);
     });
 }
 

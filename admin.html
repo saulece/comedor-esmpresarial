@@ -326,6 +326,9 @@
         </div>
     </footer>
 
+    <!-- Primero cargar utils.js para asegurar que AppUtils esté disponible -->
+    <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
+    
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -333,6 +336,7 @@
     
     <!-- Firebase Configuration & Models -->
     <script src="js/firebase-config.js"></script>
+    <script src="js/models.js"></script> <!-- Modelos de datos -->
     <script src="js/firebase-menu-model.js"></script>
     <script src="js/firebase-coordinator-model.js"></script>
     <script src="js/firebase-attendance-model.js"></script>
@@ -340,17 +344,13 @@
     <script src="js/firebase-realtime.js"></script>
     <script src="js/firebase-offline.js"></script>
     
-    <!-- Application Scripts -->
-    <!-- IMPORTANTE: Cargar utils.js y modelos antes que admin.js -->
-    <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
-    <script src="js/models.js"></script> <!-- Modelos de datos -->
     <!-- storage.js y storage-adapter.js pueden ser menos relevantes ahora -->
     <!-- <script src="js/storage.js"></script> -->
     <!-- <script src="js/storage-adapter.js"></script> -->
     
     <!-- Cargar admin.js al final cuando todos los demás scripts estén disponibles -->
-    <script defer src="js/admin.js"></script>
     <script src="js/debug.js"></script>
+    <script src="js/admin.js"></script> <!-- Quitamos defer para asegurar carga secuencial -->
     
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
