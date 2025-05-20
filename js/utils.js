@@ -9,11 +9,7 @@ const AppUtils = {
     CATEGORIES: {
         'plato_fuerte': 'Plato Fuerte',
         'bebida': 'Bebida',
-        // Categorías específicas para desayunos
-        'cereales': 'Cereales',
-        'fruta': 'Fruta',
-        'panaderia': 'Panadería',
-        'lacteos': 'Lácteos'
+        'plato_desayuno': 'Plato Principal'
         // Otras categorías que podrían usarse en el futuro
         // 'entrada': 'Entradas',
         // 'postre': 'Postres',
@@ -23,7 +19,7 @@ const AppUtils = {
     // Categorías específicas por tipo de menú
     MENU_TYPE_CATEGORIES: {
         'lunch': ['plato_fuerte', 'bebida'],
-        'breakfast': ['cereales', 'fruta', 'panaderia', 'lacteos', 'bebida']
+        'breakfast': ['plato_desayuno', 'bebida']
     },
 
     /**
