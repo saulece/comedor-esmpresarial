@@ -676,10 +676,11 @@ function createDishInputGroup(dayNameNormalized, categoryKey, index) {
 // --- Funciones de guardado, carga y edición de Menús ---
 async function saveMenu() {
     const menuName = document.getElementById('menu-name').value;
-    const weekStartDate = document.getElementById('week-start-date').value; // Ya es Lunes
+    const weekStartDate = document.getElementById('menu-start-date').value; // Ya es Lunes
+    const menuType = document.getElementById('menu-type').value; // Nuevo campo para tipo de menú
 
-    if (!menuName || !weekStartDate) {
-        AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
+    if (!menuName || !weekStartDate || !menuType) {
+        AppUtils.showNotification('Por favor, complete el nombre del menú, la fecha de inicio y el tipo de menú.', 'error');
         return;
     }
 
@@ -687,6 +688,7 @@ async function saveMenu() {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
+        type: menuType, // Agregar el tipo de menú (comida o desayuno)
         active: true,
         days: []
     };
@@ -916,7 +918,13 @@ async function editMenu(menuId) {
 
     currentEditingMenuId = menuId;
     document.getElementById('menu-name').value = menu.name;
-    document.getElementById('week-start-date').value = menu.startDate; // Ya debería ser un Lunes
+    document.getElementById('menu-start-date').value = menu.startDate; // Ya debería ser un Lunes
+    
+    // Establecer el tipo de menú (comida o desayuno)
+    const menuTypeSelect = document.getElementById('menu-type');
+    if (menuTypeSelect) {
+        menuTypeSelect.value = menu.type || 'comida'; // Valor por defecto 'comida' si no existe
+    }
 
     generateWeekDays(menu.startDate); // Esto regenera la estructura
 
@@ -1287,6 +1295,7 @@ const CoordinatorManagement = { /* Tu código existente, sin cambios directos po
 const ConfirmationReportManagement = { /* Tu código existente, asegurando uso de AppUtils.DAYS_OF_WEEK */ 
     currentWeekStartDate: null,
     // daysOfWeek: AppUtils.DAYS_OF_WEEK, // Referenciar desde AppUtils
+    currentReportType: 'comida', // Tipo de menú para el reporte (comida o desayuno)
     initialized: false,
     init: function() {
         if (this.initialized) return;
@@ -1298,6 +1307,8 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.daysHeader = document.getElementById('days-header');
         this.confirmationsBody = document.getElementById('confirmations-body');
         this.totalsFooter = document.getElementById('totals-footer');
+        this.foodReportBtn = document.getElementById('food-report-btn');
+        this.breakfastReportBtn = document.getElementById('breakfast-report-btn');
 
         if (!this.weekSelector || !this.prevWeekBtn || !this.nextWeekBtn || !this.daysHeader || !this.confirmationsBody || !this.totalsFooter) {
             console.error("Elementos de la UI de reportes no encontrados.");
@@ -1326,6 +1337,39 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.nextWeekBtn.parentNode.replaceChild(newNextBtn, this.nextWeekBtn);
         this.nextWeekBtn = newNextBtn;
         this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
+        
+        // Manejar los botones de tipo de menú para reportes
+        if (this.foodReportBtn) {
+            const newFoodBtn = this.foodReportBtn.cloneNode(true);
+            this.foodReportBtn.parentNode.replaceChild(newFoodBtn, this.foodReportBtn);
+            this.foodReportBtn = newFoodBtn;
+            this.foodReportBtn.addEventListener('click', () => {
+                if (this.currentReportType !== 'comida') {
+                    this.currentReportType = 'comida';
+                    // Actualizar clases de los botones
+                    this.foodReportBtn.classList.add('active');
+                    if (this.breakfastReportBtn) this.breakfastReportBtn.classList.remove('active');
+                    // Recargar datos con el nuevo tipo
+                    this.loadConfirmationData();
+                }
+            });
+        }
+        
+        if (this.breakfastReportBtn) {
+            const newBreakfastBtn = this.breakfastReportBtn.cloneNode(true);
+            this.breakfastReportBtn.parentNode.replaceChild(newBreakfastBtn, this.breakfastReportBtn);
+            this.breakfastReportBtn = newBreakfastBtn;
+            this.breakfastReportBtn.addEventListener('click', () => {
+                if (this.currentReportType !== 'desayuno') {
+                    this.currentReportType = 'desayuno';
+                    // Actualizar clases de los botones
+                    this.breakfastReportBtn.classList.add('active');
+                    if (this.foodReportBtn) this.foodReportBtn.classList.remove('active');
+                    // Recargar datos con el nuevo tipo
+                    this.loadConfirmationData();
+                }
+            });
+        }
     },
     changeWeek: function(dayOffset) { 
         console.log(`[ConfirmationReportManagement.changeWeek] Offset: ${dayOffset}, Fecha actual: ${this.currentWeekStartDate.toISOString()}`);
@@ -1436,9 +1480,11 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
                 }
                 
                 // Añadir log para depuración de fechas
-                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Coincide: ${confWeekStartStr === weekStartStr}, CoordinatorId: ${conf.coordinatorId}`);
+                // Verificar si la confirmación coincide con la semana y el tipo de menú seleccionado
+                const confType = conf.type || 'comida'; // Si no tiene tipo, asumir 'comida' por compatibilidad
+                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Tipo = ${confType}, Coincide: ${confWeekStartStr === weekStartStr && confType === this.currentReportType}, CoordinatorId: ${conf.coordinatorId}`);
 
-                if (confWeekStartStr === weekStartStr) {
+                if (confWeekStartStr === weekStartStr && confType === this.currentReportType) {
                     const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
                     if (coordinator && departmentData[coordinator.department]) {
                         const dept = departmentData[coordinator.department];

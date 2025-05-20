@@ -265,9 +265,13 @@ function setupTabNavigation() {
     });
 }
 
-// Variable global para almacenar los menús y el índice actual
+// Variables globales para almacenar los menús y el índice actual
 let allMenus = [];
 let currentMenuIndex = 0;
+
+// Variables para rastrear el tipo de menú seleccionado (comida o desayuno)
+let currentMenuType = 'comida';
+let currentConfirmationType = 'comida';
 
 /**
  * Inicializa la navegación de menús
@@ -275,22 +279,52 @@ let currentMenuIndex = 0;
 function initMenuNavigation() {
     const prevMenuBtn = document.getElementById('prev-menu-btn');
     const nextMenuBtn = document.getElementById('next-menu-btn');
-    const selectedMenuDisplay = document.getElementById('selected-menu-display');
+    const foodMenuBtn = document.getElementById('food-menu-btn');
+    const breakfastMenuBtn = document.getElementById('breakfast-menu-btn');
     
-    if (prevMenuBtn && nextMenuBtn) {
-        prevMenuBtn.addEventListener('click', () => {
+    if (prevMenuBtn) {
+        prevMenuBtn.onclick = function() {
             if (currentMenuIndex > 0) {
                 currentMenuIndex--;
                 updateMenuDisplay();
             }
-        });
-        
-        nextMenuBtn.addEventListener('click', () => {
+        };
+    }
+    
+    if (nextMenuBtn) {
+        nextMenuBtn.onclick = function() {
             if (currentMenuIndex < allMenus.length - 1) {
                 currentMenuIndex++;
                 updateMenuDisplay();
             }
-        });
+        };
+    }
+    
+    // Manejar los botones de tipo de menú
+    if (foodMenuBtn) {
+        foodMenuBtn.onclick = function() {
+            if (currentMenuType !== 'comida') {
+                currentMenuType = 'comida';
+                // Actualizar clases de los botones
+                foodMenuBtn.classList.add('active');
+                if (breakfastMenuBtn) breakfastMenuBtn.classList.remove('active');
+                // Recargar menús con el nuevo tipo
+                loadCurrentMenu();
+            }
+        };
+    }
+    
+    if (breakfastMenuBtn) {
+        breakfastMenuBtn.onclick = function() {
+            if (currentMenuType !== 'desayuno') {
+                currentMenuType = 'desayuno';
+                // Actualizar clases de los botones
+                breakfastMenuBtn.classList.add('active');
+                if (foodMenuBtn) foodMenuBtn.classList.remove('active');
+                // Recargar menús con el nuevo tipo
+                loadCurrentMenu();
+            }
+        };
     }
 }
 
@@ -368,10 +402,11 @@ function loadCurrentMenu() {
             const today = new Date();
             const todayStr = AppUtils.formatDateForInput(today);
             
-            // Escuchar a todos los menús que terminan hoy o en el futuro
+            // Escuchar a todos los menús que terminan hoy o en el futuro y son del tipo seleccionado
             const unsubscribe = firebase.firestore()
                 .collection('menus')
                 .where('endDate', '>=', todayStr)
+                .where('type', '==', currentMenuType) // Filtrar por tipo de menú (comida o desayuno)
                 .orderBy('endDate', 'asc')
                 .onSnapshot(snapshot => {
                     if (snapshot.empty) {
@@ -534,9 +569,38 @@ const AttendanceManager = {
         const nextWeekBtn = document.getElementById('next-week-btn');
         const attendanceForm = document.getElementById('attendance-form');
         const resetBtn = document.getElementById('reset-attendance-btn');
+        const foodConfirmBtn = document.getElementById('food-confirm-btn');
+        const breakfastConfirmBtn = document.getElementById('breakfast-confirm-btn');
 
         if(prevWeekBtn) prevWeekBtn.addEventListener('click', () => this.changeWeek(-1));
         if(nextWeekBtn) nextWeekBtn.addEventListener('click', () => this.changeWeek(1));
+        
+        // Manejar los botones de tipo de menú para confirmaciones
+        if (foodConfirmBtn) {
+            foodConfirmBtn.addEventListener('click', () => {
+                if (currentConfirmationType !== 'comida') {
+                    currentConfirmationType = 'comida';
+                    // Actualizar clases de los botones
+                    foodConfirmBtn.classList.add('active');
+                    if (breakfastConfirmBtn) breakfastConfirmBtn.classList.remove('active');
+                    // Recargar menú y confirmaciones con el nuevo tipo
+                    this.setCurrentWeek(this.currentWeekStartDate || new Date());
+                }
+            });
+        }
+        
+        if (breakfastConfirmBtn) {
+            breakfastConfirmBtn.addEventListener('click', () => {
+                if (currentConfirmationType !== 'desayuno') {
+                    currentConfirmationType = 'desayuno';
+                    // Actualizar clases de los botones
+                    breakfastConfirmBtn.classList.add('active');
+                    if (foodConfirmBtn) foodConfirmBtn.classList.remove('active');
+                    // Recargar menú y confirmaciones con el nuevo tipo
+                    this.setCurrentWeek(this.currentWeekStartDate || new Date());
+                }
+            });
+        }
         
         if(attendanceForm) {
             attendanceForm.addEventListener('submit', async (event) => {
@@ -618,9 +682,10 @@ const AttendanceManager = {
             weekEnd.setDate(weekEnd.getDate() + 6); // Hasta Domingo
             const weekEndStr = AppUtils.formatDateForInput(weekEnd);
 
-            // Consulta para menús cuya vigencia se solape con la semana seleccionada
+            // Consulta para menús cuya vigencia se solape con la semana seleccionada y sean del tipo seleccionado
             const snapshot = await firebase.firestore().collection('menus')
                 .where('startDate', '<=', weekEndStr) // Menú debe empezar antes o el mismo día que termina la semana
+                .where('type', '==', currentConfirmationType) // Filtrar por tipo de menú (comida o desayuno)
                 .orderBy('startDate', 'desc') // Priorizar menús que empiezan más tarde
                 .get();
 
@@ -767,7 +832,12 @@ const AttendanceManager = {
 
         try {
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
-            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(coordinatorId, weekStartStr);
+            // Buscar confirmación existente para este coordinador, semana y tipo de menú
+            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(
+                coordinatorId, 
+                weekStartStr,
+                currentConfirmationType // Pasar el tipo de menú (comida o desayuno)
+            );
             
             const attendanceDays = document.querySelectorAll('.attendance-day');
             attendanceDays.forEach(dayDiv => {
@@ -830,6 +900,7 @@ const AttendanceManager = {
             weekStartDate: weekStartStr,
             menuId: this.currentMenu.id, // Guardar ID del menú con la confirmación
             attendanceCounts,
+            type: currentConfirmationType, // Incluir el tipo de menú (comida o desayuno)
             // createdAt y updatedAt serán manejados por FirebaseAttendanceModel
         };
         

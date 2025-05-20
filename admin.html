@@ -6,6 +6,7 @@
     <title>Comedor Empresarial - Administración</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
+    <link rel="stylesheet" href="css/menu-type.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -82,16 +83,21 @@
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label for="menu-name">Nombre del Menú:</label>
-                                            <input type="text" id="menu-name" name="menu-name" required placeholder="Ej: Menú Semana 18">
+                                            <input type="text" id="menu-name" placeholder="Ej: Menú Semana 12" required>
                                         </div>
-                                        
                                         <div class="form-group">
-                                            <label for="week-start-date">Fecha de inicio (Lunes):</label>
-                                            <input type="date" id="week-start-date" name="week-start-date" required>
+                                            <label for="menu-start-date">Fecha de Inicio:</label>
+                                            <input type="date" id="menu-start-date" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="menu-type">Tipo de Menú:</label>
+                                            <select id="menu-type" required>
+                                                <option value="comida">Comida</option>
+                                                <option value="desayuno">Desayuno</option>
+                                            </select>
                                         </div>
                                     </div>
                                     
-                                    <!-- Contenedor para los acordeones de días y controles expandir/colapsar -->
                                     <div id="days-container">
                                         <!-- Los botones Expandir/Colapsar y los días se generarán aquí por JS -->
                                     </div>
@@ -215,6 +221,16 @@
                 
                 <div class="card">
                     <h3>Confirmaciones de Asistencia</h3>
+                    
+                    <div class="menu-type-selector">
+                        <button id="food-report-btn" class="menu-type-btn active" data-type="comida">
+                            <i class="fas fa-utensils"></i> Comida
+                        </button>
+                        <button id="breakfast-report-btn" class="menu-type-btn" data-type="desayuno">
+                            <i class="fas fa-coffee"></i> Desayuno
+                        </button>
+                    </div>
+                    
                     <div class="week-selector">
                         <button id="prev-week-btn" class="icon-btn" title="Semana anterior">
                             <i class="fas fa-chevron-left"></i>
