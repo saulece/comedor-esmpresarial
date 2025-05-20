@@ -13,10 +13,15 @@ const FirebaseMenuModel = {
             const snapshot = await firebase.firestore().collection('menus')
                 .orderBy('startDate', 'desc')
                 .get();
-            return snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id
-            }));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                // Asegurar que menuType esté presente, por defecto 'lunch' para menús existentes sin este campo
+                return {
+                    ...data,
+                    menuType: data.menuType || 'lunch', // Valor por defecto para menús existentes
+                    id: doc.id
+                };
+            });
         } catch (error) {
             console.error('Error al obtener menús de Firestore:', error);
             return [];
@@ -32,8 +37,11 @@ const FirebaseMenuModel = {
         try {
             const doc = await firebase.firestore().collection('menus').doc(menuId).get();
             if (doc.exists) {
+                const data = doc.data();
+                // Asegurar que menuType esté presente, por defecto 'lunch' para menús existentes sin este campo
                 return {
-                    ...doc.data(),
+                    ...data,
+                    menuType: data.menuType || 'lunch', // Valor por defecto para menús existentes
                     id: doc.id
                 };
             }
@@ -51,8 +59,10 @@ const FirebaseMenuModel = {
      */
     add: async function(menu) { // Modificado para devolver ID o null
         try {
+            // Asegurar que menuType esté presente, por defecto 'lunch' si no se especifica
             const menuWithTimestamps = {
                 ...menu,
+                menuType: menu.menuType || 'lunch', // Valor por defecto 'lunch' si no se especifica
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -84,8 +94,10 @@ const FirebaseMenuModel = {
      */
     addAndGetId: async function(menuData) {
         try {
+            // Asegurar que menuType esté presente, por defecto 'lunch' si no se especifica
             const menuWithTimestamps = {
                 ...menuData, // menuData no debería tener 'id' aquí
+                menuType: menuData.menuType || 'lunch', // Valor por defecto 'lunch' si no se especifica
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -156,7 +168,15 @@ const FirebaseMenuModel = {
             if (snapshot.empty) return null;
 
             const validMenus = snapshot.docs
-                .map(doc => ({ ...doc.data(), id: doc.id }))
+                .map(doc => {
+                    const data = doc.data();
+                    // Asegurar que menuType esté presente, por defecto 'lunch' para menús existentes sin este campo
+                    return {
+                        ...data,
+                        menuType: data.menuType || 'lunch', // Valor por defecto para menús existentes
+                        id: doc.id
+                    };
+                })
                 .filter(menu => menu.startDate <= todayStr);
 
             if (validMenus.length === 0) return null;
@@ -183,7 +203,15 @@ const FirebaseMenuModel = {
             .onSnapshot(snapshot => {
                 let activeMenu = null;
                 const validMenus = snapshot.docs
-                    .map(doc => ({ ...doc.data(), id: doc.id }))
+                    .map(doc => {
+                        const data = doc.data();
+                        // Asegurar que menuType esté presente, por defecto 'lunch' para menús existentes sin este campo
+                        return {
+                            ...data,
+                            menuType: data.menuType || 'lunch', // Valor por defecto para menús existentes
+                            id: doc.id
+                        };
+                    })
                     .filter(menu => menu.startDate <= todayStr);
 
                 if (validMenus.length > 0) {
@@ -208,7 +236,15 @@ const FirebaseMenuModel = {
             .collection('menus')
             .orderBy('startDate', 'desc')
             .onSnapshot(snapshot => {
-                const menus = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                const menus = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    // Asegurar que menuType esté presente, por defecto 'lunch' para menús existentes sin este campo
+                    return {
+                        ...data,
+                        menuType: data.menuType || 'lunch', // Valor por defecto para menús existentes
+                        id: doc.id
+                    };
+                });
                 callback(menus, null);
             }, error => {
                 console.error('Error al escuchar cambios en todos los menús:', error);

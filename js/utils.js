@@ -8,12 +8,22 @@ const AppUtils = {
     DAYS_OF_WEEK: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     CATEGORIES: {
         'plato_fuerte': 'Plato Fuerte',
-        'bebida': 'Bebida'
-        // Puedes añadir más categorías aquí si las necesitas en el futuro,
-        // pero admin.js actualmente solo usa estas dos.
+        'bebida': 'Bebida',
+        // Categorías específicas para desayunos
+        'cereales': 'Cereales',
+        'fruta': 'Fruta',
+        'panaderia': 'Panadería',
+        'lacteos': 'Lácteos'
+        // Otras categorías que podrían usarse en el futuro
         // 'entrada': 'Entradas',
         // 'postre': 'Postres',
         // 'guarnicion': 'Guarniciones'
+    },
+    
+    // Categorías específicas por tipo de menú
+    MENU_TYPE_CATEGORIES: {
+        'lunch': ['plato_fuerte', 'bebida'],
+        'breakfast': ['cereales', 'fruta', 'panaderia', 'lacteos', 'bebida']
     },
 
     /**

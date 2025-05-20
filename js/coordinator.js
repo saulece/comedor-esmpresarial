@@ -276,6 +276,7 @@ function initMenuNavigation() {
     const prevMenuBtn = document.getElementById('prev-menu-btn');
     const nextMenuBtn = document.getElementById('next-menu-btn');
     const selectedMenuDisplay = document.getElementById('selected-menu-display');
+    const menuTypeSelector = document.getElementById('coordinator-menu-type-selector-view');
     
     if (prevMenuBtn && nextMenuBtn) {
         prevMenuBtn.addEventListener('click', () => {
@@ -290,6 +291,14 @@ function initMenuNavigation() {
                 currentMenuIndex++;
                 updateMenuDisplay();
             }
+        });
+    }
+    
+    // Añadir event listener al selector de tipo de menú
+    if (menuTypeSelector) {
+        menuTypeSelector.addEventListener('change', () => {
+            // Recargar los menús cuando cambia el tipo seleccionado
+            loadCurrentMenu();
         });
     }
 }
@@ -345,6 +354,11 @@ function updateMenuDisplay() {
  * Carga los menús disponibles (actuales y futuros) con sincronización en tiempo real
  */
 function loadCurrentMenu() {
+    // Obtener el valor seleccionado del selector de tipo de menú
+    const menuTypeSelector = document.getElementById('coordinator-menu-type-selector-view');
+    const selectedMenuTypeForView = menuTypeSelector ? menuTypeSelector.value : 'lunch';
+    console.log('Tipo de menú seleccionado para vista:', selectedMenuTypeForView);
+    
     const currentMenuContainer = document.getElementById('current-menu');
     if (!currentMenuContainer) return;
 
@@ -381,10 +395,23 @@ function loadCurrentMenu() {
                         return;
                     }
                     
-                    // Obtener todos los menús y ordenarlos por fecha de inicio
+                    // Obtener todos los menús, filtrar por tipo y ordenarlos por fecha de inicio
                     allMenus = snapshot.docs
                         .map(doc => ({ ...doc.data(), id: doc.id }))
+                        // Filtrar menús por el tipo seleccionado
+                        .filter(menu => {
+                            // Si el menú no tiene menuType, asumimos que es 'lunch'
+                            const menuType = menu.menuType || 'lunch';
+                            return menuType === selectedMenuTypeForView;
+                        })
                         .sort((a, b) => new Date(a.startDate + 'T00:00:00Z') - new Date(b.startDate + 'T00:00:00Z'));
+                    
+                    // Verificar si hay menús después del filtrado
+                    if (allMenus.length === 0) {
+                        currentMenuIndex = 0;
+                        currentMenuContainer.innerHTML = `<p class="empty-state">No hay menús de tipo ${selectedMenuTypeForView === 'breakfast' ? 'Desayuno' : 'Comida'} disponibles.</p>`;
+                        return;
+                    }
                     
                     // Encontrar el índice del menú actual (si existe)
                     const activeMenuIndex = allMenus.findIndex(menu => {
@@ -534,6 +561,7 @@ const AttendanceManager = {
         const nextWeekBtn = document.getElementById('next-week-btn');
         const attendanceForm = document.getElementById('attendance-form');
         const resetBtn = document.getElementById('reset-attendance-btn');
+        const menuTypeSelector = document.getElementById('coordinator-menu-type-selector-confirm');
 
         if(prevWeekBtn) prevWeekBtn.addEventListener('click', () => this.changeWeek(-1));
         if(nextWeekBtn) nextWeekBtn.addEventListener('click', () => this.changeWeek(1));
@@ -561,8 +589,16 @@ const AttendanceManager = {
             });
         }
         if(resetBtn) resetBtn.addEventListener('click', () => this.resetForm());
-        
-        this.setCurrentWeek(this.getStartOfWeek(new Date()));
+    
+    // Añadir event listener al selector de tipo de menú
+    if(menuTypeSelector) {
+        menuTypeSelector.addEventListener('change', () => {
+            // Recargar las confirmaciones cuando cambia el tipo de menú seleccionado
+            this.setCurrentWeek(this.currentWeekStartDate);
+        });
+    }
+    
+    this.setCurrentWeek(this.getStartOfWeek(new Date()));
     },
     
     getStartOfWeek: function(date) {
@@ -575,6 +611,12 @@ const AttendanceManager = {
     
     setCurrentWeek: async function(startDate) {
         this.currentWeekStartDate = startDate;
+        
+        // Leer el valor seleccionado del selector de tipo de menú en la pestaña de confirmaciones
+        const menuTypeSelector = document.getElementById('coordinator-menu-type-selector-confirm');
+        this.selectedConfirmMenuType = menuTypeSelector ? menuTypeSelector.value : 'lunch';
+        console.log('Tipo de menú seleccionado para confirmaciones:', this.selectedConfirmMenuType);
+        
         this.updateWeekDisplay();
         
         const menuContainer = document.getElementById('confirmation-menu-display');
@@ -627,8 +669,13 @@ const AttendanceManager = {
             let foundMenu = null;
             for (const doc of snapshot.docs) {
                 const menu = { ...doc.data(), id: doc.id };
+                
+                // Verificar el tipo de menú
+                const menuType = menu.menuType || 'lunch'; // Si no tiene menuType, asumimos 'lunch'
+                
                 // El menú debe terminar después o el mismo día que empieza la semana
-                if (menu.endDate >= weekStartStr) {
+                // Y debe ser del tipo seleccionado
+                if (menu.endDate >= weekStartStr && menuType === this.selectedConfirmMenuType) {
                     foundMenu = menu;
                     break; 
                 }
@@ -641,7 +688,8 @@ const AttendanceManager = {
                 // No mostramos el menú aquí, solo generamos inputs
                 menuContainer.innerHTML = ''; // Limpiar "Cargando menú..."
             } else {
-                menuContainer.innerHTML = '<p class="empty-state">No hay menú publicado para esta semana.</p>';
+                const menuTypeText = this.selectedConfirmMenuType === 'breakfast' ? 'Desayuno' : 'Comida';
+                menuContainer.innerHTML = `<p class="empty-state">No hay menú de ${menuTypeText} publicado para esta semana.</p>`;
             }
             // Siempre generar inputs y cargar confirmaciones, incluso si no hay menú (para mostrar "N/A")
             this.generateAttendanceInputs(this.currentMenu); 
@@ -767,7 +815,12 @@ const AttendanceManager = {
 
         try {
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
-            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(coordinatorId, weekStartStr);
+            // Pasar el tipo de menú seleccionado como tercer parámetro
+            this.currentConfirmation = await FirebaseAttendanceModel.getByCoordinatorAndWeek(
+                coordinatorId, 
+                weekStartStr, 
+                this.selectedConfirmMenuType // Pasar el tipo de menú seleccionado
+            );
             
             const attendanceDays = document.querySelectorAll('.attendance-day');
             attendanceDays.forEach(dayDiv => {
@@ -829,6 +882,7 @@ const AttendanceManager = {
             coordinatorId,
             weekStartDate: weekStartStr,
             menuId: this.currentMenu.id, // Guardar ID del menú con la confirmación
+            menuType: this.selectedConfirmMenuType, // Incluir el tipo de menú seleccionado
             attendanceCounts,
             // createdAt y updatedAt serán manejados por FirebaseAttendanceModel
         };

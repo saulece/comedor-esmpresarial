@@ -6,11 +6,19 @@
 const FirebaseAttendanceModel = {
     /**
      * Obtiene todas las confirmaciones de asistencia de Firestore
+     * @param {string} [menuType] - Tipo de menú opcional para filtrar ('lunch' o 'breakfast')
      * @returns {Promise<Array>} - Promesa que resuelve a un array de confirmaciones
      */
-    getAll: async function() {
+    getAll: async function(menuType) {
         try {
-            const snapshot = await firebase.firestore().collection('attendanceConfirmations').get();
+            let query = firebase.firestore().collection('attendanceConfirmations');
+            
+            // Si se proporciona menuType, filtrar por ese campo
+            if (menuType) {
+                query = query.where('menuType', '==', menuType);
+            }
+            
+            const snapshot = await query.get();
             return snapshot.docs.map(doc => ({
                 ...doc.data(),
                 id: doc.id
@@ -45,14 +53,21 @@ const FirebaseAttendanceModel = {
     /**
      * Obtiene las confirmaciones de asistencia de un coordinador
      * @param {string} coordinatorId - ID del coordinador
+     * @param {string} [menuType] - Tipo de menú opcional para filtrar ('lunch' o 'breakfast')
      * @returns {Promise<Array>} - Promesa que resuelve a un array de confirmaciones del coordinador
      */
-    getByCoordinator: async function(coordinatorId) {
+    getByCoordinator: async function(coordinatorId, menuType) {
         try {
-            const snapshot = await firebase.firestore()
+            let query = firebase.firestore()
                 .collection('attendanceConfirmations')
-                .where('coordinatorId', '==', coordinatorId)
-                .get();
+                .where('coordinatorId', '==', coordinatorId);
+                
+            // Si se proporciona menuType, filtrar también por ese campo
+            if (menuType) {
+                query = query.where('menuType', '==', menuType);
+            }
+            
+            const snapshot = await query.get();
             
             return snapshot.docs.map(doc => ({
                 ...doc.data(),
@@ -65,12 +80,13 @@ const FirebaseAttendanceModel = {
     },
 
     /**
-     * Obtiene la confirmación de asistencia de un coordinador para una semana específica
+     * Obtiene la confirmación de asistencia de un coordinador para una semana específica y tipo de menú
      * @param {string} coordinatorId - ID del coordinador
      * @param {Date|string} weekStartDate - Fecha de inicio de la semana
+     * @param {string} [menuType='lunch'] - Tipo de menú ('lunch' o 'breakfast')
      * @returns {Promise<Object|null>} - Promesa que resuelve a la confirmación o null si no existe
      */
-    getByCoordinatorAndWeek: async function(coordinatorId, weekStartDate) {
+    getByCoordinatorAndWeek: async function(coordinatorId, weekStartDate, menuType = 'lunch') {
         try {
             // Normalizar la fecha de inicio de semana
             let startDateStr;
@@ -84,6 +100,7 @@ const FirebaseAttendanceModel = {
                 .collection('attendanceConfirmations')
                 .where('coordinatorId', '==', coordinatorId)
                 .where('weekStartDate', '==', startDateStr)
+                .where('menuType', '==', menuType)
                 .limit(1)
                 .get();
             
@@ -105,24 +122,32 @@ const FirebaseAttendanceModel = {
     /**
      * Agrega una nueva confirmación de asistencia a Firestore
      * @param {Object} confirmation - Confirmación a agregar
+     * @param {string} confirmation.coordinatorId - ID del coordinador
+     * @param {string} confirmation.weekStartDate - Fecha de inicio de la semana
+     * @param {string} [confirmation.menuType='lunch'] - Tipo de menú ('lunch' o 'breakfast')
      * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
      */
     add: async function(confirmation) {
         try {
-            // Verificar si ya existe una confirmación para este coordinador y semana
+            // Asegurar que menuType tenga un valor por defecto si no se proporciona
+            const menuType = confirmation.menuType || 'lunch';
+            
+            // Verificar si ya existe una confirmación para este coordinador, semana y tipo de menú
             const existingConfirmation = await this.getByCoordinatorAndWeek(
                 confirmation.coordinatorId, 
-                confirmation.weekStartDate
+                confirmation.weekStartDate,
+                menuType
             );
             
             if (existingConfirmation) {
-                console.warn('Ya existe una confirmación para este coordinador y semana');
+                console.warn(`Ya existe una confirmación para este coordinador, semana y tipo de menú (${menuType})`);
                 return false;
             }
             
-            // Asegurar que la confirmación tenga timestamps
+            // Asegurar que la confirmación tenga timestamps y menuType
             const confirmationWithTimestamps = {
                 ...confirmation,
+                menuType: menuType, // Asegurar que menuType esté presente
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -179,13 +204,20 @@ const FirebaseAttendanceModel = {
      * Escucha cambios en tiempo real en las confirmaciones de un coordinador
      * @param {string} coordinatorId - ID del coordinador
      * @param {Function} callback - Función a llamar cuando hay cambios
+     * @param {string} [menuType] - Tipo de menú opcional para filtrar ('lunch' o 'breakfast')
      * @returns {Function} - Función para cancelar la suscripción
      */
-    listenToCoordinatorConfirmations: function(coordinatorId, callback) {
-        const unsubscribe = firebase.firestore()
+    listenToCoordinatorConfirmations: function(coordinatorId, callback, menuType) {
+        let query = firebase.firestore()
             .collection('attendanceConfirmations')
-            .where('coordinatorId', '==', coordinatorId)
-            .onSnapshot(snapshot => {
+            .where('coordinatorId', '==', coordinatorId);
+            
+        // Si se proporciona menuType, filtrar también por ese campo
+        if (menuType) {
+            query = query.where('menuType', '==', menuType);
+        }
+        
+        const unsubscribe = query.onSnapshot(snapshot => {
                 const confirmations = snapshot.docs.map(doc => ({
                     ...doc.data(),
                     id: doc.id

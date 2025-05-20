@@ -89,6 +89,14 @@
                                             <label for="week-start-date">Fecha de inicio (Lunes):</label>
                                             <input type="date" id="week-start-date" name="week-start-date" required>
                                         </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="menu-type-selector">Tipo de Menú:</label>
+                                            <select id="menu-type-selector" name="menu-type-selector" required>
+                                                <option value="lunch" selected>Comida</option>
+                                                <option value="breakfast">Desayuno</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     
                                     <!-- Contenedor para los acordeones de días y controles expandir/colapsar -->
@@ -223,6 +231,11 @@
                         <button id="next-week-btn" class="icon-btn" title="Semana siguiente">
                             <i class="fas fa-chevron-right"></i>
                         </button>
+                        <select id="report-menu-type-selector" class="menu-type-selector">
+                            <option value="all" selected>Ambos (Comida y Desayuno)</option>
+                            <option value="lunch">Solo Comida</option>
+                            <option value="breakfast">Solo Desayuno</option>
+                        </select>
                     </div>
                     
                     <div class="table-container">

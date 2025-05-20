@@ -602,7 +602,29 @@ function createDaySection(dayIndex, dayName, date) {
     const tabContentCategoriesContainer = document.createElement('div');
     tabContentCategoriesContainer.className = 'tab-content-categories-container';
 
-    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
+    // Obtener el tipo de menú seleccionado
+    const menuTypeSelector = document.getElementById('menu-type-selector');
+    const selectedMenuType = menuTypeSelector ? menuTypeSelector.value : 'lunch';
+    
+    // Obtener las categorías específicas para el tipo de menú seleccionado
+    let categoriesToUse = {};
+    
+    if (AppUtils.MENU_TYPE_CATEGORIES && AppUtils.MENU_TYPE_CATEGORIES[selectedMenuType]) {
+        // Si existen categorías específicas para este tipo de menú, usarlas
+        const categoryKeys = AppUtils.MENU_TYPE_CATEGORIES[selectedMenuType];
+        categoryKeys.forEach(key => {
+            if (AppUtils.CATEGORIES[key]) {
+                categoriesToUse[key] = AppUtils.CATEGORIES[key];
+            }
+        });
+    } else {
+        // Si no hay categorías específicas, usar todas las categorías
+        categoriesToUse = AppUtils.CATEGORIES;
+    }
+    
+    console.log(`[createDaySection] Usando categorías para tipo de menú ${selectedMenuType}:`, categoriesToUse);
+
+    Object.entries(categoriesToUse).forEach(([categoryKey, categoryName], index) => {
         const tabBtn = document.createElement('button');
         tabBtn.type = 'button';
         tabBtn.className = 'tab-btn-category' + (index === 0 ? ' active' : '');
@@ -683,11 +705,15 @@ async function saveMenu() {
         return;
     }
 
+    // Leer el valor del selector de tipo de menú
+    const menuType = document.getElementById('menu-type-selector').value;
+
     const menuData = {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
         active: true,
+        menuType: menuType, // Incluir el tipo de menú en el objeto menuData
         days: []
     };
 
@@ -708,7 +734,21 @@ async function saveMenu() {
         
         console.log('[saveMenu] dayDataObject a pushear:', JSON.parse(JSON.stringify(dayDataObject)));
 
-        Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+        // Obtener el tipo de menú seleccionado
+        const menuType = document.getElementById('menu-type-selector').value;
+        
+        // Obtener las categorías específicas para el tipo de menú seleccionado
+        let categoriesToUse = [];
+        
+        if (AppUtils.MENU_TYPE_CATEGORIES && AppUtils.MENU_TYPE_CATEGORIES[menuType]) {
+            // Si existen categorías específicas para este tipo de menú, usarlas
+            categoriesToUse = AppUtils.MENU_TYPE_CATEGORIES[menuType];
+        } else {
+            // Si no hay categorías específicas, usar todas las categorías
+            categoriesToUse = Object.keys(AppUtils.CATEGORIES);
+        }
+        
+        categoriesToUse.forEach(categoryKey => {
             const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
             if (tabContentForCategory) {
                 const dishesContainer = tabContentForCategory.querySelector(`.dishes-container[data-category="${categoryKey}"]`);
@@ -818,7 +858,10 @@ function createMenuItemElement(menu) {
     menuInfo.className = 'menu-info';
     const menuTitle = document.createElement('h4');
     menuTitle.className = 'menu-title';
-    menuTitle.textContent = menu.name;
+    // Mostrar el nombre del menú junto con su tipo (Desayuno/Comida)
+    const menuType = menu.menuType || 'lunch'; // Si no existe menuType, asumir 'lunch' por defecto
+    const menuTypeText = menuType === 'breakfast' ? ' (Desayuno)' : ' (Comida)';
+    menuTitle.textContent = menu.name + menuTypeText;
     const menuDateRange = document.createElement('div');
     menuDateRange.className = 'menu-date';
     const startDateObj = menu.startDate ? new Date(menu.startDate + 'T00:00:00Z') : null;
@@ -917,6 +960,13 @@ async function editMenu(menuId) {
     currentEditingMenuId = menuId;
     document.getElementById('menu-name').value = menu.name;
     document.getElementById('week-start-date').value = menu.startDate; // Ya debería ser un Lunes
+    
+    // Establecer el tipo de menú en el selector
+    const menuTypeSelector = document.getElementById('menu-type-selector');
+    if (menuTypeSelector) {
+        // Si el menú tiene un tipo definido, seleccionarlo, de lo contrario usar 'lunch' por defecto
+        menuTypeSelector.value = menu.menuType || 'lunch';
+    }
 
     generateWeekDays(menu.startDate); // Esto regenera la estructura
 
@@ -1295,6 +1345,7 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.weekSelector = document.getElementById('week-selector');
         this.prevWeekBtn = document.getElementById('prev-week-btn');
         this.nextWeekBtn = document.getElementById('next-week-btn');
+        this.menuTypeSelector = document.getElementById('report-menu-type-selector');
         this.daysHeader = document.getElementById('days-header');
         this.confirmationsBody = document.getElementById('confirmations-body');
         this.totalsFooter = document.getElementById('totals-footer');
@@ -1326,6 +1377,16 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.nextWeekBtn.parentNode.replaceChild(newNextBtn, this.nextWeekBtn);
         this.nextWeekBtn = newNextBtn;
         this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
+        
+        // Añadir event listener para el selector de tipo de menú
+        if (this.menuTypeSelector) {
+            const newMenuTypeSelector = this.menuTypeSelector.cloneNode(true);
+            this.menuTypeSelector.parentNode.replaceChild(newMenuTypeSelector, this.menuTypeSelector);
+            this.menuTypeSelector = newMenuTypeSelector;
+            this.menuTypeSelector.addEventListener('change', () => {
+                this.loadConfirmationData();
+            });
+        }
     },
     changeWeek: function(dayOffset) { 
         console.log(`[ConfirmationReportManagement.changeWeek] Offset: ${dayOffset}, Fecha actual: ${this.currentWeekStartDate.toISOString()}`);
@@ -1376,6 +1437,11 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.daysHeader.innerHTML = ''; 
         this.daysHeader.appendChild(fixedHeaders[0]); 
 
+        // Obtener el tipo de menú seleccionado para mostrar en los encabezados
+        const selectedMenuType = this.menuTypeSelector ? this.menuTypeSelector.value : 'all';
+        const menuTypeText = selectedMenuType === 'all' ? '' : 
+                            (selectedMenuType === 'lunch' ? ' (Comida)' : ' (Desayuno)');
+
         // Generar los encabezados para cada día de la semana
         for (let i = 0; i < 7; i++) {
             // Crear una nueva fecha para cada día, usando métodos locales
@@ -1386,7 +1452,7 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
             console.log(`[ConfirmationReportManagement.updateDaysHeader] Día ${i}: ${AppUtils.DAYS_OF_WEEK[i]}, Fecha: ${formattedDate}, Objeto fecha: ${dayDate.toISOString()}`);
             
             const th = document.createElement('th');
-            th.innerHTML = `${AppUtils.DAYS_OF_WEEK[i]}<br><small>${formattedDate}</small>`;
+            th.innerHTML = `${AppUtils.DAYS_OF_WEEK[i]}${menuTypeText}<br><small>${formattedDate}</small>`;
             th.setAttribute('data-date', AppUtils.formatDateForInput(dayDate));
             this.daysHeader.appendChild(th);
         }
@@ -1404,7 +1470,14 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
                  return;
             }
 
-            const allConfirmations = await FirebaseAttendanceModel.getAll();
+            // Obtener el tipo de menú seleccionado
+            const selectedMenuType = this.menuTypeSelector ? this.menuTypeSelector.value : 'all';
+            console.log(`[ConfirmationReportManagement.loadConfirmationData] Tipo de menú seleccionado: ${selectedMenuType}`);
+            
+            // Obtener las confirmaciones filtradas por tipo de menú si es necesario
+            const allConfirmations = await FirebaseAttendanceModel.getAll(
+                selectedMenuType !== 'all' ? selectedMenuType : null
+            );
             const weekStartStr = AppUtils.formatDateForInput(this.currentWeekStartDate);
             
             const departmentData = {};
@@ -1435,8 +1508,12 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
                     confWeekStartStr = conf.weekStartDate.split('T')[0];
                 }
                 
-                // Añadir log para depuración de fechas
-                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Coincide: ${confWeekStartStr === weekStartStr}, CoordinatorId: ${conf.coordinatorId}`);
+                // Verificar si la confirmación coincide con el tipo de menú seleccionado
+                // Si selectedMenuType es 'all', incluimos todas las confirmaciones
+                // Si no, ya están filtradas por la consulta a Firestore
+                
+                // Añadir log para depuración de fechas y tipo de menú
+                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Coincide: ${confWeekStartStr === weekStartStr}, CoordinatorId: ${conf.coordinatorId}, MenuType: ${conf.menuType || 'lunch'}`);
 
                 if (confWeekStartStr === weekStartStr) {
                     const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
