@@ -913,7 +913,27 @@ function createMenuItemElement(menu) {
             dayTitleElement.textContent = `${day.name} (${dayDate})`;
             dayDiv.appendChild(dayTitleElement);
 
-            Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName]) => {
+            // Obtener el tipo de menú
+            const menuType = menu.menuType || 'lunch';
+            
+            // Obtener las categorías específicas para el tipo de menú
+            let categoriesToUse = {};
+            
+            if (AppUtils.MENU_TYPE_CATEGORIES && AppUtils.MENU_TYPE_CATEGORIES[menuType]) {
+                // Si existen categorías específicas para este tipo de menú, usarlas
+                const categoryKeys = AppUtils.MENU_TYPE_CATEGORIES[menuType];
+                categoryKeys.forEach(key => {
+                    if (AppUtils.CATEGORIES[key]) {
+                        categoriesToUse[key] = AppUtils.CATEGORIES[key];
+                    }
+                });
+            } else {
+                // Si no hay categorías específicas, usar todas las categorías
+                categoriesToUse = AppUtils.CATEGORIES;
+            }
+            
+            // Mostrar los platillos por categoría
+            Object.entries(categoriesToUse).forEach(([categoryKey, categoryName]) => {
                 const dishesInCategory = day.dishes.filter(d => d.category === categoryKey);
                 if (dishesInCategory.length > 0) {
                     const categoryDiv = document.createElement('div');
@@ -981,8 +1001,22 @@ async function editMenu(menuId) {
 
                 let firstCategoryWithDishesThisDay = null;
 
+                // Obtener el tipo de menú seleccionado
+                const menuType = document.getElementById('menu-type-selector').value;
+                
+                // Obtener las categorías específicas para el tipo de menú seleccionado
+                let categoriesToUse = [];
+                
+                if (AppUtils.MENU_TYPE_CATEGORIES && AppUtils.MENU_TYPE_CATEGORIES[menuType]) {
+                    // Si existen categorías específicas para este tipo de menú, usarlas
+                    categoriesToUse = AppUtils.MENU_TYPE_CATEGORIES[menuType];
+                } else {
+                    // Si no hay categorías específicas, usar todas las categorías
+                    categoriesToUse = Object.keys(AppUtils.CATEGORIES);
+                }
+                
                 // Limpiar contenedores de platillos para este día antes de llenarlos
-                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                categoriesToUse.forEach(categoryKey => {
                     const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
                     if (tabContentForCategory) {
                         const dishesContainer = tabContentForCategory.querySelector('.dishes-container');
@@ -1010,7 +1044,7 @@ async function editMenu(menuId) {
                 }
 
                 // Añadir input vacío si una categoría quedó vacía después de llenarla
-                Object.keys(AppUtils.CATEGORIES).forEach(categoryKey => {
+                categoriesToUse.forEach(categoryKey => {
                      const tabContentForCategory = daySection.querySelector(`.tab-content-category[data-category="${categoryKey}"]`);
                      if(tabContentForCategory){
                         const dishesContainer = tabContentForCategory.querySelector('.dishes-container');
