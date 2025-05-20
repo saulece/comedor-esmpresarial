@@ -28,12 +28,11 @@ class Dish {
 
 // Modelo de Menú
 class Menu {
-    constructor(id, name, items, date, type = 'comida') {
+    constructor(id, name, items, date) {
         this.id = id || this.generateId();
         this.name = name || `Menú ${new Date().toLocaleDateString()}`;
         this.items = items || []; // Array de objetos de platillos por categoría
         this.date = date || new Date();
-        this.type = type; // 'comida' o 'desayuno'
         this.active = false;
         this.createdAt = new Date();
         this.updatedAt = new Date();
@@ -248,12 +247,11 @@ class Order {
 
 // Modelo de Confirmación de Asistencia
 class AttendanceConfirmation {
-    constructor(id, coordinatorId, weekStartDate, attendanceCounts, type = 'comida') {
+    constructor(id, coordinatorId, weekStartDate, attendanceCounts) {
         this.id = id || this.generateId();
         this.coordinatorId = coordinatorId;
         this.weekStartDate = weekStartDate; // Fecha de inicio de la semana (lunes)
         this.attendanceCounts = attendanceCounts || {}; // Objeto con conteos por día {dayId: count}
-        this.type = type; // 'comida' o 'desayuno'
         this.createdAt = new Date();
         this.updatedAt = new Date();
     }

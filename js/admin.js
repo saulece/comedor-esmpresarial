@@ -13,97 +13,9 @@ let currentEditingMenuId = null;
 // Flag para evitar inicialización múltiple
 let isAdminInitialized = false;
 
-// Función para esperar a que los objetos globales estén disponibles
-function waitForGlobals(globalNames, maxAttempts = 20) {
-    return new Promise((resolve, reject) => {
-        let attempts = 0;
-        
-        function checkGlobals() {
-            attempts++;
-            const missingGlobals = globalNames.filter(name => typeof window[name] === 'undefined');
-            
-            if (missingGlobals.length === 0) {
-                console.log('[Admin] Todos los objetos globales necesarios están disponibles');
-                resolve();
-                return;
-            }
-            
-            if (attempts >= maxAttempts) {
-                console.error(`[Admin] ERROR: Después de ${maxAttempts} intentos, siguen faltando objetos globales: ${missingGlobals.join(', ')}`);
-                // En lugar de rechazar, intentar cargar los objetos faltantes
-                try {
-                    if (missingGlobals.includes('AppUtils')) {
-                        console.log('[Admin] Intentando cargar AppUtils manualmente...');
-                        window.AppUtils = {
-                            DAYS_OF_WEEK: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-                            CATEGORIES: {
-                                'plato_fuerte': 'Plato Fuerte',
-                                'bebida': 'Bebida'
-                            },
-                            showNotification: function(message, type = 'info') {
-                                alert(message); // Fallback simple
-                                console.log(`[Notificación ${type}]: ${message}`);
-                            },
-                            formatDateForInput: function(dateObj) {
-                                if (!(dateObj instanceof Date)) return '';
-                                const year = dateObj.getFullYear();
-                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                                const day = String(dateObj.getDate()).padStart(2, '0');
-                                return `${year}-${month}-${day}`;
-                            },
-                            formatDate: function(dateInput) {
-                                if (typeof dateInput === 'string') {
-                                    dateInput = new Date(dateInput);
-                                }
-                                if (!(dateInput instanceof Date)) return 'Fecha inválida';
-                                return dateInput.toLocaleDateString('es-ES');
-                            }
-                        };
-                    }
-                    // Intentar continuar con lo que tenemos
-                    console.log('[Admin] Intentando continuar con objetos de fallback...');
-                    resolve();
-                } catch (e) {
-                    console.error('[Admin] Error al crear objetos de fallback:', e);
-                    reject(new Error(`Faltan objetos globales: ${missingGlobals.join(', ')}`));
-                }
-                return;
-            }
-            
-            console.log(`[Admin] Intento ${attempts}/${maxAttempts}: Esperando objetos globales: ${missingGlobals.join(', ')}`);
-            setTimeout(checkGlobals, 300); // Aumentar el tiempo entre intentos
-        }
-        
-        // Pequeño retraso inicial para dar tiempo a que se carguen los scripts
-        setTimeout(checkGlobals, 500);
-    });
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Admin DOMContentLoaded");
-    
-    // Esperar a que los objetos globales estén disponibles
-    const requiredGlobals = ['AppUtils', 'FirebaseMenuModel'];
-    
-    waitForGlobals(requiredGlobals)
-        .then(() => {
-            // Iniciar la sesión de administrador cuando todos los objetos estén disponibles
-            checkAdminSession();
-        })
-        .catch(error => {
-            console.error(`[Admin] ERROR: ${error.message}`);
-            // Mostrar un mensaje de error más amigable al usuario
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'error-message';
-            errorMessage.innerHTML = `
-                <h2>Error al cargar la aplicación</h2>
-                <p>${error.message}</p>
-                <p>Por favor, recargue la página o contacte al administrador del sistema.</p>
-                <button onclick="location.reload()">Recargar página</button>
-            `;
-            document.body.innerHTML = '';
-            document.body.appendChild(errorMessage);
-        });
+    checkAdminSession();
 });
 
 function checkAdminSession() {
@@ -193,12 +105,7 @@ function setupAdminLoginForm() {
 function initializeAdminFeatures() {
     console.log('Inicializando funcionalidades de administración...');
     initAdminInterface();
-    
-    // Inicializar el formulario de menú con un retraso mayor para asegurar que el DOM esté completamente cargado
-    setTimeout(() => {
-        console.log('Intentando inicializar el formulario de menú...');
-        initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
-    }, 500);
+    initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
 
     // Inicializar módulos de gestión
     if (typeof CoordinatorManagement?.init === 'function' && !CoordinatorManagement.initialized) {
@@ -234,7 +141,6 @@ function initializeAdminFeatures() {
 }
 
 function initAdminInterface() {
-    console.log('[initAdminInterface] Inicializando interfaz de administración...');
     const buttons = {
         menuManagementBtn: document.getElementById('menu-management-btn'),
         userManagementBtn: document.getElementById('user-management-btn'),
@@ -243,16 +149,6 @@ function initAdminInterface() {
         backToDashboardFromUsersBtn: document.getElementById('back-to-dashboard-from-users-btn'),
         backToDashboardFromReportsBtn: document.getElementById('back-to-dashboard-from-reports-btn'),
     };
-    
-    // Verificar que los botones existan antes de continuar
-    let missingButtons = [];
-    Object.entries(buttons).forEach(([key, element]) => {
-        if (!element) missingButtons.push(key);
-    });
-    
-    if (missingButtons.length > 0) {
-        console.warn(`[initAdminInterface] ADVERTENCIA: Algunos botones no fueron encontrados: ${missingButtons.join(', ')}`);
-    }
     const sections = {
         menuManagementSection: document.getElementById('menu-management-section'),
         userManagementSection: document.getElementById('user-management-section'),
@@ -323,101 +219,33 @@ function getMondayOfGivenDate(dateInput) {
 
 function initMenuForm() {
     console.log('[initMenuForm] Inicializando formulario de menú...');
-    
-    // Paso 1: Verificar que el formulario exista
     const menuForm = document.getElementById('menu-form');
-    if (!menuForm) {
-        console.error("[initMenuForm] ERROR CRÍTICO: Formulario de menú (#menu-form) no encontrado.");
-        AppUtils.showNotification("Error al inicializar el formulario de menú. Recargue la página.", "error");
+    let weekStartDateInput = document.getElementById('week-start-date'); // Usar let para poder reasignar
+    const resetFormBtn = document.getElementById('reset-form-btn');
+    const daysContainer = document.getElementById('days-container');
+
+    if (!menuForm || !weekStartDateInput || !resetFormBtn || !daysContainer) {
+        console.error("[initMenuForm] ERROR: Elementos del formulario de menú no encontrados.");
         return;
     }
-    
-    console.log('[initMenuForm] Formulario encontrado, buscando elementos internos...');
-    
-    // Paso 2: Buscar elementos del formulario de manera más robusta
-    // Primero intentamos con querySelector dentro del formulario, luego con getElementById como respaldo
-    let menuStartDateInput = menuForm.querySelector('#menu-start-date');
-    if (!menuStartDateInput) {
-        menuStartDateInput = document.getElementById('menu-start-date');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #menu-start-date');
-    }
-    
-    let resetFormBtn = menuForm.querySelector('#reset-form-btn');
-    if (!resetFormBtn) {
-        resetFormBtn = document.getElementById('reset-form-btn');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #reset-form-btn');
-    }
-    
-    let daysContainer = menuForm.querySelector('#days-container');
-    if (!daysContainer) {
-        daysContainer = document.getElementById('days-container');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #days-container');
-    }
-    
-    let saveMenuBtn = menuForm.querySelector('#save-menu-btn');
-    if (!saveMenuBtn) {
-        saveMenuBtn = document.getElementById('save-menu-btn');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #save-menu-btn');
-    }
-    
-    let menuTypeInput = menuForm.querySelector('#menu-type');
-    if (!menuTypeInput) {
-        menuTypeInput = document.getElementById('menu-type');
-        console.log('[initMenuForm] Usando método alternativo para encontrar #menu-type');
-    }
-    
-    // Verificar cada elemento individual y mostrar información detallada para depuración
-    console.log('[initMenuForm] Verificando elementos del formulario:');
-    console.log(`- menuStartDateInput: ${menuStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    console.log(`- resetFormBtn: ${resetFormBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    console.log(`- daysContainer: ${daysContainer ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    console.log(`- saveMenuBtn: ${saveMenuBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    console.log(`- menuTypeInput: ${menuTypeInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    
-    // Crear una lista de elementos faltantes
-    let missingElements = [];
-    
-    if (!menuStartDateInput) {
-        missingElements.push('Input de fecha (#menu-start-date)');
-        // Intento alternativo de encontrar el elemento
-        const altMenuStartDateInput = document.querySelector('#menu-form #menu-start-date');
-        console.log(`Intento alternativo de encontrar #menu-start-date: ${altMenuStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
-    }
-    
-    if (!resetFormBtn) missingElements.push('Botón de reset (#reset-form-btn)');
-    if (!daysContainer) missingElements.push('Contenedor de días (#days-container)');
-    if (!saveMenuBtn) missingElements.push('Botón de guardar (#save-menu-btn)');
-    if (!menuTypeInput) missingElements.push('Selector de tipo de menú (#menu-type)');
-    
-    if (missingElements.length > 0) {
-        console.error(`[initMenuForm] ERROR: Elementos faltantes: ${missingElements.join(', ')}`);
-        AppUtils.showNotification("Error al inicializar el formulario de menú. Faltan elementos en el DOM.", "error");
-        
-        // Mostrar el HTML del formulario para depuración
-        console.log('[initMenuForm] HTML del formulario para depuración:');
-        console.log(menuForm.outerHTML);
-        return;
-    }
-    
-    console.log('[initMenuForm] Todos los elementos del formulario encontrados correctamente.');
 
     // Remover listeners existentes del input de fecha para evitar duplicados
     // Clonar el input de fecha UNA VEZ para limpiar listeners si es necesario
     console.log('[initMenuForm] Clonando input de fecha para limpiar listeners existentes...');
-    const newMenuStartDateInput = menuStartDateInput.cloneNode(true);
-    menuStartDateInput.parentNode.replaceChild(newMenuStartDateInput, menuStartDateInput);
-    menuStartDateInput = newMenuStartDateInput; // Actualizar la referencia al nuevo nodo en el DOM
+    const newWeekStartDateInput = weekStartDateInput.cloneNode(true);
+    weekStartDateInput.parentNode.replaceChild(newWeekStartDateInput, weekStartDateInput);
+    weekStartDateInput = newWeekStartDateInput; // Actualizar la referencia al nuevo nodo en el DOM
 
     // Establecer la fecha inicial (lunes de la semana actual)
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
     const formattedMonday = AppUtils.formatDateForInput(mondayOfThisWeek);
     console.log(`[initMenuForm] Estableciendo fecha inicial: ${formattedMonday}`);
-    menuStartDateInput.value = formattedMonday;
+    weekStartDateInput.value = formattedMonday;
     
     // Generar los días de la semana para la fecha inicial
     console.log('[initMenuForm] Generando días para la fecha inicial...');
-    generateWeekDays(menuStartDateInput.value); // Llamada inicial con la fecha establecida
+    generateWeekDays(weekStartDateInput.value); // Llamada inicial con la fecha establecida
 
     // Función handler para detectar cambios en la fecha
     const dateChangeHandler = function(event) {
@@ -431,8 +259,8 @@ function initMenuForm() {
 
     // Añadir listeners al input de fecha (que ahora es el clonado)
     console.log('[initMenuForm] Añadiendo listeners al input de fecha...');
-    menuStartDateInput.addEventListener('change', dateChangeHandler);
-    menuStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo
+    weekStartDateInput.addEventListener('change', dateChangeHandler);
+    weekStartDateInput.addEventListener('input', dateChangeHandler); // 'input' es más responsivo
 
     // Configurar el botón de reset
     console.log('[initMenuForm] Configurando botón de reset...');
@@ -475,40 +303,15 @@ function initMenuForm() {
     newMenuForm.addEventListener('submit', function(event) {
         event.preventDefault();
         console.log('[menuForm] Formulario enviado, guardando menú...');
-        
-        // Verificar que todos los campos requeridos estén completos
-        const menuName = document.getElementById('menu-name');
-        const menuStartDate = document.getElementById('menu-start-date');
-        const menuType = document.getElementById('menu-type');
-        
-        if (!menuName || !menuName.value.trim()) {
-            console.error('[menuForm] ERROR: Nombre del menú no proporcionado');
-            AppUtils.showNotification('Por favor, ingrese un nombre para el menú', 'error');
-            return;
-        }
-        
-        if (!menuStartDate || !menuStartDate.value) {
-            console.error('[menuForm] ERROR: Fecha de inicio no proporcionada');
-            AppUtils.showNotification('Por favor, seleccione una fecha de inicio', 'error');
-            return;
-        }
-        
-        if (!menuType || !menuType.value) {
-            console.error('[menuForm] ERROR: Tipo de menú no seleccionado');
-            AppUtils.showNotification('Por favor, seleccione un tipo de menú', 'error');
-            return;
-        }
-        
-        // Si todo está bien, guardar el menú
         saveMenu();
     });
     
     // Verificar que el input de fecha tenga los listeners correctos
-    const currentMenuStartInput = document.getElementById('menu-start-date');
-    if (currentMenuStartInput !== menuStartDateInput) {
+    const currentWeekStartInput = document.getElementById('week-start-date');
+    if (currentWeekStartInput !== weekStartDateInput) {
         console.warn('[initMenuForm] ADVERTENCIA: La referencia al input de fecha ha cambiado, actualizando listeners...');
-        currentMenuStartInput.addEventListener('change', dateChangeHandler);
-        currentMenuStartInput.addEventListener('input', dateChangeHandler);
+        currentWeekStartInput.addEventListener('change', dateChangeHandler);
+        currentWeekStartInput.addEventListener('input', dateChangeHandler);
     }
     
     console.log("[initMenuForm] Formulario de menú inicializado correctamente con todos los listeners configurados.");
@@ -598,36 +401,13 @@ function generateWeekDays(selectedDateStrFromInput) {
         if (!selectedDateStrFromInput) {
             console.error('[generateWeekDays] ERROR: Fecha de entrada vacía o inválida');
             AppUtils.showNotification("Fecha inválida. Usando fecha actual como fallback.", "warning");
-            const today = new Date();
-            const mondayOfThisWeek = getMondayOfGivenDate(today);
-            selectedDateStrFromInput = AppUtils.formatDateForInput(mondayOfThisWeek);
-            console.log('[generateWeekDays] Usando fecha actual como fallback:', selectedDateStrFromInput);
+            selectedDateStrFromInput = AppUtils.formatDateForInput(new Date());
         }
         
-        // Verificar que el contenedor de días exista antes de continuar
-        let daysContainer = document.getElementById('days-container');
+        // Obtener el contenedor de días
+        const daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
-            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado. Creando uno temporal...");
-            
-            // Si el contenedor no existe, intentamos crearlo
-            const menuForm = document.getElementById('menu-form');
-            if (menuForm) {
-                const tempDaysContainer = document.createElement('div');
-                tempDaysContainer.id = 'days-container';
-                menuForm.insertBefore(tempDaysContainer, menuForm.querySelector('.form-actions'));
-                console.log('[generateWeekDays] Contenedor de días temporal creado.');
-                
-                // Actualizar la referencia al contenedor recién creado
-                daysContainer = tempDaysContainer;
-            } else {
-                console.error("[generateWeekDays] ERROR: No se pudo crear el contenedor de días porque el formulario no existe.");
-                return;
-            }
-        }
-        
-        // Verificar nuevamente que el contenedor exista
-        if (!daysContainer) {
-            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado aún después de intentar crearlo.");
+            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado.");
             return;
         }
 
@@ -665,16 +445,16 @@ function generateWeekDays(selectedDateStrFromInput) {
         const actualMondayDate = getMondayOfGivenDate(selectedDateStrFromInput);
         console.log('[generateWeekDays] Lunes calculado:', actualMondayDate.toLocaleDateString('es-ES'), actualMondayDate);
 
-        // 2. Actualizar el valor del input #menu-start-date para que refleje este Lunes
+        // 2. Actualizar el valor del input #week-start-date para que refleje este Lunes
         console.log('[generateWeekDays] Actualizando input de fecha para reflejar el lunes calculado...');
-        const menuStartDateInput = document.getElementById('menu-start-date');
-        if (!menuStartDateInput) {
-            console.error('[generateWeekDays] ERROR: Input de fecha (#menu-start-date) no encontrado.');
+        const weekStartDateInput = document.getElementById('week-start-date');
+        if (!weekStartDateInput) {
+            console.error('[generateWeekDays] ERROR: Input de fecha (#week-start-date) no encontrado.');
         } else {
             const formattedMondayForInput = AppUtils.formatDateForInput(actualMondayDate);
-            if (menuStartDateInput.value !== formattedMondayForInput) {
-                console.log(`[generateWeekDays] Actualizando input: ${menuStartDateInput.value} → ${formattedMondayForInput}`);
-                menuStartDateInput.value = formattedMondayForInput;
+            if (weekStartDateInput.value !== formattedMondayForInput) {
+                console.log(`[generateWeekDays] Actualizando input: ${weekStartDateInput.value} → ${formattedMondayForInput}`);
+                weekStartDateInput.value = formattedMondayForInput;
             }
         }
 
@@ -779,86 +559,70 @@ function toggleAllAccordions(expand, container) {
 }
 
 function createDaySection(dayIndex, dayName, date) {
-    try {
-        console.log(`[createDaySection] Creando para: dayIndex=${dayIndex}, dayName=${dayName}, dateObj=${date.toISOString()}, data-date a establecer: ${AppUtils.formatDateForInput(date)}`);
-        
-        // Verificar que los parámetros sean válidos
-        if (dayIndex === undefined || dayIndex === null || dayName === undefined || !date) {
-            console.error(`[createDaySection] ERROR: Parámetros inválidos - dayIndex: ${dayIndex}, dayName: ${dayName}, date: ${date}`);
-            return null;
-        }
-        
-        // Crear la sección del día
-        const daySection = document.createElement('div');
-        daySection.className = 'day-section accordion-item card';
-        daySection.setAttribute('data-day-index', dayIndex);
-        daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
+    console.log(`[createDaySection] Creando para: dayIndex=${dayIndex}, dayName=${dayName}, dateObj=${date.toISOString()}, data-date a establecer: ${AppUtils.formatDateForInput(date)}, displayDate: ${AppUtils.formatDate(date)}`);
+    
+    const daySection = document.createElement('div');
+    daySection.className = 'day-section accordion-item card';
+    daySection.setAttribute('data-day-index', dayIndex);
+    daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
 
-        const accordionHeader = document.createElement('div');
-        accordionHeader.className = 'accordion-header';
-        
-        const dayLabel = document.createElement('h4');
-        dayLabel.className = 'day-label';
-        dayLabel.textContent = dayName;
-        
-        // Mejorar la visualización de la fecha con formato más claro
-        const dayDateDisplay = document.createElement('div');
-        dayDateDisplay.className = 'day-date';
-        
-        // Formato más detallado para la fecha (día, mes y año)
-        const formattedDate = new Intl.DateTimeFormat('es-ES', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        }).format(date);
-        
-        dayDateDisplay.textContent = formattedDate;
-        dayDateDisplay.setAttribute('data-full-date', date.toISOString());
-        
-        const accordionIcon = document.createElement('i');
-        accordionIcon.className = 'fas fa-chevron-down accordion-icon';
-        accordionHeader.appendChild(dayLabel);
-        accordionHeader.appendChild(dayDateDisplay);
-        accordionHeader.appendChild(accordionIcon);
+    const accordionHeader = document.createElement('div');
+    accordionHeader.className = 'accordion-header';
+    
+    const dayLabel = document.createElement('h4');
+    dayLabel.className = 'day-label';
+    dayLabel.textContent = dayName;
+    
+    // Mejorar la visualización de la fecha con formato más claro
+    const dayDateDisplay = document.createElement('div');
+    dayDateDisplay.className = 'day-date';
+    
+    // Formato más detallado para la fecha (día, mes y año)
+    const formattedDate = new Intl.DateTimeFormat('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }).format(date);
+    
+    dayDateDisplay.textContent = formattedDate;
+    dayDateDisplay.setAttribute('data-full-date', date.toISOString());
+    
+    const accordionIcon = document.createElement('i');
+    accordionIcon.className = 'fas fa-chevron-down accordion-icon';
+    accordionHeader.appendChild(dayLabel);
+    accordionHeader.appendChild(dayDateDisplay);
+    accordionHeader.appendChild(accordionIcon);
 
-        const accordionContent = document.createElement('div');
-        accordionContent.className = 'accordion-content';
-        accordionContent.style.display = 'none';
+    const accordionContent = document.createElement('div');
+    accordionContent.className = 'accordion-content';
+    accordionContent.style.display = 'none';
 
-        const tabsCategories = document.createElement('div');
-        tabsCategories.className = 'tabs-categories';
-        
-        const tabContentCategoriesContainer = document.createElement('div');
-        tabContentCategoriesContainer.className = 'tab-content-categories-container';
+    const tabsCategories = document.createElement('div');
+    tabsCategories.className = 'tabs-categories';
+    const tabContentCategoriesContainer = document.createElement('div');
+    tabContentCategoriesContainer.className = 'tab-content-categories-container';
 
-        Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
-            const tabBtn = document.createElement('button');
-            tabBtn.type = 'button';
-            tabBtn.className = `tab-btn-category ${index === 0 ? 'active' : ''}`;
-            tabBtn.setAttribute('data-category', categoryKey);
-            tabBtn.textContent = categoryName;
-            tabsCategories.appendChild(tabBtn);
+    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
+        const tabBtn = document.createElement('button');
+        tabBtn.type = 'button';
+        tabBtn.className = 'tab-btn-category' + (index === 0 ? ' active' : '');
+        tabBtn.textContent = categoryName;
+        tabBtn.setAttribute('data-category', categoryKey);
+        tabsCategories.appendChild(tabBtn);
 
-            const tabContent = document.createElement('div');
-            tabContent.className = `tab-content-category ${index === 0 ? 'active' : ''}`;
-            tabContent.setAttribute('data-category', categoryKey);
-            
-            const categorySectionDiv = createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName);
-            tabContent.appendChild(categorySectionDiv);
-            
-            tabContentCategoriesContainer.appendChild(tabContent);
-        });
+        const tabContent = document.createElement('div');
+        tabContent.className = 'tab-content-category' + (index === 0 ? ' active' : '');
+        tabContent.setAttribute('data-category', categoryKey);
+        const categorySectionDiv = createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName);
+        tabContent.appendChild(categorySectionDiv);
+        tabContentCategoriesContainer.appendChild(tabContent);
+    });
 
-        accordionContent.appendChild(tabsCategories);
-        accordionContent.appendChild(tabContentCategoriesContainer);
-        
-        daySection.appendChild(accordionHeader);
-        daySection.appendChild(accordionContent);
-        return daySection;
-    } catch (error) {
-        console.error(`[createDaySection] ERROR: ${error.message}`, error);
-        return null;
-    }
+    accordionContent.appendChild(tabsCategories);
+    accordionContent.appendChild(tabContentCategoriesContainer);
+    daySection.appendChild(accordionHeader);
+    daySection.appendChild(accordionContent);
+    return daySection;
 }
 
 function createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName) {
@@ -912,11 +676,10 @@ function createDishInputGroup(dayNameNormalized, categoryKey, index) {
 // --- Funciones de guardado, carga y edición de Menús ---
 async function saveMenu() {
     const menuName = document.getElementById('menu-name').value;
-    const weekStartDate = document.getElementById('menu-start-date').value; // Ya es Lunes
-    const menuType = document.getElementById('menu-type').value; // Nuevo campo para tipo de menú
+    const weekStartDate = document.getElementById('week-start-date').value; // Ya es Lunes
 
-    if (!menuName || !weekStartDate || !menuType) {
-        AppUtils.showNotification('Por favor, complete el nombre del menú, la fecha de inicio y el tipo de menú.', 'error');
+    if (!menuName || !weekStartDate) {
+        AppUtils.showNotification('Por favor, complete el nombre del menú y la fecha de inicio.', 'error');
         return;
     }
 
@@ -924,7 +687,6 @@ async function saveMenu() {
         name: menuName,
         startDate: weekStartDate,
         endDate: calculateEndDateForMenu(weekStartDate),
-        type: menuType, // Agregar el tipo de menú (comida o desayuno)
         active: true,
         days: []
     };
@@ -1154,13 +916,7 @@ async function editMenu(menuId) {
 
     currentEditingMenuId = menuId;
     document.getElementById('menu-name').value = menu.name;
-    document.getElementById('menu-start-date').value = menu.startDate; // Ya debería ser un Lunes
-    
-    // Establecer el tipo de menú (comida o desayuno)
-    const menuTypeSelect = document.getElementById('menu-type');
-    if (menuTypeSelect) {
-        menuTypeSelect.value = menu.type || 'comida'; // Valor por defecto 'comida' si no existe
-    }
+    document.getElementById('week-start-date').value = menu.startDate; // Ya debería ser un Lunes
 
     generateWeekDays(menu.startDate); // Esto regenera la estructura
 
@@ -1286,7 +1042,7 @@ function resetMenuForm() {
     
     const today = new Date();
     const mondayOfThisWeek = getMondayOfGivenDate(today);
-    const dateInput = document.getElementById('menu-start-date');
+    const dateInput = document.getElementById('week-start-date');
     if (dateInput) dateInput.value = AppUtils.formatDateForInput(mondayOfThisWeek);
     
     generateWeekDays(dateInput.value); // Regenerar con el primer día expandido
@@ -1531,7 +1287,6 @@ const CoordinatorManagement = { /* Tu código existente, sin cambios directos po
 const ConfirmationReportManagement = { /* Tu código existente, asegurando uso de AppUtils.DAYS_OF_WEEK */ 
     currentWeekStartDate: null,
     // daysOfWeek: AppUtils.DAYS_OF_WEEK, // Referenciar desde AppUtils
-    currentReportType: 'comida', // Tipo de menú para el reporte (comida o desayuno)
     initialized: false,
     init: function() {
         if (this.initialized) return;
@@ -1543,8 +1298,6 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.daysHeader = document.getElementById('days-header');
         this.confirmationsBody = document.getElementById('confirmations-body');
         this.totalsFooter = document.getElementById('totals-footer');
-        this.foodReportBtn = document.getElementById('food-report-btn');
-        this.breakfastReportBtn = document.getElementById('breakfast-report-btn');
 
         if (!this.weekSelector || !this.prevWeekBtn || !this.nextWeekBtn || !this.daysHeader || !this.confirmationsBody || !this.totalsFooter) {
             console.error("Elementos de la UI de reportes no encontrados.");
@@ -1573,39 +1326,6 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
         this.nextWeekBtn.parentNode.replaceChild(newNextBtn, this.nextWeekBtn);
         this.nextWeekBtn = newNextBtn;
         this.nextWeekBtn.addEventListener('click', () => this.changeWeek(7));
-        
-        // Manejar los botones de tipo de menú para reportes
-        if (this.foodReportBtn) {
-            const newFoodBtn = this.foodReportBtn.cloneNode(true);
-            this.foodReportBtn.parentNode.replaceChild(newFoodBtn, this.foodReportBtn);
-            this.foodReportBtn = newFoodBtn;
-            this.foodReportBtn.addEventListener('click', () => {
-                if (this.currentReportType !== 'comida') {
-                    this.currentReportType = 'comida';
-                    // Actualizar clases de los botones
-                    this.foodReportBtn.classList.add('active');
-                    if (this.breakfastReportBtn) this.breakfastReportBtn.classList.remove('active');
-                    // Recargar datos con el nuevo tipo
-                    this.loadConfirmationData();
-                }
-            });
-        }
-        
-        if (this.breakfastReportBtn) {
-            const newBreakfastBtn = this.breakfastReportBtn.cloneNode(true);
-            this.breakfastReportBtn.parentNode.replaceChild(newBreakfastBtn, this.breakfastReportBtn);
-            this.breakfastReportBtn = newBreakfastBtn;
-            this.breakfastReportBtn.addEventListener('click', () => {
-                if (this.currentReportType !== 'desayuno') {
-                    this.currentReportType = 'desayuno';
-                    // Actualizar clases de los botones
-                    this.breakfastReportBtn.classList.add('active');
-                    if (this.foodReportBtn) this.foodReportBtn.classList.remove('active');
-                    // Recargar datos con el nuevo tipo
-                    this.loadConfirmationData();
-                }
-            });
-        }
     },
     changeWeek: function(dayOffset) { 
         console.log(`[ConfirmationReportManagement.changeWeek] Offset: ${dayOffset}, Fecha actual: ${this.currentWeekStartDate.toISOString()}`);
@@ -1716,11 +1436,9 @@ const ConfirmationReportManagement = { /* Tu código existente, asegurando uso d
                 }
                 
                 // Añadir log para depuración de fechas
-                // Verificar si la confirmación coincide con la semana y el tipo de menú seleccionado
-                const confType = conf.type || 'comida'; // Si no tiene tipo, asumir 'comida' por compatibilidad
-                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Tipo = ${confType}, Coincide: ${confWeekStartStr === weekStartStr && confType === this.currentReportType}, CoordinatorId: ${conf.coordinatorId}`);
+                console.log(`[ConfirmationReportManagement.loadConfirmationData] Comparando: Menú Semana = ${weekStartStr}, Confirmación Semana = ${confWeekStartStr}, Coincide: ${confWeekStartStr === weekStartStr}, CoordinatorId: ${conf.coordinatorId}`);
 
-                if (confWeekStartStr === weekStartStr && confType === this.currentReportType) {
+                if (confWeekStartStr === weekStartStr) {
                     const coordinator = coordinators.find(c => c.id === conf.coordinatorId);
                     if (coordinator && departmentData[coordinator.department]) {
                         const dept = departmentData[coordinator.department];

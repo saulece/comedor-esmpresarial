@@ -68,10 +68,9 @@ const FirebaseAttendanceModel = {
      * Obtiene la confirmación de asistencia de un coordinador para una semana específica
      * @param {string} coordinatorId - ID del coordinador
      * @param {Date|string} weekStartDate - Fecha de inicio de la semana
-     * @param {string} type - Tipo de menú ('comida' o 'desayuno')
      * @returns {Promise<Object|null>} - Promesa que resuelve a la confirmación o null si no existe
      */
-    getByCoordinatorAndWeek: async function(coordinatorId, weekStartDate, type = 'comida') {
+    getByCoordinatorAndWeek: async function(coordinatorId, weekStartDate) {
         try {
             // Normalizar la fecha de inicio de semana
             let startDateStr;
@@ -85,7 +84,6 @@ const FirebaseAttendanceModel = {
                 .collection('attendanceConfirmations')
                 .where('coordinatorId', '==', coordinatorId)
                 .where('weekStartDate', '==', startDateStr)
-                .where('type', '==', type) // Filtrar por tipo de menú
                 .limit(1)
                 .get();
             
@@ -99,7 +97,7 @@ const FirebaseAttendanceModel = {
                 id: doc.id
             };
         } catch (error) {
-            console.error(`Error al obtener confirmación para coordinador ${coordinatorId} y semana ${weekStartDate} de tipo ${type}:`, error);
+            console.error(`Error al obtener confirmación para coordinador ${coordinatorId} y semana ${weekStartDate}:`, error);
             return null;
         }
     },

@@ -142,16 +142,14 @@ const FirebaseMenuModel = {
 
     /**
      * Obtiene el menú activo (más reciente que ha comenzado y aún no ha terminado).
-     * @param {string} type - Tipo de menú ('comida' o 'desayuno')
      * @returns {Promise<Object|null>} - Promesa que resuelve al menú activo o null.
      */
-    getActive: async function(type = 'comida') {
+    getActive: async function() {
         try {
             const todayStr = AppUtils.formatDateForInput(new Date()); // Usar AppUtils para consistencia
             const snapshot = await firebase.firestore()
                 .collection('menus')
                 .where('endDate', '>=', todayStr)
-                .where('type', '==', type) // Filtrar por tipo de menú
                 .orderBy('endDate', 'asc')
                 .get();
 
@@ -166,7 +164,7 @@ const FirebaseMenuModel = {
             validMenus.sort((a, b) => new Date(b.startDate + 'T00:00:00Z') - new Date(a.startDate + 'T00:00:00Z'));
             return validMenus[0];
         } catch (error) {
-            console.error(`Error al obtener menú activo de tipo ${type} de Firestore:`, error);
+            console.error('Error al obtener menú activo de Firestore:', error);
             return null;
         }
     },
@@ -174,15 +172,13 @@ const FirebaseMenuModel = {
     /**
      * Escucha cambios en tiempo real en el menú activo.
      * @param {Function} callback - Función a llamar con (menu, error).
-     * @param {string} type - Tipo de menú ('comida' o 'desayuno')
      * @returns {Function} - Función para cancelar la suscripción.
      */
-    listenToActiveMenu: function(callback, type = 'comida') {
+    listenToActiveMenu: function(callback) {
         const todayStr = AppUtils.formatDateForInput(new Date());
         const unsubscribe = firebase.firestore()
             .collection('menus')
             .where('endDate', '>=', todayStr)
-            .where('type', '==', type) // Filtrar por tipo de menú
             .orderBy('endDate', 'asc')
             .onSnapshot(snapshot => {
                 let activeMenu = null;
@@ -196,7 +192,7 @@ const FirebaseMenuModel = {
                 }
                 callback(activeMenu, null);
             }, error => {
-                console.error(`Error al escuchar cambios en menú activo de tipo ${type}:`, error);
+                console.error('Error al escuchar cambios en menú activo:', error);
                 callback(null, error);
             });
         return unsubscribe;
