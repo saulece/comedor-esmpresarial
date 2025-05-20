@@ -105,7 +105,11 @@ function setupAdminLoginForm() {
 function initializeAdminFeatures() {
     console.log('Inicializando funcionalidades de administración...');
     initAdminInterface();
-    initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
+    
+    // Inicializar el formulario de menú con un pequeño retraso para asegurar que el DOM esté completamente cargado
+    setTimeout(() => {
+        initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
+    }, 100);
 
     // Inicializar módulos de gestión
     if (typeof CoordinatorManagement?.init === 'function' && !CoordinatorManagement.initialized) {
@@ -141,6 +145,7 @@ function initializeAdminFeatures() {
 }
 
 function initAdminInterface() {
+    console.log('[initAdminInterface] Inicializando interfaz de administración...');
     const buttons = {
         menuManagementBtn: document.getElementById('menu-management-btn'),
         userManagementBtn: document.getElementById('user-management-btn'),
@@ -149,6 +154,16 @@ function initAdminInterface() {
         backToDashboardFromUsersBtn: document.getElementById('back-to-dashboard-from-users-btn'),
         backToDashboardFromReportsBtn: document.getElementById('back-to-dashboard-from-reports-btn'),
     };
+    
+    // Verificar que los botones existan antes de continuar
+    let missingButtons = [];
+    Object.entries(buttons).forEach(([key, element]) => {
+        if (!element) missingButtons.push(key);
+    });
+    
+    if (missingButtons.length > 0) {
+        console.warn(`[initAdminInterface] ADVERTENCIA: Algunos botones no fueron encontrados: ${missingButtons.join(', ')}`);
+    }
     const sections = {
         menuManagementSection: document.getElementById('menu-management-section'),
         userManagementSection: document.getElementById('user-management-section'),
@@ -219,15 +234,38 @@ function getMondayOfGivenDate(dateInput) {
 
 function initMenuForm() {
     console.log('[initMenuForm] Inicializando formulario de menú...');
+    
+    // Paso 1: Verificar que todos los elementos necesarios existan
     const menuForm = document.getElementById('menu-form');
-    let weekStartDateInput = document.getElementById('week-start-date'); // Usar let para poder reasignar
-    const resetFormBtn = document.getElementById('reset-form-btn');
-    const daysContainer = document.getElementById('days-container');
-
-    if (!menuForm || !weekStartDateInput || !resetFormBtn || !daysContainer) {
-        console.error("[initMenuForm] ERROR: Elementos del formulario de menú no encontrados.");
+    if (!menuForm) {
+        console.error("[initMenuForm] ERROR CRÍTICO: Formulario de menú (#menu-form) no encontrado.");
+        AppUtils.showNotification("Error al inicializar el formulario de menú. Recargue la página.", "error");
         return;
     }
+    
+    // Obtener referencias a los elementos del formulario
+    let weekStartDateInput = document.getElementById('week-start-date');
+    const resetFormBtn = document.getElementById('reset-form-btn');
+    const daysContainer = document.getElementById('days-container');
+    const saveMenuBtn = document.getElementById('save-menu-btn');
+    const menuTypeInput = document.getElementById('menu-type');
+    
+    // Verificar cada elemento individual
+    let missingElements = [];
+    
+    if (!weekStartDateInput) missingElements.push('Input de fecha (#week-start-date)');
+    if (!resetFormBtn) missingElements.push('Botón de reset (#reset-form-btn)');
+    if (!daysContainer) missingElements.push('Contenedor de días (#days-container)');
+    if (!saveMenuBtn) missingElements.push('Botón de guardar (#save-menu-btn)');
+    if (!menuTypeInput) missingElements.push('Selector de tipo de menú (#menu-type)');
+    
+    if (missingElements.length > 0) {
+        console.error(`[initMenuForm] ERROR: Elementos faltantes: ${missingElements.join(', ')}`);
+        AppUtils.showNotification("Error al inicializar el formulario de menú. Faltan elementos en el DOM.", "error");
+        return;
+    }
+    
+    console.log('[initMenuForm] Todos los elementos del formulario encontrados correctamente.');
 
     // Remover listeners existentes del input de fecha para evitar duplicados
     // Clonar el input de fecha UNA VEZ para limpiar listeners si es necesario
@@ -303,6 +341,31 @@ function initMenuForm() {
     newMenuForm.addEventListener('submit', function(event) {
         event.preventDefault();
         console.log('[menuForm] Formulario enviado, guardando menú...');
+        
+        // Verificar que todos los campos requeridos estén completos
+        const menuName = document.getElementById('menu-name');
+        const weekStartDate = document.getElementById('week-start-date');
+        const menuType = document.getElementById('menu-type');
+        
+        if (!menuName || !menuName.value.trim()) {
+            console.error('[menuForm] ERROR: Nombre del menú no proporcionado');
+            AppUtils.showNotification('Por favor, ingrese un nombre para el menú', 'error');
+            return;
+        }
+        
+        if (!weekStartDate || !weekStartDate.value) {
+            console.error('[menuForm] ERROR: Fecha de inicio no proporcionada');
+            AppUtils.showNotification('Por favor, seleccione una fecha de inicio', 'error');
+            return;
+        }
+        
+        if (!menuType || !menuType.value) {
+            console.error('[menuForm] ERROR: Tipo de menú no seleccionado');
+            AppUtils.showNotification('Por favor, seleccione un tipo de menú', 'error');
+            return;
+        }
+        
+        // Si todo está bien, guardar el menú
         saveMenu();
     });
     
@@ -401,7 +464,10 @@ function generateWeekDays(selectedDateStrFromInput) {
         if (!selectedDateStrFromInput) {
             console.error('[generateWeekDays] ERROR: Fecha de entrada vacía o inválida');
             AppUtils.showNotification("Fecha inválida. Usando fecha actual como fallback.", "warning");
-            selectedDateStrFromInput = AppUtils.formatDateForInput(new Date());
+            const today = new Date();
+            const mondayOfThisWeek = getMondayOfGivenDate(today);
+            selectedDateStrFromInput = AppUtils.formatDateForInput(mondayOfThisWeek);
+            console.log('[generateWeekDays] Usando fecha actual como fallback:', selectedDateStrFromInput);
         }
         
         // Obtener el contenedor de días
@@ -559,70 +625,86 @@ function toggleAllAccordions(expand, container) {
 }
 
 function createDaySection(dayIndex, dayName, date) {
-    console.log(`[createDaySection] Creando para: dayIndex=${dayIndex}, dayName=${dayName}, dateObj=${date.toISOString()}, data-date a establecer: ${AppUtils.formatDateForInput(date)}, displayDate: ${AppUtils.formatDate(date)}`);
-    
-    const daySection = document.createElement('div');
-    daySection.className = 'day-section accordion-item card';
-    daySection.setAttribute('data-day-index', dayIndex);
-    daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
+    try {
+        console.log(`[createDaySection] Creando para: dayIndex=${dayIndex}, dayName=${dayName}, dateObj=${date.toISOString()}, data-date a establecer: ${AppUtils.formatDateForInput(date)}`);
+        
+        // Verificar que los parámetros sean válidos
+        if (dayIndex === undefined || dayIndex === null || dayName === undefined || !date) {
+            console.error(`[createDaySection] ERROR: Parámetros inválidos - dayIndex: ${dayIndex}, dayName: ${dayName}, date: ${date}`);
+            return null;
+        }
+        
+        // Crear la sección del día
+        const daySection = document.createElement('div');
+        daySection.className = 'day-section accordion-item card';
+        daySection.setAttribute('data-day-index', dayIndex);
+        daySection.setAttribute('data-date', AppUtils.formatDateForInput(date));
 
-    const accordionHeader = document.createElement('div');
-    accordionHeader.className = 'accordion-header';
-    
-    const dayLabel = document.createElement('h4');
-    dayLabel.className = 'day-label';
-    dayLabel.textContent = dayName;
-    
-    // Mejorar la visualización de la fecha con formato más claro
-    const dayDateDisplay = document.createElement('div');
-    dayDateDisplay.className = 'day-date';
-    
-    // Formato más detallado para la fecha (día, mes y año)
-    const formattedDate = new Intl.DateTimeFormat('es-ES', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    }).format(date);
-    
-    dayDateDisplay.textContent = formattedDate;
-    dayDateDisplay.setAttribute('data-full-date', date.toISOString());
-    
-    const accordionIcon = document.createElement('i');
-    accordionIcon.className = 'fas fa-chevron-down accordion-icon';
-    accordionHeader.appendChild(dayLabel);
-    accordionHeader.appendChild(dayDateDisplay);
-    accordionHeader.appendChild(accordionIcon);
+        const accordionHeader = document.createElement('div');
+        accordionHeader.className = 'accordion-header';
+        
+        const dayLabel = document.createElement('h4');
+        dayLabel.className = 'day-label';
+        dayLabel.textContent = dayName;
+        
+        // Mejorar la visualización de la fecha con formato más claro
+        const dayDateDisplay = document.createElement('div');
+        dayDateDisplay.className = 'day-date';
+        
+        // Formato más detallado para la fecha (día, mes y año)
+        const formattedDate = new Intl.DateTimeFormat('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(date);
+        
+        dayDateDisplay.textContent = formattedDate;
+        dayDateDisplay.setAttribute('data-full-date', date.toISOString());
+        
+        const accordionIcon = document.createElement('i');
+        accordionIcon.className = 'fas fa-chevron-down accordion-icon';
+        accordionHeader.appendChild(dayLabel);
+        accordionHeader.appendChild(dayDateDisplay);
+        accordionHeader.appendChild(accordionIcon);
 
-    const accordionContent = document.createElement('div');
-    accordionContent.className = 'accordion-content';
-    accordionContent.style.display = 'none';
+        const accordionContent = document.createElement('div');
+        accordionContent.className = 'accordion-content';
+        accordionContent.style.display = 'none';
 
-    const tabsCategories = document.createElement('div');
-    tabsCategories.className = 'tabs-categories';
-    const tabContentCategoriesContainer = document.createElement('div');
-    tabContentCategoriesContainer.className = 'tab-content-categories-container';
+        const tabsCategories = document.createElement('div');
+        tabsCategories.className = 'tabs-categories';
+        
+        const tabContentCategoriesContainer = document.createElement('div');
+        tabContentCategoriesContainer.className = 'tab-content-categories-container';
 
-    Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
-        const tabBtn = document.createElement('button');
-        tabBtn.type = 'button';
-        tabBtn.className = 'tab-btn-category' + (index === 0 ? ' active' : '');
-        tabBtn.textContent = categoryName;
-        tabBtn.setAttribute('data-category', categoryKey);
-        tabsCategories.appendChild(tabBtn);
+        Object.entries(AppUtils.CATEGORIES).forEach(([categoryKey, categoryName], index) => {
+            const tabBtn = document.createElement('button');
+            tabBtn.type = 'button';
+            tabBtn.className = `tab-btn-category ${index === 0 ? 'active' : ''}`;
+            tabBtn.setAttribute('data-category', categoryKey);
+            tabBtn.textContent = categoryName;
+            tabsCategories.appendChild(tabBtn);
 
-        const tabContent = document.createElement('div');
-        tabContent.className = 'tab-content-category' + (index === 0 ? ' active' : '');
-        tabContent.setAttribute('data-category', categoryKey);
-        const categorySectionDiv = createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName);
-        tabContent.appendChild(categorySectionDiv);
-        tabContentCategoriesContainer.appendChild(tabContent);
-    });
+            const tabContent = document.createElement('div');
+            tabContent.className = `tab-content-category ${index === 0 ? 'active' : ''}`;
+            tabContent.setAttribute('data-category', categoryKey);
+            
+            const categorySectionDiv = createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName);
+            tabContent.appendChild(categorySectionDiv);
+            
+            tabContentCategoriesContainer.appendChild(tabContent);
+        });
 
-    accordionContent.appendChild(tabsCategories);
-    accordionContent.appendChild(tabContentCategoriesContainer);
-    daySection.appendChild(accordionHeader);
-    daySection.appendChild(accordionContent);
-    return daySection;
+        accordionContent.appendChild(tabsCategories);
+        accordionContent.appendChild(tabContentCategoriesContainer);
+        
+        daySection.appendChild(accordionHeader);
+        daySection.appendChild(accordionContent);
+        return daySection;
+    } catch (error) {
+        console.error(`[createDaySection] ERROR: ${error.message}`, error);
+        return null;
+    }
 }
 
 function createCategorySectionDiv(dayIndex, dayName, categoryKey, categoryName) {
