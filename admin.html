@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/firebase-ui.css">
     <link rel="stylesheet" href="css/menu-type.css">
+    <link rel="stylesheet" href="css/error-message.css">
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -340,13 +341,15 @@
     <script src="js/firebase-offline.js"></script>
     
     <!-- Application Scripts -->
+    <!-- IMPORTANTE: Cargar utils.js y modelos antes que admin.js -->
     <script src="js/utils.js"></script> <!-- AppUtils para notificaciones -->
-    <script src="js/models.js"></script> <!-- Modelos de datos (pueden ser menos relevantes si todo es Firebase) -->
+    <script src="js/models.js"></script> <!-- Modelos de datos -->
     <!-- storage.js y storage-adapter.js pueden ser menos relevantes ahora -->
     <!-- <script src="js/storage.js"></script> -->
     <!-- <script src="js/storage-adapter.js"></script> -->
     
-    <script src="js/admin.js"></script>
+    <!-- Cargar admin.js al final cuando todos los demás scripts estén disponibles -->
+    <script defer src="js/admin.js"></script>
     <script src="js/debug.js"></script>
     
     <script>

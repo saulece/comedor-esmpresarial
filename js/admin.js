@@ -13,21 +13,60 @@ let currentEditingMenuId = null;
 // Flag para evitar inicialización múltiple
 let isAdminInitialized = false;
 
+// Función para esperar a que los objetos globales estén disponibles
+function waitForGlobals(globalNames, maxAttempts = 10) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        
+        function checkGlobals() {
+            attempts++;
+            const missingGlobals = globalNames.filter(name => typeof window[name] === 'undefined');
+            
+            if (missingGlobals.length === 0) {
+                console.log('[Admin] Todos los objetos globales necesarios están disponibles');
+                resolve();
+                return;
+            }
+            
+            if (attempts >= maxAttempts) {
+                console.error(`[Admin] ERROR: Después de ${maxAttempts} intentos, siguen faltando objetos globales: ${missingGlobals.join(', ')}`);
+                reject(new Error(`Faltan objetos globales: ${missingGlobals.join(', ')}`));
+                return;
+            }
+            
+            console.log(`[Admin] Intento ${attempts}/${maxAttempts}: Esperando objetos globales: ${missingGlobals.join(', ')}`);
+            setTimeout(checkGlobals, 200);
+        }
+        
+        checkGlobals();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Admin DOMContentLoaded");
     
-    // Verificar que todos los scripts necesarios estén cargados
+    // Esperar a que los objetos globales estén disponibles
     const requiredGlobals = ['AppUtils', 'FirebaseMenuModel'];
-    const missingGlobals = requiredGlobals.filter(name => typeof window[name] === 'undefined');
     
-    if (missingGlobals.length > 0) {
-        console.error(`[Admin] ERROR: Faltan objetos globales necesarios: ${missingGlobals.join(', ')}`);
-        alert(`Error al cargar la aplicación. Faltan componentes necesarios: ${missingGlobals.join(', ')}. Por favor, recargue la página.`);
-        return;
-    }
-    
-    // Iniciar la sesión de administrador
-    checkAdminSession();
+    waitForGlobals(requiredGlobals)
+        .then(() => {
+            // Iniciar la sesión de administrador cuando todos los objetos estén disponibles
+            checkAdminSession();
+        })
+        .catch(error => {
+            console.error(`[Admin] ERROR: ${error.message}`);
+            // Mostrar un mensaje de error más amigable al usuario
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'error-message';
+            errorMessage.innerHTML = `
+                <h2>Error al cargar la aplicación</h2>
+                <p>${error.message}</p>
+                <p>Por favor, recargue la página o contacte al administrador del sistema.</p>
+                <button onclick="location.reload()">Recargar página</button>
+            `;
+            document.body.innerHTML = '';
+            document.body.appendChild(errorMessage);
+        });
 });
 
 function checkAdminSession() {
