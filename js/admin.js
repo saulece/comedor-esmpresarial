@@ -15,6 +15,18 @@ let isAdminInitialized = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Admin DOMContentLoaded");
+    
+    // Verificar que todos los scripts necesarios estén cargados
+    const requiredGlobals = ['AppUtils', 'FirebaseMenuModel'];
+    const missingGlobals = requiredGlobals.filter(name => typeof window[name] === 'undefined');
+    
+    if (missingGlobals.length > 0) {
+        console.error(`[Admin] ERROR: Faltan objetos globales necesarios: ${missingGlobals.join(', ')}`);
+        alert(`Error al cargar la aplicación. Faltan componentes necesarios: ${missingGlobals.join(', ')}. Por favor, recargue la página.`);
+        return;
+    }
+    
+    // Iniciar la sesión de administrador
     checkAdminSession();
 });
 
@@ -106,10 +118,11 @@ function initializeAdminFeatures() {
     console.log('Inicializando funcionalidades de administración...');
     initAdminInterface();
     
-    // Inicializar el formulario de menú con un pequeño retraso para asegurar que el DOM esté completamente cargado
+    // Inicializar el formulario de menú con un retraso mayor para asegurar que el DOM esté completamente cargado
     setTimeout(() => {
+        console.log('Intentando inicializar el formulario de menú...');
         initMenuForm(); // Incluye la delegación de eventos para el formulario de menú
-    }, 100);
+    }, 500);
 
     // Inicializar módulos de gestión
     if (typeof CoordinatorManagement?.init === 'function' && !CoordinatorManagement.initialized) {
@@ -235,7 +248,7 @@ function getMondayOfGivenDate(dateInput) {
 function initMenuForm() {
     console.log('[initMenuForm] Inicializando formulario de menú...');
     
-    // Paso 1: Verificar que todos los elementos necesarios existan
+    // Paso 1: Verificar que el formulario exista
     const menuForm = document.getElementById('menu-form');
     if (!menuForm) {
         console.error("[initMenuForm] ERROR CRÍTICO: Formulario de menú (#menu-form) no encontrado.");
@@ -243,17 +256,58 @@ function initMenuForm() {
         return;
     }
     
-    // Obtener referencias a los elementos del formulario
-    let weekStartDateInput = document.getElementById('week-start-date');
-    const resetFormBtn = document.getElementById('reset-form-btn');
-    const daysContainer = document.getElementById('days-container');
-    const saveMenuBtn = document.getElementById('save-menu-btn');
-    const menuTypeInput = document.getElementById('menu-type');
+    console.log('[initMenuForm] Formulario encontrado, buscando elementos internos...');
     
-    // Verificar cada elemento individual
+    // Paso 2: Buscar elementos del formulario de manera más robusta
+    // Primero intentamos con querySelector dentro del formulario, luego con getElementById como respaldo
+    let weekStartDateInput = menuForm.querySelector('#week-start-date');
+    if (!weekStartDateInput) {
+        weekStartDateInput = document.getElementById('week-start-date');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #week-start-date');
+    }
+    
+    let resetFormBtn = menuForm.querySelector('#reset-form-btn');
+    if (!resetFormBtn) {
+        resetFormBtn = document.getElementById('reset-form-btn');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #reset-form-btn');
+    }
+    
+    let daysContainer = menuForm.querySelector('#days-container');
+    if (!daysContainer) {
+        daysContainer = document.getElementById('days-container');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #days-container');
+    }
+    
+    let saveMenuBtn = menuForm.querySelector('#save-menu-btn');
+    if (!saveMenuBtn) {
+        saveMenuBtn = document.getElementById('save-menu-btn');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #save-menu-btn');
+    }
+    
+    let menuTypeInput = menuForm.querySelector('#menu-type');
+    if (!menuTypeInput) {
+        menuTypeInput = document.getElementById('menu-type');
+        console.log('[initMenuForm] Usando método alternativo para encontrar #menu-type');
+    }
+    
+    // Verificar cada elemento individual y mostrar información detallada para depuración
+    console.log('[initMenuForm] Verificando elementos del formulario:');
+    console.log(`- weekStartDateInput: ${weekStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    console.log(`- resetFormBtn: ${resetFormBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    console.log(`- daysContainer: ${daysContainer ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    console.log(`- saveMenuBtn: ${saveMenuBtn ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    console.log(`- menuTypeInput: ${menuTypeInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    
+    // Crear una lista de elementos faltantes
     let missingElements = [];
     
-    if (!weekStartDateInput) missingElements.push('Input de fecha (#week-start-date)');
+    if (!weekStartDateInput) {
+        missingElements.push('Input de fecha (#week-start-date)');
+        // Intento alternativo de encontrar el elemento
+        const altWeekStartDateInput = document.querySelector('#menu-form #week-start-date');
+        console.log(`Intento alternativo de encontrar #week-start-date: ${altWeekStartDateInput ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    }
+    
     if (!resetFormBtn) missingElements.push('Botón de reset (#reset-form-btn)');
     if (!daysContainer) missingElements.push('Contenedor de días (#days-container)');
     if (!saveMenuBtn) missingElements.push('Botón de guardar (#save-menu-btn)');
@@ -262,6 +316,10 @@ function initMenuForm() {
     if (missingElements.length > 0) {
         console.error(`[initMenuForm] ERROR: Elementos faltantes: ${missingElements.join(', ')}`);
         AppUtils.showNotification("Error al inicializar el formulario de menú. Faltan elementos en el DOM.", "error");
+        
+        // Mostrar el HTML del formulario para depuración
+        console.log('[initMenuForm] HTML del formulario para depuración:');
+        console.log(menuForm.outerHTML);
         return;
     }
     
@@ -470,10 +528,30 @@ function generateWeekDays(selectedDateStrFromInput) {
             console.log('[generateWeekDays] Usando fecha actual como fallback:', selectedDateStrFromInput);
         }
         
-        // Obtener el contenedor de días
-        const daysContainer = document.getElementById('days-container');
+        // Verificar que el contenedor de días exista antes de continuar
+        let daysContainer = document.getElementById('days-container');
         if (!daysContainer) {
-            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado.");
+            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado. Creando uno temporal...");
+            
+            // Si el contenedor no existe, intentamos crearlo
+            const menuForm = document.getElementById('menu-form');
+            if (menuForm) {
+                const tempDaysContainer = document.createElement('div');
+                tempDaysContainer.id = 'days-container';
+                menuForm.insertBefore(tempDaysContainer, menuForm.querySelector('.form-actions'));
+                console.log('[generateWeekDays] Contenedor de días temporal creado.');
+                
+                // Actualizar la referencia al contenedor recién creado
+                daysContainer = tempDaysContainer;
+            } else {
+                console.error("[generateWeekDays] ERROR: No se pudo crear el contenedor de días porque el formulario no existe.");
+                return;
+            }
+        }
+        
+        // Verificar nuevamente que el contenedor exista
+        if (!daysContainer) {
+            console.error("[generateWeekDays] ERROR: Contenedor de días (#days-container) no encontrado aún después de intentar crearlo.");
             return;
         }
 
