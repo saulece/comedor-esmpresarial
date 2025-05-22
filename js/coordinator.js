@@ -539,12 +539,24 @@ function displayMenuForCoordinator(menu, container) {
 }
 // Mapeo global de categorías para ser usado por displayMenuForCoordinator
 const CATEGORIES = {
+    // Categorías para comidas
     'plato_fuerte': 'Platos Fuertes',
     'bebida': 'Bebidas',
-    // ... puedes añadir más categorías aquí si las usas en admin.js
     'entrada': 'Entradas',
+    'guarnicion': 'Guarniciones',
     'postre': 'Postres',
-    'guarnicion': 'Guarniciones'
+    'sopa': 'Sopas',
+    'ensalada': 'Ensaladas',
+    
+    // Categorías para desayunos
+    'pan_dulce': 'Pan Dulce',
+    'cereal': 'Cereales',
+    'fruta': 'Frutas',
+    'huevos': 'Huevos',
+    'lacteos': 'Lácteos',
+    'pan_salado': 'Pan Salado',
+    'proteina': 'Proteínas',
+    'complemento': 'Complementos'
 };
 
 
